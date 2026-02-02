@@ -15,7 +15,7 @@ ScreenGui.Parent = player:WaitForChild("PlayerGui")
 
 local Sound = Instance.new("Sound")
 Sound.SoundId = "rbxassetid://14145620056"
-Sound.Volume = 0.7
+Sound.Volume = 0.5
 Sound.Looped = true
 Sound.Parent = ScreenGui
 Sound:Play()
@@ -808,7 +808,7 @@ Tab:AddButton({
                     local humanoid = character:FindFirstChildOfClass("Humanoid")
                     local animator = humanoid and humanoid:FindFirstChildOfClass("Animator")
                     if animator then
-                        local anim = Instance.new("Animasyon")
+                        local anim = Instance.new("Animation")
                         anim.AnimationId = "rbxassetid://2410679501"
                         local track = animator:LoadAnimation(anim)
                         track:Play()
@@ -991,6 +991,10 @@ Tab:AddParagraph({ "os scripts FE foi patched,ent so a skin que e FE e o martelo
 -- Full updated stalk/view script
 local FunTab = Window:MakeTab({"Fun 📷", "rbxassetid://105212753583689"})
 
+-- ensure toggles exist early to avoid nil reference errors
+local viewToggle, stalkToggle = nil, nil
+
+
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local Workspace = game:GetService("Workspace")
@@ -1083,7 +1087,7 @@ local function setStalkerState(isStalking)
                 pcall(function() part.LocalTransparencyModifier = transparencyValue end)
             end
             pcall(function() part.CanCollide = canCollideValue end)
-        elseif part:IsA("Gömlek") or part:IsA("Pantolonlar") then
+        elseif part:IsA("Shirt") or part:IsA("Pants") then
             pcall(function() part.Transparency = transparencyValue end)
         end
     end
@@ -1812,7 +1816,7 @@ TabNuke:AddToggle({
                     
                     task.wait(0.3)
                     
-                    local newAnim = Instance.new("Animasyon")
+                    local newAnim = Instance.new("Animation")
                     newAnim.AnimationId = "rbxassetid://70883871260184"
                     
                     skyboxTrack = humanoid:LoadAnimation(newAnim)
@@ -1821,7 +1825,7 @@ TabNuke:AddToggle({
                     
                     task.wait(0.5)
                     
-                    local plankAnim = Instance.new("Animasyon")
+                    local plankAnim = Instance.new("Animation")
                     plankAnim.AnimationId = "rbxassetid://3695333486"
                     rigidTrack = humanoid:LoadAnimation(plankAnim)
                     rigidTrack.Priority = Enum.AnimationPriority.Movement
@@ -1929,7 +1933,7 @@ TabNuke:AddToggle({
                     
                     task.wait(0.3)
                     
-                    local newAnim = Instance.new("Animasyon")
+                    local newAnim = Instance.new("Animation")
                     newAnim.AnimationId = "rbxassetid://70883871260184"
                     
                     nukeFlashTrack = humanoid:LoadAnimation(newAnim)
@@ -1941,7 +1945,7 @@ TabNuke:AddToggle({
                     
                     task.wait(0.3)
                     
-                    local plankAnim = Instance.new("Animasyon")
+                    local plankAnim = Instance.new("Animation")
                     plankAnim.AnimationId = "rbxassetid://3695333486"
                     flashRigidTrack = humanoid:LoadAnimation(plankAnim)
                     flashRigidTrack.Priority = Enum.AnimationPriority.Movement
@@ -2122,7 +2126,7 @@ TabNuke:AddToggle({
                     
                     task.wait(0.3)
                     
-                    local newAnim = Instance.new("Animasyon")
+                    local newAnim = Instance.new("Animation")
                     newAnim.AnimationId = "rbxassetid://70883871260184"
                     
                     _G.CurrentTrack = humanoid:LoadAnimation(newAnim)
@@ -2132,7 +2136,7 @@ TabNuke:AddToggle({
                     task.wait(0.5)
                     
                     local PlankingId = "rbxassetid://3695333486"
-                    local plankAnim = Instance.new("Animasyon")
+                    local plankAnim = Instance.new("Animation")
                     plankAnim.AnimationId = PlankingId
                     _G.RigidTrack = humanoid:LoadAnimation(plankAnim)
                     _G.RigidTrack.Priority = Enum.AnimationPriority.Movement
@@ -5413,6 +5417,247 @@ Tab:AddButton({
             end
         end)
 
+--[[
+    BROOKHAVEN SELECTABLE JOB SYSTEM (OFFICIAL COMPATIBILITY VERSION)
+    Açıklama: Brookhaven'ın orijinal meslek menüsü (Job Menu) mantığıyla çalışır.
+    İsim (DisplayName) değiştirmez, sadece resmi Job sistemini tetikler.
+    Jobs2.txt ve jobnam.txt verileriyle tam uyumludur.
+]]
+
+local plr = game:GetService("Players").LocalPlayer
+local rs = game:GetService("ReplicatedStorage")
+
+-- Brookhaven'ın resmi Remote yapısı (jobnam.txt baz alınarak)
+local Remotes = require(rs:WaitForChild("Packages"):WaitForChild("Remotes"))
+
+-- İş Listesi (Jobs2.txt verilerinden derlenmiştir)
+local JobsData = {
+    {Name = "VIP", Icon = "18458871100"},
+    {Name = "S.W.A.T.", Icon = "5214218197"},
+    {Name = "Police", Icon = "9893743955"},
+    {Name = "Military Police", Icon = "9892927005"},
+    {Name = "Astronaut", Icon = "7592172566"},
+    {Name = "Agency", Icon = "8416982159"},
+    {Name = "Starbrooks", Icon = "7607407475"},
+    {Name = "Spy", Icon = "6241338674"},
+    {Name = "Hospital", Icon = "5183367120"},
+    {Name = "Firefighter", Icon = "5183368146"},
+    {Name = "Bank", Icon = "5183368649"},
+    {Name = "Actor", Icon = "5220910709"},
+    {Name = "Dancer", Icon = "5650351691"},
+    {Name = "Singer", Icon = "5288270536"},
+    {Name = "Teacher", Icon = "5183367647"},
+    {Name = "Student", Icon = "5183367956"},
+    {Name = "Bodyguard", Icon = "5650351950"},
+    {Name = "Grocery Store", Icon = "5183368377"},
+    {Name = "Burger Barn", Icon = "6241436839"},
+    {Name = "Animal Rescue", Icon = "18124970215"},
+    {Name = "Veterinarian", Icon = "18124980670"},
+    {Name = "Taxi Driver", Icon = "7397453524"},
+    {Name = "Race Car Driver", Icon = "7592171797"},
+    {Name = "Construction", Icon = "14544396959"},
+    {Name = "UTuber", Icon = "52882719"}
+}
+
+-- Ana Panel
+local JobMenu = Instance.new("ScrollingFrame")
+JobMenu.Name = "JobSelectorMenu"
+JobMenu.Size = UDim2.new(0, 220, 0, 300)
+JobMenu.Position = UDim2.new(1, 10, 0, 0)
+JobMenu.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+JobMenu.BorderSizePixel = 0
+JobMenu.CanvasSize = UDim2.new(0, 0, 0, #JobsData * 40)
+JobMenu.ScrollBarThickness = 6
+JobMenu.Visible = false
+JobMenu.Parent = LeftFrame -- GUI panelinizin yolu (Script'in çalıştığı yerdeki ana frame)
+Instance.new("UICorner", JobMenu).CornerRadius = UDim.new(0, 10)
+
+-- Ana Aç/Kapat Butonu
+local MainBtn = Instance.new("TextButton")
+MainBtn.Name = "OpenJobMenuBtn"
+MainBtn.Size = UDim2.new(0.96, 0, 0, 42)
+MainBtn.BackgroundColor3 = Color3.fromRGB(255, 170, 0)
+MainBtn.Text = "💼 MESLEK SEÇİMİ (JOB)"
+MainBtn.TextColor3 = Color3.new(1, 1, 1)
+MainBtn.Font = Enum.Font.GothamBold
+MainBtn.TextSize = 14
+MainBtn.Parent = LeftFrame
+Instance.new("UICorner", MainBtn)
+
+MainBtn.MouseButton1Click:Connect(function()
+    JobMenu.Visible = not JobMenu.Visible
+end)
+
+-- Meslek Ayarlama Fonksiyonu (Resmi Remotelar kullanılarak)
+local function SetJob(jobName, jobIcon)
+    -- Brookhaven'ın orijinal iş verme ve çıkma sistemini tetikler
+    -- jobnam.txt'deki Remotes.fireServer("GiveJobUIMenu", jobName) mantığı
+    
+    pcall(function()
+        -- Önce varsa mevcut işten çık (Temiz geçiş için)
+        Remotes.fireServer("QuitJob", jobName)
+        task.wait(0.1)
+        -- Yeni işi resmi olarak al
+        Remotes.fireServer("GiveJobUIMenu", jobName)
+    end)
+
+    -- Ek görsel güncelleme (Billboard/Kafa Yazısı için ekstra kontrol)
+    local char = plr.Character
+    if char and char:FindFirstChild("Head") then
+        for _, gui in ipairs(char.Head:GetChildren()) do
+            if gui:IsA("BillboardGui") and (gui.Name:lower():find("job") or gui.Name:lower():find("rank")) then
+                local textLabel = gui:FindFirstChildWhichIsA("TextLabel")
+                local imageLabel = gui:FindFirstChildWhichIsA("ImageLabel")
+                if textLabel then textLabel.Text = jobName end
+                if imageLabel then imageLabel.Image = "rbxassetid://" .. jobIcon end
+            end
+        end
+    end
+    
+    print("Resmi Brookhaven Mesleği Seçildi: " .. jobName)
+    JobMenu.Visible = false
+end
+
+-- Butonları Oluşturma (İkonlu)
+for i, data in ipairs(JobsData) do
+    local container = Instance.new("TextButton")
+    container.Size = UDim2.new(1, -15, 0, 35)
+    container.Position = UDim2.new(0, 7, 0, (i-1) * 40)
+    container.BackgroundColor3 = (data.Name == "VIP") and Color3.fromRGB(180, 140, 0) or Color3.fromRGB(40, 40, 40)
+    container.BorderSizePixel = 0
+    container.Text = "" 
+    container.Parent = JobMenu
+    Instance.new("UICorner", container).CornerRadius = UDim.new(0, 6)
+
+    -- Meslek İkonu
+    local iconImg = Instance.new("ImageLabel")
+    iconImg.Size = UDim2.new(0, 25, 0, 25)
+    iconImg.Position = UDim2.new(0, 5, 0.5, -12)
+    iconImg.BackgroundTransparency = 1
+    iconImg.Image = "rbxassetid://" .. data.Icon
+    iconImg.Parent = container
+
+    -- Meslek Metni
+    local jobText = Instance.new("TextLabel")
+    jobText.Size = UDim2.new(1, -40, 1, 0)
+    jobText.Position = UDim2.new(0, 35, 0, 0)
+    jobText.BackgroundTransparency = 1
+    jobText.Text = data.Name
+    jobText.TextColor3 = Color3.new(1, 1, 1)
+    jobText.Font = Enum.Font.GothamMedium
+    jobText.TextSize = 12
+    jobText.TextXAlignment = Enum.TextXAlignment.Left
+    jobText.Parent = container
+
+    container.MouseButton1Click:Connect(function()
+        SetJob(data.Name, data.Icon)
+    end)
+end
+
+--[[
+    BROOKHAVEN CMDR TERMINAL & FULL REPLICA TRIGGER
+    Açıklama: Brookhaven'ın dahili Cmdr ve Replica sistemlerini tam kapasite tetikler.
+    Permission ve Server-Side tetiklemeleri için Replica Remote'larını kullanır.
+]]
+
+local plr = game:GetService("Players").LocalPlayer
+local rs = game:GetService("ReplicatedStorage")
+local uis = game:GetService("UserInputService")
+
+-- Brookhaven Resmi Paketleri, Remotelar ve Replica Modülleri
+local Packages = rs:WaitForChild("Packages")
+local Remotes = require(Packages:WaitForChild("Remotes"))
+
+-- Replica Tetikleyicisi (Brookhaven'ın veri senkronizasyon sistemi)
+-- ReplicaService genellikle ReplicaRemoteEvents üzerinden çalışır
+local ReplicaRemote = rs:FindFirstChild("ReplicaRemoteEvents") or rs:FindFirstChild("Replica_RemoteEvent")
+
+-- GUI Oluşturma
+local CmdrBtn = Instance.new("TextButton")
+CmdrBtn.Name = "OpenOfficialCmdr"
+CmdrBtn.Size = UDim2.new(0.96, 0, 0, 45)
+CmdrBtn.BackgroundColor3 = Color3.fromRGB(30, 0, 60) -- Koyu Terminal Moru
+CmdrBtn.BorderSizePixel = 0
+CmdrBtn.Text = "⌨️ CMDR TERMINAL (FULL REPLICA)"
+CmdrBtn.TextColor3 = Color3.new(1, 1, 1)
+CmdrBtn.Font = Enum.Font.Code
+CmdrBtn.TextSize = 13
+CmdrBtn.Parent = LeftFrame -- GUI panelinizin yolu
+
+local corner = Instance.new("UICorner", CmdrBtn)
+corner.CornerRadius = UDim.new(0, 8)
+
+-- Cmdr ve Replica Tetikleme Fonksiyonu
+local function TriggerOfficialCmdr()
+    print("Brookhaven Cmdr & Replica Tetikleniyor...")
+
+    -- 1. ADIM: Permission (Yetki) ve Replica Senkronizasyonu
+    -- ReplicaService üzerinden sunucuya (ServerScriptService tetiklemesi gibi) veri gönderilir
+    pcall(function()
+        if ReplicaRemote then
+            -- Brookhaven'ın yetki verilerini Replica üzerinden güncelleme denemesi
+            -- Bu, sunucu tarafında "Yetkili" bayrağını tetikler
+            Remotes.fireServer("Replica_RequestValue", {
+                Type = "PermissionUpdate",
+                Key = "AdminLevel",
+                Value = 5 -- En üst yetki seviyesi
+            })
+        end
+        
+        -- Resmi yetki ve Cmdr açılış senkronizasyonu
+        Remotes.fireServer("CheckPermission", "Cmdr")
+        Remotes.fireServer("AdminRequest", "Console")
+        Remotes.fireServer("CmdrRemoteEvent", {
+            Action = "Open",
+            Source = "AdminUI"
+        })
+    end)
+
+    -- 2. ADIM: Cmdr UI'ı (Client) Zorla Çağırma
+    pcall(function()
+        -- Cmdr paketini modül olarak yükle ve 'Show' metodunu çağır
+        local CmdrModule = rs:FindFirstChild("Cmdr", true)
+        if CmdrModule then
+            local CmdrClient = require(CmdrModule:WaitForChild("CmdrClient"))
+            if CmdrClient then
+                -- Eğer arayüz kapalıysa zorla açar, açıksa gizler
+                CmdrClient:Show() 
+            end
+        end
+    end)
+    
+    -- 3. ADIM: ServerScriptService Tetiklemesi İçin Remote Invoke
+    -- Bazı Brookhaven sürümlerinde Cmdr açılışı bir Function (Invoke) gerektirir
+    task.spawn(function()
+        pcall(function()
+            local cmdrFunc = rs:FindFirstChild("GetCmdrPermissions", true)
+            if cmdrFunc and cmdrFunc:IsA("RemoteFunction") then
+                cmdrFunc:InvokeServer()
+            end
+        end)
+    end)
+end
+
+-- Buton Tıklama
+CmdrBtn.MouseButton1Click:Connect(function()
+    TriggerOfficialCmdr()
+    
+    -- Efekt
+    CmdrBtn.Text = "EXECUTING CMDR..."
+    CmdrBtn.BackgroundColor3 = Color3.fromRGB(0, 100, 200)
+    task.wait(1)
+    CmdrBtn.Text = "⌨️ CMDR TERMINAL (FULL REPLICA)"
+    CmdrBtn.BackgroundColor3 = Color3.fromRGB(30, 0, 60)
+end)
+
+-- F2 Kısayol Desteği
+uis.InputBegan:Connect(function(input, gpe)
+    if not gpe and input.KeyCode == Enum.KeyCode.F2 then
+        TriggerOfficialCmdr()
+    end
+end)
+
+print("Cmdr Replica Script Yüklendi. Tetiklemek için butona basın veya F2 kullanın.")
         -- 6. ARAÇLAR (Car Spawner - Daha Küçük Liste)
 
         -- === START: GetCar compatibility helper ===
@@ -5494,7 +5739,7 @@ Tab:AddButton({
 })
 
 Tab:AddButton({
-    Title = "MoneyGun",
+    Title = "💸 Money Gun",
     Locked = false,
     Callback = function()
         local rep = game:GetService("ReplicatedStorage")
@@ -5513,25 +5758,24 @@ Tab:AddButton({
         end
 
         local ok, err = pcall(function()
-            -- Prefer an explicit GetItem remote if it exists (several possible spellings)
             local re = rep:FindFirstChild("RE") or rep:FindFirstChild("Remotes") or rep
             local candidates = {"GetItem", "Getİtem", "Get_Item", "GetTool", "GetToolToServer"}
+
             for _, name in ipairs(candidates) do
                 local r = re:FindFirstChild(name)
                 if r then
                     if r.InvokeServer then
                         r:InvokeServer(itemName)
-                        tryNotify("MoneyGun", "Requested via "..name.." (InvokeServer).")
+                        tryNotify("💸 Money Gun", "Requested via "..name.." ⚡")
                         return
                     elseif r.FireServer then
                         r:FireServer(itemName)
-                        tryNotify("MoneyGun", "Requested via "..name.." (FireServer).")
+                        tryNotify("💸 Money Gun", "Requested via "..name.." 🔥")
                         return
                     end
                 end
             end
 
-            -- Fallback: use the same trigger used by other items in this script
             local trigger = re:FindFirstChild("1Playe1rTrigge1rEven1t") or rep:FindFirstChild("1Playe1rTrigge1rEven1t")
             if trigger then
                 local args = {
@@ -5539,40 +5783,39 @@ Tab:AddButton({
                     [2] = itemName,
                     [3] = localPlayer
                 }
+
                 if trigger.FireServer then
                     trigger:FireServer(unpack(args))
-                    tryNotify("MoneyGun", "Requested via 1Playe1rTrigge1rEven1t (FireServer).")
+                    tryNotify("💸 Money Gun", "Triggered successfully 🎯")
                     return
                 elseif trigger.InvokeServer then
                     trigger:InvokeServer(unpack(args))
-                    tryNotify("MoneyGun", "Requested via 1Playe1rTrigge1rEven1t (InvokeServer).")
+                    tryNotify("💸 Money Gun", "Triggered successfully ⚙️")
                     return
                 end
             end
 
-            -- Very last resort: try a generic Remotes/GetItem on top-level Remotes folder
             local topRemotes = rep:FindFirstChild("Remotes")
             if topRemotes then
                 local r = topRemotes:FindFirstChild("GetItem") or topRemotes:FindFirstChild("Getİtem")
                 if r and r.FireServer then
                     r:FireServer(itemName)
-                    tryNotify("MoneyGun", "Requested via Remotes/GetItem (FireServer).")
+                    tryNotify("💸 Money Gun", "Requested via Remotes 📡")
                     return
                 end
             end
 
-            -- If nothing worked, notify user
-            tryNotify("MoneyGun", "Hayır suitable remote found to request MoneyGun.")
+            tryNotify("💸 Money Gun", "No suitable remote found ❌")
         end)
 
         if not ok then
-            tryNotify("MoneyGun", "Error requesting MoneyGun: " .. tostring(err))
+            tryNotify("💸 Money Gun", "Error: "..tostring(err).." ⚠️")
         end
     end
 })
 
 Tab:AddButton({
-    Title = "Planör",
+    Title = "🪂 Glider",
     Locked = false,
     Callback = function()
         local args = {
@@ -5580,13 +5823,12 @@ Tab:AddButton({
             [2] = "Glider",
             [3] = game:GetService("Players").LocalPlayer
         }
-
         game:GetService("ReplicatedStorage").RE:FindFirstChild("1Playe1rTrigge1rEven1t"):FireServer(unpack(args))
     end
 })
 
 Tab:AddButton({
-    Title = "Snowball Cannon",
+    Title = "❄️ Snowball Cannon",
     Locked = false,
     Callback = function()
         local args = {
@@ -5594,13 +5836,12 @@ Tab:AddButton({
             [2] = "SnowballCannon",
             [3] = game.Players.LocalPlayer
         }
-
         game:GetService("ReplicatedStorage").RE["1Playe1rTrigge1rEven1t"]:FireServer(unpack(args))
     end
 })
 
 Tab:AddButton({
-    Title = "SnowBall",
+    Title = "☃️ Snowball",
     Locked = false,
     Callback = function()
         local args = {
@@ -5608,27 +5849,40 @@ Tab:AddButton({
             [2] = "SnowBall",
             [3] = game.Players.LocalPlayer
         }
-
         game:GetService("ReplicatedStorage").RE["1Playe1rTrigge1rEven1t"]:FireServer(unpack(args))
     end
 })
 
 Tab:AddButton({
-    Title = "Lollipop Peppermint",
+    Title = "🍭 Lollipop Peppermint",
     Locked = false,
     Callback = function()
-        local args = {
-            [1] = "AcceptedToolToServer",
-            [2] = "Lollipop",
-            [3] = game.Players.LocalPlayer
+        local Players = game:GetService("Players")
+        local ReplicatedStorage = game:GetService("ReplicatedStorage")
+        local LocalPlayer = Players.LocalPlayer
+
+        -- olası item adları (Brookhaven’de görünüşleri farklı olabilir)
+        local possibleNames = {
+            "LollipopPeppermint",
+            "Lollipop_Peppermint",
+            "Lollipop",
+            "PeppermintLollipop"
         }
 
-        game:GetService("ReplicatedStorage").RE["1Playe1rTrigge1rEven1t"]:FireServer(unpack(args))
+        local re = ReplicatedStorage:FindFirstChild("RE")
+        local trigger = re and re:FindFirstChild("1Playe1rTrigge1rEven1t")
+        if not trigger then return end
+
+        for _, itemName in ipairs(possibleNames) do
+            pcall(function()
+                trigger:FireServer("AcceptedToolToServer", itemName, LocalPlayer)
+            end)
+        end
     end
 })
 
 Tab:AddButton({
-    Title = "canhão",
+    Title = "💣 Cannon",
     Locked = false,
     Callback = function()
         local args = {
@@ -5636,13 +5890,12 @@ Tab:AddButton({
             [2] = "Cannon",
             [3] = game:GetService("Players").LocalPlayer
         }
-
         game:GetService("ReplicatedStorage").RE:FindFirstChild("1Playe1rTrigge1rEven1t"):FireServer(unpack(args))
     end
 })
 
 Tab:AddButton({
-    Title = "Bola de basquete dourada",
+    Title = "🏀 Golden Basketball",
     Locked = false,
     Callback = function()
         local args = {
@@ -5650,13 +5903,12 @@ Tab:AddButton({
             [2] = "GoldenBasketball",
             [3] = game:GetService("Players").LocalPlayer
         }
-
         game:GetService("ReplicatedStorage").RE:FindFirstChild("1Playe1rTrigge1rEven1t"):FireServer(unpack(args))
     end
 })
 
 Tab:AddButton({
-    Title = "Balão de Agua",
+    Title = "💦 Water Balloon",
     Locked = false,
     Callback = function()
         local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -5666,7 +5918,7 @@ Tab:AddButton({
 })
 
 Tab:AddButton({
-    Title = "Lançador de ovo",
+    Title = "🥚 Egg Launcher",
     Locked = false,
     Callback = function()
         local args = {
@@ -5674,13 +5926,12 @@ Tab:AddButton({
             [2] = "EggLauncher",
             [3] = game:GetService("Players").LocalPlayer
         }
-
         game:GetService("ReplicatedStorage").RE:FindFirstChild("1Playe1rTrigge1rEven1t"):FireServer(unpack(args))
     end
 })
 
 Tab:AddButton({
-    Title = "foice",
+    Title = "🪓 Scythe",
     Locked = false,
     Callback = function()
         local args = {
@@ -5688,13 +5939,129 @@ Tab:AddButton({
             [2] = "Scythe",
             [3] = game:GetService("Players").LocalPlayer
         }
-
         game:GetService("ReplicatedStorage").RE:FindFirstChild("1Playe1rTrigge1rEven1t"):FireServer(unpack(args))
     end
 })
 
 Tab:AddButton({
-    Title = "Cristal Verde",
+    Title = "💎 Crystals",
+    Locked = false,
+    Callback = function()
+        local Players = game:GetService("Players")
+        local ReplicatedStorage = game:GetService("ReplicatedStorage")
+        local LocalPlayer = Players.LocalPlayer
+
+        local args = {
+            [1] = "AcceptedToolToServer",
+            [2] = "Crystals",
+            [3] = LocalPlayer
+        }
+
+        local re = ReplicatedStorage:FindFirstChild("RE")
+        if re and re:FindFirstChild("1Playe1rTrigge1rEven1t") then
+            re["1Playe1rTrigge1rEven1t"]:FireServer(unpack(args))
+        end
+    end
+})
+
+Tab:AddButton({
+    Title = "📖 Agency Book",
+    Locked = false,
+    Callback = function()
+        local Players = game:GetService("Players")
+        local ReplicatedStorage = game:GetService("ReplicatedStorage")
+        local LocalPlayer = Players.LocalPlayer
+
+        local args = {
+            [1] = "AcceptedToolToServer",
+            [2] = "AgencyBook",
+            [3] = LocalPlayer
+        }
+
+        local re = ReplicatedStorage:FindFirstChild("RE")
+        if re and re:FindFirstChild("1Playe1rTrigge1rEven1t") then
+            re["1Playe1rTrigge1rEven1t"]:FireServer(unpack(args))
+        end
+    end
+})
+
+Tab:AddButton({
+    Title = "🔑 Power Key Card",
+    Locked = false,
+    Callback = function()
+        local Players = game:GetService("Players")
+        local ReplicatedStorage = game:GetService("ReplicatedStorage")
+        local LocalPlayer = Players.LocalPlayer
+
+        local args = {
+            [1] = "AcceptedToolToServer",
+            [2] = "PowerKeyCard",
+            [3] = LocalPlayer
+        }
+
+        local re = ReplicatedStorage:FindFirstChild("RE")
+        if re and re:FindFirstChild("1Playe1rTrigge1rEven1t") then
+            re["1Playe1rTrigge1rEven1t"]:FireServer(unpack(args))
+        end
+    end
+})
+
+Tab:AddButton({
+    Title = "Arch Power Expired",
+    Locked = false,
+    Callback = function()
+        local Players = game:GetService("Players")
+        local ReplicatedStorage = game:GetService("ReplicatedStorage")
+        local LocalPlayer = Players.LocalPlayer
+
+        local args = {
+            [1] = "AcceptedToolToServer",
+            [2] = "ArchPowerExpired",
+            [3] = LocalPlayer
+        }
+
+        local re = ReplicatedStorage:FindFirstChild("RE")
+        if re and re:FindFirstChild("1Playe1rTrigge1rEven1t") then
+            re["1Playe1rTrigge1rEven1t"]:FireServer(unpack(args))
+        end
+    end
+})
+
+Tab:AddButton({
+    Title = "🧺 Candy Basket",
+    Locked = false,
+    Callback = function()
+        local Players = game:GetService("Players")
+        local ReplicatedStorage = game:GetService("ReplicatedStorage")
+        local LocalPlayer = Players.LocalPlayer
+
+        local possibleNames = {
+            "CandyBasket",
+            "CandyBasketTool",
+            "Candy_Basket"
+        }
+
+        local re = ReplicatedStorage:FindFirstChild("RE")
+        local trigger = re and re:FindFirstChild("1Playe1rTrigge1rEven1t")
+
+        if not trigger then return end
+
+        for _, itemName in ipairs(possibleNames) do
+            local args = {
+                [1] = "AcceptedToolToServer",
+                [2] = itemName,
+                [3] = LocalPlayer
+            }
+
+            pcall(function()
+                trigger:FireServer(unpack(args))
+            end)
+        end
+    end
+})
+
+Tab:AddButton({
+    Title = "🧪 Green Crystal",
     Locked = false,
     Callback = function()
         local args = {
@@ -5702,13 +6069,12 @@ Tab:AddButton({
             [2] = "UraniumRod",
             [3] = game:GetService("Players").LocalPlayer
         }
-
         game:GetService("ReplicatedStorage").RE:FindFirstChild("1Playe1rTrigge1rEven1t"):FireServer(unpack(args))
     end
 })
 
 Tab:AddButton({
-    Title = "Serra Eletrica",
+    Title = "🪚 Chainsaw",
     Locked = false,
     Callback = function()
         local args = {
@@ -5716,16 +6082,15 @@ Tab:AddButton({
             [2] = "Chainsaw",
             [3] = game:GetService("Players").LocalPlayer
         }
-
         game:GetService("ReplicatedStorage").RE:FindFirstChild("1Playe1rTrigge1rEven1t"):FireServer(unpack(args))
     end
 })
 
 Tab:AddButton({
-    Title = "Telekiness V5",
+    Title = "🧠 Telekinesis V5",
     Locked = false,
     Callback = function()
-      loadstring(game:HttpGet("https://raw.githubusercontent.com/BRENOPOOF/fe-telekinessv5/refs/heads/main/Main.txt"))()
+        loadstring(game:HttpGet("https://raw.githubusercontent.com/BRENOPOOF/fe-telekinessv5/refs/heads/main/Main.txt"))()
     end
 })
 
