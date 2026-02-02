@@ -1,63 +1,81 @@
 -- Services
 local Players = game:GetService("Players")
-local TweenService = game:GetService("TweenService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local CoreGui = game:GetService("CoreGui")
-local StarterGui = game:GetService("StarterGui")
-local RunService = game:GetService("RunService")
-local HttpService = game:GetService("HttpService")
-local MarketplaceService = game:GetService("MarketplaceService")
 
 local lp = Players.LocalPlayer
 
--- GUI
+-- Eski GUI temizliği
+if CoreGui:FindFirstChild("XenoDiscord") then CoreGui.XenoDiscord:Destroy() end
+
 local gui = Instance.new("ScreenGui")
-gui.Name = "DiscordPanel"
+gui.Name = "XenoDiscord"
 gui.Parent = CoreGui
 
+-- ANA PANEL
 local frame = Instance.new("Frame")
-frame.Parent = gui
-frame.Size = UDim2.new(0, 300, 0, 180)
-frame.Position = UDim2.new(0.5, -150, 0.5, -90)
+frame.Size = UDim2.new(0, 320, 0, 250)
+frame.Position = UDim2.new(0.5, -160, 0.5, -125)
 frame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
 frame.BorderSizePixel = 0
+frame.Parent = gui
 
-local corner = Instance.new("UICorner")
-corner.CornerRadius = UDim.new(0, 12)
-corner.Parent = frame
+local corner = Instance.new("UICorner", frame)
 
--- Título
+-- KAPATMA (X) BUTONU
+local closeBtn = Instance.new("TextButton")
+closeBtn.Size = UDim2.new(0, 30, 0, 30)
+closeBtn.Position = UDim2.new(1, -35, 0, 5)
+closeBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+closeBtn.Text = "X"
+closeBtn.TextColor3 = Color3.new(1, 1, 1)
+closeBtn.Font = Enum.Font.GothamBold
+closeBtn.Parent = frame
+Instance.new("UICorner", closeBtn)
+
+closeBtn.MouseButton1Click:Connect(function()
+    gui:Destroy()
+end)
+
+-- BAŞLIK
 local title = Instance.new("TextLabel")
-title.Parent = frame
 title.Size = UDim2.new(1, 0, 0, 40)
-title.BackgroundTransparency = 1
-title.Text = "🔗 Links Discord"
+title.Text = "XenoHub | Brookhaven"
 title.TextColor3 = Color3.new(1, 1, 1)
+title.BackgroundTransparency = 1
 title.Font = Enum.Font.GothamBold
-title.TextSize = 18
+title.Parent = frame
 
--- Função botão
-local function createButton(text, y, link)
-	local button = Instance.new("TextButton")
-	button.Parent = frame
-	button.Size = UDim2.new(0.9, 0, 0, 40)
-	button.Position = UDim2.new(0.05, 0, 0, y)
-	button.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
-	button.Text = text
-	button.TextColor3 = Color3.new(1, 1, 1)
-	button.Font = Enum.Font.Gotham
-	button.TextSize = 15
-
-	local btnCorner = Instance.new("UICorner")
-	btnCorner.CornerRadius = UDim.new(0, 8)
-	btnCorner.Parent = button
-
-	button.MouseButton1Click:Connect(function()
-		if setclipboard then
-			setclipboard(link)
-		end
-	end)
+-- BUTON OLUŞTURUCU
+local function createButton(text, y, color, callback)
+    local btn = Instance.new("TextButton")
+    btn.Size = UDim2.new(0.85, 0, 0, 40)
+    btn.Position = UDim2.new(0.075, 0, 0, y)
+    btn.BackgroundColor3 = color
+    btn.Text = text
+    btn.TextColor3 = Color3.new(1, 1, 1)
+    btn.Font = Enum.Font.GothamMedium
+    btn.Parent = frame
+    Instance.new("UICorner", btn)
+    
+    btn.MouseButton1Click:Connect(callback)
 end
 
--- Botões
-createButton("💜 Lcc Hub (copiar link)", 55, "https://discord.gg/7MN4RVfJ4F")
-createButton("🌸 Sources / Coquette Hub etc", 105, "https://discord.gg/JVmbJbycs")
+-- MONEY GUN BUTONU (Brookhaven FireServer)
+createButton("💰 Get MoneyGun", 60, Color3.fromRGB(46, 204, 113), function()
+    local args = {
+        [1] = "PickingTool",
+        [2] = "MoneyGun"
+    }
+    -- Brookhaven eşya verme tetikleyicisi
+    ReplicatedStorage:WaitForChild("RE"):WaitForChild("106197148"):WaitForChild("RemoteEvent"):FireServer(unpack(args))
+end)
+
+-- DİĞER BUTONLAR
+createButton("💜 Lcc Hub (Kopyala)", 110, Color3.fromRGB(88, 101, 242), function()
+    setclipboard("https://discord.gg/7MN4RVfJ4F")
+end)
+
+createButton("🌸 Sources / Coquette", 160, Color3.fromRGB(235, 100, 190), function()
+    setclipboard("https://discord.gg/JVmbJbycs")
+end)
