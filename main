@@ -1,116 +1,315 @@
+--[[ 
+    XENOHUB - BROOKHAVEN PREMIUM
+    Geliştirici: XenoHub Team
+    Özellikler: Item Spawner, Teleport, Player Mods, Troll
+]]
+
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local UserInputService = game:GetService("UserInputService")
 local TweenService = game:GetService("TweenService")
 local CoreGui = game:GetService("CoreGui")
+local RunService = game:GetService("RunService")
 
 local lp = Players.LocalPlayer
+local mouse = lp:GetMouse()
 
--- Eski GUI'yi temizle
-if CoreGui:FindFirstChild("XenoDiscord") then CoreGui.XenoDiscord:Destroy() end
+-- 1. ARAYÜZ TEMİZLİĞİ
+if CoreGui:FindFirstChild("XenoBrookhaven") then
+    CoreGui.XenoBrookhaven:Destroy()
+end
 
-local gui = Instance.new("ScreenGui")
-gui.Name = "XenoDiscord"
-gui.Parent = CoreGui
+-- 2. ANA GUI OLUŞTURMA
+local XenoGui = Instance.new("ScreenGui")
+XenoGui.Name = "XenoBrookhaven"
+XenoGui.Parent = CoreGui
+XenoGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 
--- ANA PANEL
-local frame = Instance.new("Frame")
-frame.Name = "MainFrame"
-frame.Size = UDim2.new(0, 320, 0, 280)
-frame.Position = UDim2.new(0.5, -160, 0.5, -140)
-frame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
-frame.BorderSizePixel = 0
-frame.Parent = gui
+-- Blur Effect (Opsiyonel)
+local blur = Instance.new("BlurEffect")
+blur.Size = 0
+blur.Parent = game:GetService("Lighting")
 
-local corner = Instance.new("UICorner", frame)
-corner.CornerRadius = UDim.new(0, 12)
+-- Bildirim Sistemi
+function SendNotif(title, text, duration)
+    game:GetService("StarterGui"):SetCore("SendNotification", {
+        Title = title;
+        Text = text;
+        Duration = duration or 3;
+    })
+end
 
--- KAPATMA BUTONU (X)
-local closeBtn = Instance.new("TextButton")
-closeBtn.Name = "CloseBtn"
-closeBtn.Parent = frame
-closeBtn.Size = UDim2.new(0, 35, 0, 35)
-closeBtn.Position = UDim2.new(1, -40, 0, 5)
-closeBtn.BackgroundColor3 = Color3.fromRGB(255, 60, 60)
-closeBtn.Text = "×"
-closeBtn.TextColor3 = Color3.new(1, 1, 1)
-closeBtn.Font = Enum.Font.GothamBold
-closeBtn.TextSize = 25
+-- 3. MODERN ANA PANEL (Draggable)
+local MainFrame = Instance.new("Frame")
+MainFrame.Name = "MainFrame"
+MainFrame.Size = UDim2.new(0, 550, 0, 350)
+MainFrame.Position = UDim2.new(0.5, -275, 0.5, -175)
+MainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 25) -- Koyu Arka Plan
+MainFrame.BorderSizePixel = 0
+MainFrame.ClipsDescendants = true
+MainFrame.Parent = XenoGui
 
-local closeCorner = Instance.new("UICorner", closeBtn)
-closeCorner.CornerRadius = UDim.new(1, 0) -- Yuvarlak X butonu
+local mainCorner = Instance.new("UICorner")
+mainCorner.CornerRadius = UDim.new(0, 10)
+mainCorner.Parent = MainFrame
 
-closeBtn.MouseButton1Click:Connect(function()
-    gui:Destroy()
+-- Sürükleme Scripti
+local dragging, dragInput, dragStart, startPos
+local function update(input)
+    local delta = input.Position - dragStart
+    MainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+end
+MainFrame.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        dragging = true
+        dragStart = input.Position
+        startPos = MainFrame.Position
+        input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then dragging = false end
+        end)
+    end
+end)
+MainFrame.InputChanged:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+        if dragging then update(input) end
+    end
 end)
 
--- BAŞLIK
-local title = Instance.new("TextLabel")
-title.Size = UDim2.new(1, 0, 0, 50)
-title.Text = "XenoHub | V1.5"
-title.TextColor3 = Color3.new(1, 1, 1)
-title.BackgroundTransparency = 1
-title.Font = Enum.Font.GothamBold
-title.TextSize = 18
-title.Parent = frame
+-- Sol Menü (Tabs)
+local SideBar = Instance.new("Frame")
+SideBar.Size = UDim2.new(0, 130, 1, 0)
+SideBar.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
+SideBar.BorderSizePixel = 0
+SideBar.Parent = MainFrame
 
--- 
+Instance.new("UICorner", SideBar).CornerRadius = UDim.new(0, 10)
 
--- BUTON FONKSİYONU
-local function createButton(text, y, color, callback)
+local SideBarCover = Instance.new("Frame") -- Köşeyi düzeltmek için
+SideBarCover.Size = UDim2.new(0, 10, 1, 0)
+SideBarCover.Position = UDim2.new(1, -10, 0, 0)
+SideBarCover.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
+SideBarCover.BorderSizePixel = 0
+SideBarCover.Parent = SideBar
+
+-- Başlık
+local Title = Instance.new("TextLabel")
+Title.Text = "XENOHUB"
+Title.Size = UDim2.new(1, 0, 0, 50)
+Title.BackgroundTransparency = 1
+Title.TextColor3 = Color3.fromRGB(88, 101, 242) -- Discord Moru
+Title.Font = Enum.Font.GothamBold
+Title.TextSize = 22
+Title.Parent = SideBar
+
+local SubTitle = Instance.new("TextLabel")
+SubTitle.Text = "Brookhaven"
+SubTitle.Size = UDim2.new(1, 0, 0, 20)
+SubTitle.Position = UDim2.new(0, 0, 0, 35)
+SubTitle.BackgroundTransparency = 1
+SubTitle.TextColor3 = Color3.fromRGB(150, 150, 150)
+SubTitle.Font = Enum.Font.Gotham
+SubTitle.TextSize = 12
+SubTitle.Parent = SideBar
+
+-- Tab Konteyneri
+local TabContainer = Instance.new("Frame")
+TabContainer.Size = UDim2.new(1, -140, 1, -10)
+TabContainer.Position = UDim2.new(0, 140, 0, 5)
+TabContainer.BackgroundTransparency = 1
+TabContainer.Parent = MainFrame
+
+-- Kapatma Butonu (X)
+local CloseBtn = Instance.new("TextButton")
+CloseBtn.Size = UDim2.new(0, 25, 0, 25)
+CloseBtn.Position = UDim2.new(1, -30, 0, 5)
+CloseBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+CloseBtn.Text = "X"
+CloseBtn.TextColor3 = Color3.new(1,1,1)
+CloseBtn.Font = Enum.Font.GothamBold
+CloseBtn.Parent = MainFrame
+Instance.new("UICorner", CloseBtn).CornerRadius = UDim.new(0, 6)
+CloseBtn.MouseButton1Click:Connect(function() XenoGui:Destroy() blur:Destroy() end)
+
+-- 4. FONKSİYONLAR (CORE LOGIC)
+
+-- Brookhaven Eşya Alma Mantığı (Senin verdiğin gelişmiş kod)
+local function GetBrookhavenItem(itemName)
+    local rep = game:GetService("ReplicatedStorage")
+    local ok, err = pcall(function()
+        -- 1. Yöntem: Standart Remote'lar
+        local re = rep:FindFirstChild("RE") or rep:FindFirstChild("Remotes") or rep
+        local candidates = {"GetItem", "GetTool", "GetToolToServer"}
+        
+        for _, name in ipairs(candidates) do
+            local r = re:FindFirstChild(name)
+            if r then
+                if r:IsA("RemoteEvent") then r:FireServer(itemName)
+                elseif r:IsA("RemoteFunction") then r:InvokeServer(itemName) end
+            end
+        end
+
+        -- 2. Yöntem: Trigger Event (En Güçlüsü)
+        local trigger = re:FindFirstChild("1Playe1rTrigge1rEven1t")
+        if trigger then
+            local args = {[1] = "AcceptedToolToServer", [2] = itemName, [3] = lp}
+            if trigger:IsA("RemoteEvent") then trigger:FireServer(unpack(args))
+            elseif trigger:IsA("RemoteFunction") then trigger:InvokeServer(unpack(args)) end
+            SendNotif("XenoHub", itemName.." envanterine eklendi! 🎒", 3)
+        end
+    end)
+    if not ok then SendNotif("Hata", "Eşya alınamadı!", 2) end
+end
+
+-- Teleport Fonksiyonu
+local function TeleportTo(cframe)
+    if lp.Character and lp.Character:FindFirstChild("HumanoidRootPart") then
+        lp.Character.HumanoidRootPart.CFrame = cframe
+    end
+end
+
+-- 5. TAB SİSTEMİ OLUŞTURUCU
+local tabs = {}
+local currentTab = nil
+
+local function CreateTab(name)
+    -- Tab Butonu
+    local tabBtn = Instance.new("TextButton")
+    tabBtn.Size = UDim2.new(0.9, 0, 0, 35)
+    tabBtn.Position = UDim2.new(0.05, 0, 0, 60 + (#tabs * 40))
+    tabBtn.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
+    tabBtn.BackgroundTransparency = 1
+    tabBtn.Text = name
+    tabBtn.TextColor3 = Color3.fromRGB(180, 180, 180)
+    tabBtn.Font = Enum.Font.GothamBold
+    tabBtn.TextSize = 14
+    tabBtn.TextXAlignment = Enum.TextXAlignment.Left
+    tabBtn.Parent = SideBar
+    
+    local pad = Instance.new("UIPadding")
+    pad.PaddingLeft = UDim.new(0, 15)
+    pad.Parent = tabBtn
+
+    -- Sayfa (Page)
+    local page = Instance.new("ScrollingFrame")
+    page.Size = UDim2.new(1, 0, 1, 0)
+    page.BackgroundTransparency = 1
+    page.ScrollBarThickness = 2
+    page.Visible = false
+    page.Parent = TabContainer
+    
+    local layout = Instance.new("UIListLayout")
+    layout.Padding = UDim.new(0, 8)
+    layout.SortOrder = Enum.SortOrder.LayoutOrder
+    layout.Parent = page
+    
+    -- Tab Geçiş Mantığı
+    tabBtn.MouseButton1Click:Connect(function()
+        for _, t in pairs(tabs) do
+            t.page.Visible = false
+            t.btn.TextColor3 = Color3.fromRGB(180, 180, 180)
+        end
+        page.Visible = true
+        tabBtn.TextColor3 = Color3.fromRGB(88, 101, 242)
+    end)
+    
+    if #tabs == 0 then -- İlk tab varsayılan açık
+        page.Visible = true
+        tabBtn.TextColor3 = Color3.fromRGB(88, 101, 242)
+    end
+
+    table.insert(tabs, {btn = tabBtn, page = page})
+    return page
+end
+
+-- BUTON OLUŞTURUCU
+local function AddButton(parent, text, color, callback)
+    local btnFrame = Instance.new("Frame")
+    btnFrame.Size = UDim2.new(1, 0, 0, 40)
+    btnFrame.BackgroundTransparency = 1
+    btnFrame.Parent = parent
+    
     local btn = Instance.new("TextButton")
-    btn.Size = UDim2.new(0.9, 0, 0, 45)
-    btn.Position = UDim2.new(0.05, 0, 0, y)
-    btn.BackgroundColor3 = color
+    btn.Size = UDim2.new(0.98, 0, 0.9, 0)
+    btn.BackgroundColor3 = color or Color3.fromRGB(45, 45, 50)
     btn.Text = text
     btn.TextColor3 = Color3.new(1, 1, 1)
     btn.Font = Enum.Font.GothamMedium
     btn.TextSize = 14
-    btn.Parent = frame
+    btn.Parent = btnFrame
     
-    Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 8)
-    btn.MouseButton1Click:Connect(callback)
+    Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 6)
+    
+    btn.MouseButton1Click:Connect(function()
+        pcall(callback)
+        -- Tıklama Efekti
+        local original = btn.BackgroundColor3
+        btn.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+        btn.BackgroundTransparency = 0.8
+        task.wait(0.1)
+        btn.BackgroundColor3 = original
+        btn.BackgroundTransparency = 0
+    end)
 end
 
--- 💸 MONEY GUN TETİKLEYİCİ (Brookhaven Spesifik)
-createButton("💸 Money Gun (Brookhaven)", 60, Color3.fromRGB(46, 204, 113), function()
-    local itemName = "MoneyGun"
-    local rep = game:GetService("ReplicatedStorage")
-    
-    local function notify(t)
-        pcall(function()
-            game:GetService("StarterGui"):SetCore("SendNotification", {Title = "XenoHub", Text = t, Duration = 3})
-        end)
-    end
+-- 6. İÇERİK EKLEME
 
-    -- Brookhaven Remote Tarama ve Tetikleme
-    local re = rep:FindFirstChild("RE") or rep:FindFirstChild("Remotes") or rep
-    local trigger = re:FindFirstChild("1Playe1rTrigge1rEven1t") or rep:FindFirstChild("1Playe1rTrigge1rEven1t")
+-- --> TAB 1: EŞYALAR (ITEMS)
+local ItemsPage = CreateTab("🛠️ Eşyalar")
+AddButton(ItemsPage, "💸 Money Gun (Para Tabancası)", Color3.fromRGB(46, 204, 113), function() GetBrookhavenItem("MoneyGun") end)
+AddButton(ItemsPage, "🔦 Fener (Flashlight)", nil, function() GetBrookhavenItem("Flashlight") end)
+AddButton(ItemsPage, "🎸 Gitar", nil, function() GetBrookhavenItem("Guitar") end)
+AddButton(ItemsPage, "🛹 Kaykay (Skateboard)", nil, function() GetBrookhavenItem("Skateboard") end)
+AddButton(ItemsPage, "💻 Laptop", nil, function() GetBrookhavenItem("Laptop") end)
+AddButton(ItemsPage, "🆔 Ajan Kartı (Agency Card)", Color3.fromRGB(52, 152, 219), function() GetBrookhavenItem("AgencyCard") end)
+AddButton(ItemsPage, "🚫 Ban Hammer (Prop)", Color3.fromRGB(231, 76, 60), function() GetBrookhavenItem("BanHammer") end)
 
-    if trigger then
-        local args = {[1] = "AcceptedToolToServer", [2] = itemName, [3] = lp}
-        if trigger:IsA("RemoteEvent") then 
-            trigger:FireServer(unpack(args)) 
-        else 
-            trigger:InvokeServer(unpack(args)) 
+-- --> TAB 2: OYUNCU (PLAYER)
+local PlayerPage = CreateTab("👤 Oyuncu")
+
+AddButton(PlayerPage, "⚡ Hızlı Koş (Speed 50)", Color3.fromRGB(241, 196, 15), function() 
+    if lp.Character then lp.Character.Humanoid.WalkSpeed = 50 end 
+end)
+AddButton(PlayerPage, "🐇 Yükseğe Zıpla (Jump 100)", nil, function() 
+    if lp.Character then lp.Character.Humanoid.JumpPower = 100 end 
+end)
+AddButton(PlayerPage, "🔄 Normale Dön (Reset)", Color3.fromRGB(150, 150, 150), function() 
+    if lp.Character then 
+        lp.Character.Humanoid.WalkSpeed = 16 
+        lp.Character.Humanoid.JumpPower = 50 
+    end 
+end)
+AddButton(PlayerPage, "👻 Noclip (Duvarlardan Geç)", Color3.fromRGB(100, 60, 200), function()
+    RunService.Stepped:Connect(function()
+        if lp.Character then
+            for _, v in pairs(lp.Character:GetDescendants()) do
+                if v:IsA("BasePart") then v.CanCollide = false end
+            end
         end
-        notify("MoneyGun Alındı! 🎯")
-    else
-        -- Alternatif: Direkt RE üzerinden deneme
-        local r = re:FindFirstChild("GetItem") or re:FindFirstChild("Getİtem")
-        if r then
-            r:FireServer(itemName)
-            notify("MoneyGun Talep Edildi! 🔥")
-        else
-            notify("Remote bulunamadı! ❌")
-        end
-    end
+    end)
+    SendNotif("XenoHub", "Noclip Aktif!", 2)
 end)
 
--- DİĞER BUTONLAR
-createButton("💜 Discord: Lcc Hub", 120, Color3.fromRGB(88, 101, 242), function()
+-- --> TAB 3: IŞINLANMA (TELEPORT)
+local TeleportPage = CreateTab("📍 Işınlanma")
+
+local locations = {
+    {"Spawn Başlangıç", CFrame.new(0, 10, 0)},
+    {"Banka Kasası", CFrame.new(21.3, 16.5, 34.5)},
+    {"Polis Merkezi", CFrame.new(-168, 16, 52)},
+    {"Gizli Ajan Üssü", CFrame.new(-220, 15, 600)},
+    {"Plaj (Beach)", CFrame.new(-650, 15, 350)}
+}
+
+for _, loc in ipairs(locations) do
+    AddButton(TeleportPage, "✈️ "..loc[1], nil, function() TeleportTo(loc[2]) end)
+end
+
+-- --> TAB 4: SOSYAL
+local SocialPage = CreateTab("🔗 Bağlantılar")
+AddButton(SocialPage, "💜 Discord'u Kopyala", Color3.fromRGB(88, 101, 242), function()
     setclipboard("https://discord.gg/7MN4RVfJ4F")
+    SendNotif("Başarılı", "Discord linki kopyalandı!", 2)
 end)
 
-createButton("🌸 Sources / Coquette", 180, Color3.fromRGB(235, 100, 190), function()
-    setclipboard("https://discord.gg/JVmbJbycs")
-end)
+-- BİTİŞ
+SendNotif("XenoHub", "Brookhaven V2 Yüklendi!", 3)
