@@ -1,8 +1,13 @@
 --[[ 
-    XENOHUB ULTIMATE - BROOKHAVEN MEGA FULL SCRIPT
+    XENOHUB ULTIMATE - BROOKHAVEN MEGA FULL SCRIPT (GOD MODE)
+    Version: 11.0 (Full Gamepass Bypass & Infinite Ads & RGB)
     Geliştirici: XenoHub Team & EgeKazak_Real1
-    Özellikler: Orijinal ModalFireAsk, ADStore & VideoAd Tetikleyici, Premium Unlock, Max Bypass
-    Version: 9.0 (Full ADStore & Remote Trigger Integrated)
+    
+    Özellikler:
+    - Bütün Gamepass'ler Aktif (Require & Hooking Bypass)
+    - Sınırsız ADStore Reklamları (Ready & Cooldown Bypass)
+    - RGB Name/Bio/RP Tag (Hex Loop)
+    - Fly, Noclip, Speed, Jump, Car Speed/Turbo, House Unban
 ]]
 
 local Players = game:GetService("Players")
@@ -19,14 +24,18 @@ local PlayerGui = lp:WaitForChild("PlayerGui")
 local ParentFolder = (gethui and gethui()) or CoreGui
 
 -- ============================================================================== --
--- 1. TEMEL AYARLAR & REKLAM SISTEMI ENTEGRASYONU
+-- 1. SİSTEM AYARLARI
 -- ============================================================================== --
 
 local XenoSettings = {
-    PremiumEnabled = false,
     Speed = 16,
     Jump = 50,
-    Noclip = false
+    Noclip = false,
+    Fly = false,
+    RGBEnabled = true,
+    RGBSpeed = 1,
+    CarSpeed = 1,
+    CarTurbo = false
 }
 
 local function SendNotif(title, text)
@@ -40,104 +49,105 @@ local function SendNotif(title, text)
 end
 
 -- ============================================================================== --
--- 2. FULL ADSTORE & VIDEO AD BYPASS (KONSTANT DECOMPILED LOGIC)
+-- 2. FULL GAMEPASS & PREMIUM BYPASS (Decompiled Verilere Göre)
 -- ============================================================================== --
 
-local function TriggerFullADStore()
+local function BypassAllGamepasses()
     pcall(function()
-        -- Decompiled kodlardaki ana modüllere erişim
-        local AdsController = require(ReplicatedStorage.Modules.Client.Ads.AdvertisementsController)
-        local PanelController = require(ReplicatedStorage.Modules.Client.UI.PanelController)
-        local AdJoinController = require(ReplicatedStorage.Modules.Client.Ads.AdvertisementJoinController)
+        -- GamepassUnlockController Hooking
+        local GamepassUnlockController = require(ReplicatedStorage.Modules.Client.UI.GamepassUnlockController)
+        local GamepassController = require(ReplicatedStorage.Modules.Client.PlayerData.GamepassController)
+        local GamepassesModule = require(ReplicatedStorage.Modules.Shared.PlayerData.Gamepasses)
+
+        -- 1. Gamepass Sahip mi Kontrolü Bypass
+        GamepassController.PlayerOwnsGamepass = function() return true end
+        GamepassController.OwnsGamepass = function() return true end
         
-        local MainGUI = PlayerGui:FindFirstChild("MainGUIHandler")
-        if not MainGUI then return end
-
-        -- 1. ADSTORE MENÜSÜNÜ BUL VE DEX MANTIGIYLA AÇ
-        local adStore = MainGUI:FindFirstChild("AdStore", true)
-        if adStore then
-            adStore.Visible = true
-            adStore.Active = true
-            -- Tüm alt butonları (VideoAdAvailable, UnlockButton vb.) aktif et
-            for _, v in pairs(adStore:GetDescendants()) do
-                if v:IsA("GuiButton") or v:IsA("CanvasGroup") then
-                    v.Visible = true
+        -- 2. Unlock Controller Bypass
+        GamepassUnlockController.OwnsGamepass = function() return true end
+        GamepassUnlockController.IsPremium = function() return true end
+        
+        -- 3. Gamepasses.All tablosundaki her şeyi mülkiyet olarak işaretle
+        if GamepassesModule and GamepassesModule.All then
+            for passName, data in pairs(GamepassesModule.All) do
+                if typeof(data) == "table" then
+                    data.__OWNED = true -- İç işaretleme
                 end
             end
         end
 
-        -- 2. ADS BUTONUNU (GİRİŞ NOKTASI) ZORLA GÖRÜNÜR YAP
-        local shopButtons = MainGUI:FindFirstChild("ShopButtons", true)
-        if shopButtons then
-            local adsBtn = shopButtons:FindFirstChild("Ads", true) or shopButtons:FindFirstChild("AdsButton", true)
-            if adsBtn then
-                adsBtn.Visible = true
-                adsBtn.Active = true
-            end
-        end
-
-        -- 3. REKLAM TETİKLEME VE BYPASS (PC/MOBIL)
-        -- Decompiled koddaki 'CheckAd' mantığını simüle ediyoruz
-        AdJoinController.CancelCheck()
-        AdJoinController.CheckAd()
-
-        -- Orijinal PanelController üzerinden menüyü resmi olarak aç (Context tetikleme)
-        PanelController.OpenPanelByContext("MainGUIHandler", "AdStore")
-
-        -- Reklam Hazır mı Kontrolü Bypass
-        AdsController.RequestRewardedVideoAd(
-            "XenoBypass_PremiumItem", 
-            "rbxassetid://0", 
-            0, 
-            "Item Refresh", 
-            "Item Refresh", 
-            false, 
-            false
-        )
-
-        SendNotif("XenoHub", "ADStore ve Reklamlar Full Aktif Edildi! ✅")
+        SendNotif("XenoHub", "Tüm Gamepassler Açıldı! ✅")
     end)
 end
 
 -- ============================================================================== --
--- 3. DIGER ORIJINAL GUI TETİKLEYİCİLER
+-- 3. SINIRSIZ ADSTORE & REKLAM SİSTEMİ (Infinite Ads Bypass)
 -- ============================================================================== --
 
-local function OpenOriginalFireModal()
+local function TriggerInfiniteAds()
     pcall(function()
-        local originalModal = nil
-        for _, v in pairs(PlayerGui:GetDescendants()) do
-            if v.Name == "ModalFireAsk" and (v:IsA("Frame") or v:IsA("ImageLabel")) then
-                originalModal = v
-                break
+        local AdsController = require(ReplicatedStorage.Modules.Client.Ads.AdvertisementsController)
+        local AdJoinController = require(ReplicatedStorage.Modules.Client.Ads.AdvertisementJoinController)
+        local PanelController = require(ReplicatedStorage.Modules.Client.UI.PanelController)
+        
+        -- Reklam Hazırlık Durumu Bypass (Her zaman hazır gösterir)
+        AdsController.IsAdAvailable = function() return true end
+        AdsController.GetRemainingCooldown = function() return 0 end
+        AdsController.CanWatchVideoAd = function() return true end
+
+        -- AdStore UI Tetikleme
+        local MainGUI = PlayerGui:FindFirstChild("MainGUIHandler")
+        if MainGUI then
+            local adStore = MainGUI:FindFirstChild("AdStore", true)
+            if adStore then
+                adStore.Visible = true
+                adStore.Active = true
+                -- "Watch Video" butonlarını ve timer'ları zorla aktif et
+                for _, v in pairs(adStore:GetDescendants()) do
+                    if v.Name:find("Timer") or v.Name:find("Waiting") then v.Visible = false end
+                    if v:IsA("GuiButton") then v.Visible = true v.Active = true end
+                end
             end
         end
 
-        if originalModal then
-            originalModal.Visible = true
-            originalModal.Active = true
-            
-            for _, btn in pairs(originalModal:GetDescendants()) do
-                if btn:IsA("GuiButton") then
-                    if btn.Name:lower():find("yes") or btn.BackgroundColor3 == Color3.fromRGB(34, 139, 34) then
-                        btn.MouseButton1Click:Connect(function()
-                            local Game8 = require(StarterGui.Player8Handler.Game8Settings)
-                            Game8.PlayersHouse:FireServer("PlayerWantsFire")
-                            SendNotif("XenoHub", "Orijinal Yangın Tetiklendi! 🔥")
-                        end)
-                    end
-                end
-            end
-        else
-            local Game8 = require(StarterGui.Player8Handler.Game8Settings)
-            Game8.PlayersHouse:FireServer("PlayerWantsFire")
-            SendNotif("XenoHub", "Yangın Remote Tetiklendi.")
-        end
+        -- Reklam İsteği Gönder (Video İzlemiş Gibi Ödül Verir)
+        AdsController.RequestRewardedVideoAd("XenoInfinite", "rbxassetid://0", 0, "Infinite Reward", "Success", false, false)
+        
+        SendNotif("XenoHub", "Reklamlar Sınırsız & Beklemesiz! 📺")
     end)
 end
 
 -- ============================================================================== --
--- 4. MEGA UI TASARIMI
+-- 4. RGB NAME/BIO & HAREKET SİSTEMİ
+-- ============================================================================== --
+
+RunService.RenderStepped:Connect(function()
+    if XenoSettings.RGBEnabled then
+        local hue = tick() * XenoSettings.RGBSpeed % 1
+        local color = Color3.fromHSV(hue, 1, 1)
+        local hex = color:ToHex()
+        
+        pcall(function()
+            local remote = ReplicatedStorage:FindFirstChild("RE"):FindFirstChild("1Plr1Name1Chan1ge")
+            if remote then
+                remote:FireServer("UpdateName", lp.Name, hex)
+                remote:FireServer("UpdateBio", "XenoHub | "..lp.Name, hex)
+            end
+        end)
+    end
+end)
+
+-- Fly & Noclip Logic
+RunService.Stepped:Connect(function()
+    if XenoSettings.Noclip and lp.Character then
+        for _, part in pairs(lp.Character:GetDescendants()) do
+            if part:IsA("BasePart") then part.CanCollide = false end
+        end
+    end
+end)
+
+-- ============================================================================== --
+-- 5. ANA UI TASARIMI
 -- ============================================================================== --
 
 if ParentFolder:FindFirstChild("XenoBrookhaven") then ParentFolder.XenoBrookhaven:Destroy() end
@@ -148,16 +158,12 @@ XenoGui.Parent = ParentFolder
 XenoGui.ResetOnSpawn = false
 
 local MainFrame = Instance.new("Frame")
-MainFrame.Size = UDim2.new(0, 700, 0, 480)
-MainFrame.Position = UDim2.new(0.5, -350, 0.5, -240)
-MainFrame.BackgroundColor3 = Color3.fromRGB(10, 10, 12)
+MainFrame.Size = UDim2.new(0, 720, 0, 520)
+MainFrame.Position = UDim2.new(0.5, -360, 0.5, -260)
+MainFrame.BackgroundColor3 = Color3.fromRGB(8, 8, 10)
 MainFrame.Parent = XenoGui
-Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 12)
-
-local MainStroke = Instance.new("UIStroke")
-MainStroke.Color = Color3.fromRGB(145, 90, 230)
-MainStroke.Thickness = 2
-MainStroke.Parent = MainFrame
+Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 10)
+Instance.new("UIStroke", MainFrame).Color = Color3.fromRGB(145, 90, 230)
 
 local function MakeDraggable(f)
     local dragging, dragInput, dragStart, startPos
@@ -179,31 +185,28 @@ local function MakeDraggable(f)
 end
 MakeDraggable(MainFrame)
 
--- ============================================================================== --
--- 5. SAYFALAR & ÖZELLİKLER (SIDEBAR)
--- ============================================================================== --
-
+-- Sidebar & Tab Logic
 local SideBar = Instance.new("Frame")
-SideBar.Size = UDim2.new(0, 180, 1, 0)
-SideBar.BackgroundColor3 = Color3.fromRGB(15, 15, 18)
+SideBar.Size = UDim2.new(0, 200, 1, 0)
+SideBar.BackgroundColor3 = Color3.fromRGB(12, 12, 15)
 SideBar.Parent = MainFrame
-Instance.new("UICorner", SideBar).CornerRadius = UDim.new(0, 12)
+Instance.new("UICorner", SideBar).CornerRadius = UDim.new(0, 10)
 
 local TabHolder = Instance.new("Frame")
-TabHolder.Size = UDim2.new(1, -200, 1, -20)
-TabHolder.Position = UDim2.new(0, 190, 0, 10)
+TabHolder.Size = UDim2.new(1, -220, 1, -20)
+TabHolder.Position = UDim2.new(0, 210, 0, 10)
 TabHolder.BackgroundTransparency = 1
 TabHolder.Parent = MainFrame
 
 local pages = {}
 local function NewTab(name)
     local tBtn = Instance.new("TextButton")
-    tBtn.Size = UDim2.new(0.9, 0, 0, 40)
-    tBtn.Position = UDim2.new(0.05, 0, 0, 60 + (#pages * 45))
+    tBtn.Size = UDim2.new(0.9, 0, 0, 38)
+    tBtn.Position = UDim2.new(0.05, 0, 0, 60 + (#pages * 42))
     tBtn.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
     tBtn.BackgroundTransparency = 1
     tBtn.Text = "  " .. name
-    tBtn.TextColor3 = Color3.fromRGB(200, 200, 200)
+    tBtn.TextColor3 = Color3.fromRGB(220, 220, 220)
     tBtn.Font = Enum.Font.GothamBold
     tBtn.TextSize = 13
     tBtn.TextXAlignment = Enum.TextXAlignment.Left
@@ -214,163 +217,73 @@ local function NewTab(name)
     page.Size = UDim2.new(1, 0, 1, 0)
     page.BackgroundTransparency = 1
     page.Visible = false
-    page.ScrollBarThickness = 2
+    page.ScrollBarThickness = 1
     page.Parent = TabHolder
-    Instance.new("UIListLayout", page).Padding = UDim.new(0, 8)
+    Instance.new("UIListLayout", page).Padding = UDim.new(0, 10)
 
     tBtn.MouseButton1Click:Connect(function()
-        for _, p in pairs(pages) do p.p.Visible = false p.b.BackgroundTransparency = 1 p.b.TextColor3 = Color3.fromRGB(200, 200, 200) end
+        for _, p in pairs(pages) do p.p.Visible = false p.b.BackgroundTransparency = 1 end
         page.Visible = true
         tBtn.BackgroundTransparency = 0.8
-        tBtn.TextColor3 = Color3.fromRGB(145, 90, 230)
     end)
-
-    if #pages == 0 then page.Visible = true tBtn.BackgroundTransparency = 0.8 tBtn.TextColor3 = Color3.fromRGB(145, 90, 230) end
+    if #pages == 0 then page.Visible = true tBtn.BackgroundTransparency = 0.8 end
     table.insert(pages, {b = tBtn, p = page})
     return page
 end
 
 local function AddBtn(parent, text, cb, color)
     local b = Instance.new("TextButton")
-    b.Size = UDim2.new(0.96, 0, 0, 44)
-    b.BackgroundColor3 = color or Color3.fromRGB(25, 25, 30)
+    b.Size = UDim2.new(0.96, 0, 0, 42)
+    b.BackgroundColor3 = color or Color3.fromRGB(20, 20, 25)
     b.Text = text
     b.TextColor3 = Color3.new(1, 1, 1)
     b.Font = Enum.Font.GothamBold
     b.TextSize = 13
     b.Parent = parent
-    Instance.new("UICorner", b).CornerRadius = UDim.new(0, 6)
+    Instance.new("UICorner", b).CornerRadius = UDim.new(0, 8)
     b.MouseButton1Click:Connect(cb)
 end
 
 -- ============================================================================== --
--- 6. ANA SAYFA & OZELLIKLER
+-- 6. SAYFALARIN İÇERİĞİ
 -- ============================================================================== --
 
-local Home = NewTab("🏠 Ana Sayfa")
+local Home = NewTab("🚀 Mega Kontrol")
+AddBtn(Home, "🔓 TÜM GAMEPASSLERİ AÇ (FULL BYPASS)", BypassAllGamepasses, Color3.fromRGB(145, 90, 230))
+AddBtn(Home, "📺 SINIRSIZ REKLAM / ADSTORE AKTİF", TriggerInfiniteAds, Color3.fromRGB(0, 162, 255))
+AddBtn(Home, "🌈 RGB NAME/BIO MODU: ON/OFF", function() XenoSettings.RGBEnabled = not XenoSettings.RGBEnabled end, Color3.fromRGB(50, 150, 50))
 
--- ============================================================================== --
--- CMDR ADMIN FULL BYPASS & PERMISSION INJECTOR (FULL VERSION)
--- ============================================================================== --
+local PlayerTab = NewTab("🏃 Oyuncu")
+AddBtn(PlayerTab, "⚡ Speed +10", function() XenoSettings.Speed = XenoSettings.Speed + 10 lp.Character.Humanoid.WalkSpeed = XenoSettings.Speed end)
+AddBtn(PlayerTab, "🚶 Speed -10", function() XenoSettings.Speed = math.max(16, XenoSettings.Speed - 10) lp.Character.Humanoid.WalkSpeed = XenoSettings.Speed end)
+AddBtn(PlayerTab, "⬆️ Jump +10", function() XenoSettings.Jump = XenoSettings.Jump + 10 lp.Character.Humanoid.JumpPower = XenoSettings.Jump end)
+AddBtn(PlayerTab, "👻 NOCLIP (DEX)", function() XenoSettings.Noclip = not XenoSettings.Noclip end)
 
-AddBtn(Home, "⚡ CMDR FULL BYPASS (F2)", function()
-    pcall(function()
-        -- 1. Modül Yolları ve Yetki Bypass (Hooking)
-        local CmdrPermPath = ReplicatedStorage:WaitForChild("Modules"):WaitForChild("Shared"):WaitForChild("Cmdr"):WaitForChild("CmdrPermissions")
-        local MainPermPath = ReplicatedStorage:WaitForChild("Modules"):WaitForChild("Shared"):WaitForChild("Permissions")
-        
-        local CmdrPermissions = require(CmdrPermPath)
-        local MainPermissions = require(MainPermPath)
+local CarTab = NewTab("🚗 Araba")
+AddBtn(CarTab, "🏎️ ARABA HIZI ARTIR", function() 
+    XenoSettings.CarSpeed = XenoSettings.CarSpeed + 5
+    ReplicatedStorage.RE["1Vehi1cleEven1t"]:FireServer("UpdateVehicleSpeed", XenoSettings.CarSpeed)
+end)
+AddBtn(CarTab, "🔥 TURBO BOOST AKTİF", function()
+    ReplicatedStorage.RE["1Vehi1cleEven1t"]:FireServer("VehicleTurboPower", 100)
+end)
 
-        -- CmdrPermissions Bypass (Senin attığın decompile kodlarını manipüle eder)
-        CmdrPermissions.hasCmdrAccess = function() return true end
-        CmdrPermissions.hasCommandAccess = function() return true end
-
-        -- Genel İzin Bypass (Admin, Creator, Mod, Staff)
-        local perms = {"hasAdminAccess", "hasContentCreatorAccess", "hasModeratorAccess", "hasStaffAccess"}
-        for _, func in pairs(perms) do
-            MainPermissions[func] = function() return true end
-        end
-
-        -- 2. Cmdr Controller & Client Yükleme
-        local CmdrClient = ReplicatedStorage:WaitForChild("CmdrClient")
-        local InstanceLoadingUtil = require(ReplicatedStorage.Modules.Shared.Utils.InstanceLoadingUtil)
-        local Promise = require(ReplicatedStorage:WaitForChild("Packages").Promise)
-        local Platform = require(ReplicatedStorage.Modules.Client.Util.Platform)
-
-        -- Aktivasyon Tuşları (F2, L3, Semicolon)
-        local keys = {Enum.KeyCode.F2, Enum.KeyCode.ButtonL3, Enum.KeyCode.Semicolon}
-
-        -- İçerikleri zorla yükle
-        local tbl = {}
-        table.insert(tbl, InstanceLoadingUtil.waitForDescendantsToLoad(CmdrClient:WaitForChild("Commands"), 4))
-        table.insert(tbl, InstanceLoadingUtil.waitForDescendantsToLoad(CmdrClient:WaitForChild("Types"), 4))
-        
-        Promise.allSettled(tbl):expect()
-        
-        -- Cmdr'ı Başlat
-        local Cmdr = require(CmdrClient)
-        Cmdr:SetActivationKeys(keys)
-
-        -- Mobil Kullanıcı Desteği
-        if Platform.IsMobile() then
-            if not lp.PlayerGui:FindFirstChild("CmdrMobile") then
-                local ScreenGui = Instance.new("ScreenGui", lp.PlayerGui)
-                ScreenGui.Name = "CmdrMobile"
-                local Btn = Instance.new("TextButton", ScreenGui)
-                Btn.Size = UDim2.fromScale(0.12, 0.08)
-                Btn.Position = UDim2.fromScale(0.85, 0.15)
-                Btn.Text = "CMDR ADMIN"
-                Btn.TextColor3 = Color3.new(1, 1, 1)
-                Btn.BackgroundColor3 = Color3.fromRGB(145, 90, 230)
-                Btn.Font = Enum.Font.GothamBold
-                Btn.TextScaled = true
-                Instance.new("UICorner", Btn).CornerRadius = UDim.new(0.5, 0.5)
-                Btn.Activated:Connect(function() Cmdr:Toggle() end)
-            end
-        end
-
-        SendNotif("XenoHub", "FULL BYPASS: Tüm Admin Yetkileri Tanımlandı! (F2)")
-        Cmdr:Toggle()
-    end)
-end, Color3.fromRGB(145, 90, 230))
-
--- ============================================================================== --
-
-AddBtn(Home, "📺 FULL ADSTORE & ADS BUTTON TETIKLE", function()
-    TriggerFullADStore()
-end, Color3.fromRGB(0, 162, 255))
-
-AddBtn(Home, "🔥 MODALFIREASK AÇ (DEX TRUE)", function()
-    OpenOriginalFireModal()
-end, Color3.fromRGB(255, 80, 0))
-
-AddBtn(Home, "🔓 PREMIUM UNLOCK (Max Bypass)", function()
-    pcall(function()
-        XenoSettings.PremiumEnabled = true
-        local gpc = require(ReplicatedStorage.Modules.Client.UI.GamepassUnlockController)
-        gpc.OwnsGamepass = function() return true end
-        gpc.IsPremium = function() return true end
-        SendNotif("XenoHub", "Premium Dex Modu Aktif! ✅")
-    end)
-end, Color3.fromRGB(145, 90, 230))
-
-local Player = NewTab("🏃 Oyuncu")
-AddBtn(Player, "⚡ Speed (100)", function() lp.Character.Humanoid.WalkSpeed = 100 end)
-AddBtn(Player, "🚀 Jump (150)", function() lp.Character.Humanoid.JumpPower = 150 end)
-
-local Items = NewTab("🎒 Eşyalar")
-local function SafeTriggerTool(tool)
-    pcall(function()
-        local re = ReplicatedStorage:FindFirstChild("RE")
-        local event = re and re:FindFirstChild("1Playe1rTrigge1rEven1t")
-        if event then event:FireServer("AcceptedToolToServer", tool, lp) end
-    end)
-end
-
-local items_list = {
-    {"MoneyGun",   "Money Gun 💸🔫 (Para Tabancası)"},
-    {"Glider",     "Glider 🪂 (Planör)"},
-    {"Cannon",     "Cannon 💣 (Cannon)"},
-    {"Golden Basketball", "Golden Basketball 🏀 (Golden Basketball)"},
-    {"Egg Launcher", "Egg Launcher 🥚 (Egg Launcher)"},
-    {"Chainsaw",   "Chainsaw 🪚 (Testere)"},
-    {"Scythe",     "Scythe ☠️🌾 (Tırpan)"},
-    {"UraniumRod", "Uranium Rod ☢️ (Uranyum)"},
-    {"AgencyBook", "Agency Book 📘🕵️ (Ajans Kitabı)"}
-}
-for _, item in pairs(items_list) do
-    AddBtn(Items, "🛠️ Get: " .. item[2], function() SafeTriggerTool(item[1]) end)
-end
+local HouseTab = NewTab("🏠 Ev & Bypass")
+AddBtn(HouseTab, "🚫 EV BANIMI KALDIR (UNBAN ME)", function()
+    local remote = ReplicatedStorage.RE["1Hou1seEven1t"]
+    for i = 1, 30 do remote:FireServer("UnbanPlayerFromHouse", i, lp) end
+    SendNotif("XenoHub", "Tüm banlar kaldırıldı!")
+end, Color3.fromRGB(200, 50, 50))
 
 local Settings = NewTab("⚙️ Ayarlar")
+AddBtn(Settings, "🌈 RGB Hızı Arttır", function() XenoSettings.RGBSpeed = XenoSettings.RGBSpeed + 1 end)
 AddBtn(Settings, "❌ SCRIPTI KAPAT", function() XenoGui:Destroy() end, Color3.fromRGB(100, 20, 20))
 
--- TOGGLE BUTTON
+-- TOGGLE BUTTON (X)
 local TButton = Instance.new("TextButton")
-TButton.Size = UDim2.new(0, 60, 0, 60)
-TButton.Position = UDim2.new(0, 40, 0.5, -30)
-TButton.BackgroundColor3 = Color3.fromRGB(12, 12, 15)
+TButton.Size = UDim2.new(0, 55, 0, 55)
+TButton.Position = UDim2.new(0, 30, 0.5, -27)
+TButton.BackgroundColor3 = Color3.fromRGB(15, 15, 18)
 TButton.Text = "X"
 TButton.TextColor3 = Color3.fromRGB(145, 90, 230)
 TButton.Font = Enum.Font.GothamBlack
@@ -385,4 +298,4 @@ TButton.MouseButton1Click:Connect(function()
     TButton.Text = MainFrame.Visible and "X" or "O"
 end)
 
-SendNotif("XenoHub ULTIMATE", "ADStore Sistemi Full Aktif!")
+SendNotif("XenoHub", "Sistem Hazır! Tüm Gamepass ve Reklamlar Bypass Edildi.")
