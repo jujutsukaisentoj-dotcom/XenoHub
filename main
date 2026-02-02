@@ -1,8 +1,8 @@
 --[[ 
     XENOHUB ULTIMATE - BROOKHAVEN MEGA FULL SCRIPT
     Geliştirici: XenoHub Team & EgeKazak_Real1
-    Özellikler: ModalFireAsk (Dex True), Premium Unlock, All Items, Player Mods, Admin Features
-    Version: 5.0 (Final Full)
+    Özellikler: Orijinal ModalFireAsk Tetikleyici (Dex Logic), Premium Unlock, All Items, Max Bypass
+    Version: 6.0 (Orijinal Game GUI Entegre)
 ]]
 
 local Players = game:GetService("Players")
@@ -19,13 +19,11 @@ local PlayerGui = lp:WaitForChild("PlayerGui")
 local ParentFolder = (gethui and gethui()) or CoreGui
 
 -- ============================================================================== --
--- 1. TEMEL AYARLAR & DEX PROPERTY KONTROLLERİ
+-- 1. TEMEL AYARLAR & DEX LOGIC
 -- ============================================================================== --
 
 local XenoSettings = {
-    FireEnabled = false,
     PremiumEnabled = false,
-    ModalVisible = false,
     Speed = 16,
     Jump = 50,
     Noclip = false
@@ -42,7 +40,7 @@ local function SendNotif(title, text)
 end
 
 -- ============================================================================== --
--- 2. ANA REMOTE TETİKLEYİCİLER (BYPASS)
+-- 2. MAX BYPASS TETİKLEYİCİLER
 -- ============================================================================== --
 
 local function SafeTrigger(mode, ...)
@@ -62,7 +60,52 @@ local function SafeTrigger(mode, ...)
 end
 
 -- ============================================================================== --
--- 3. MEGA UI - XENOHUB ULTIMATE FRAME
+-- 3. BROOKHAVEN ORIJINAL MODALFIREASK TETİKLEYİCİ (MAX BYPASS)
+-- ============================================================================== --
+
+local function OpenOriginalFireModal()
+    pcall(function()
+        -- Oyunun kendi GUI'si içinde ModalFireAsk'ı buluyoruz
+        local originalModal = nil
+        for _, v in pairs(PlayerGui:GetDescendants()) do
+            if v.Name == "ModalFireAsk" and (v:IsA("Frame") or v:IsA("ImageLabel")) then
+                originalModal = v
+                break
+            end
+        end
+
+        if originalModal then
+            -- Dex gibi zorla görünür yapıyoruz
+            originalModal.Visible = true
+            if originalModal:IsA("Frame") then
+                originalModal.Active = true
+            end
+            
+            -- Eğer frame içindeki butonlar özelse onları da aktif et
+            for _, btn in pairs(originalModal:GetDescendants()) do
+                if btn:IsA("GuiButton") then
+                    -- Yeşil butona basıldığında çalışacak orijinal fonksiyonu tetikle (veya bizimkini bağla)
+                    if btn.Name:lower():find("yes") or btn.BackgroundColor3 == Color3.fromRGB(34, 139, 34) then
+                        btn.MouseButton1Click:Connect(function()
+                            local Game8 = require(StarterGui.Player8Handler.Game8Settings)
+                            Game8.PlayersHouse:FireServer("PlayerWantsFire")
+                            SendNotif("XenoHub", "Orijinal Yangın Tetiklendi! 🔥")
+                        end)
+                    end
+                end
+            end
+            SendNotif("XenoHub", "Orijinal ModalFireAsk Bulundu ve Aktif Edildi!")
+        else
+            -- Eğer frame henüz yüklenmemişse veya bulunamazsa doğrudan Remote tetikle
+            SendNotif("XenoHub", "Modal bulunamadı, doğrudan Remote zorlanıyor...")
+            local Game8 = require(StarterGui.Player8Handler.Game8Settings)
+            Game8.PlayersHouse:FireServer("PlayerWantsFire")
+        end
+    end)
+end
+
+-- ============================================================================== --
+-- 4. MEGA UI - XENOHUB ULTIMATE FRAME
 -- ============================================================================== --
 
 if ParentFolder:FindFirstChild("XenoBrookhaven") then ParentFolder.XenoBrookhaven:Destroy() end
@@ -84,7 +127,6 @@ MainStroke.Color = Color3.fromRGB(145, 90, 230)
 MainStroke.Thickness = 2
 MainStroke.Parent = MainFrame
 
--- Sürükleme Mantığı
 local function MakeDraggable(f)
     local dragging, dragInput, dragStart, startPos
     f.InputBegan:Connect(function(input)
@@ -106,70 +148,6 @@ end
 MakeDraggable(MainFrame)
 
 -- ============================================================================== --
--- 4. MODALFIREASK - ÖZEL YANGIN KONTROL PANELİ
--- ============================================================================== --
-
-local ModalFireAsk = Instance.new("Frame")
-ModalFireAsk.Name = "ModalFireAsk"
-ModalFireAsk.Size = UDim2.new(0, 320, 0, 200)
-ModalFireAsk.Position = UDim2.new(0.5, -160, 0.5, -100)
-ModalFireAsk.BackgroundColor3 = Color3.fromRGB(15, 15, 20)
-ModalFireAsk.Visible = false
-ModalFireAsk.Parent = XenoGui
-Instance.new("UICorner", ModalFireAsk).CornerRadius = UDim.new(0, 10)
-local mfStroke = Instance.new("UIStroke")
-mfStroke.Color = Color3.fromRGB(255, 80, 0)
-mfStroke.Thickness = 2
-mfStroke.Parent = ModalFireAsk
-MakeDraggable(ModalFireAsk)
-
-local MFTitle = Instance.new("TextLabel")
-MFTitle.Size = UDim2.new(1, 0, 0, 45)
-MFTitle.BackgroundTransparency = 1
-MFTitle.Text = "🔥 ModalFireAsk (Property: True)"
-MFTitle.TextColor3 = Color3.new(1, 1, 1)
-MFTitle.Font = Enum.Font.GothamBold
-MFTitle.TextSize = 16
-MFTitle.Parent = ModalFireAsk
-
-local GreenBtn = Instance.new("TextButton")
-GreenBtn.Size = UDim2.new(0.4, 0, 0, 50)
-GreenBtn.Position = UDim2.new(0.07, 0, 0.6, 0)
-GreenBtn.BackgroundColor3 = Color3.fromRGB(34, 139, 34)
-GreenBtn.Text = "YANGIN BAŞLAT"
-GreenBtn.TextColor3 = Color3.new(1, 1, 1)
-GreenBtn.Font = Enum.Font.GothamBold
-GreenBtn.Parent = ModalFireAsk
-Instance.new("UICorner", GreenBtn).CornerRadius = UDim.new(0, 6)
-
-local RedBtn = Instance.new("TextButton")
-RedBtn.Size = UDim2.new(0.4, 0, 0, 50)
-RedBtn.Position = UDim2.new(0.53, 0, 0.6, 0)
-RedBtn.BackgroundColor3 = Color3.fromRGB(178, 34, 34)
-RedBtn.Text = "YANGIN DURDUR"
-RedBtn.TextColor3 = Color3.new(1, 1, 1)
-RedBtn.Font = Enum.Font.GothamBold
-RedBtn.Parent = ModalFireAsk
-Instance.new("UICorner", RedBtn).CornerRadius = UDim.new(0, 6)
-
-GreenBtn.MouseButton1Click:Connect(function()
-    XenoSettings.FireEnabled = true
-    pcall(function()
-        local Game8 = require(StarterGui.Player8Handler.Game8Settings)
-        Game8.PlayersHouse:FireServer("PlayerWantsFire")
-    end)
-    SendNotif("XenoHub", "Yangın Dex üzerinden TRUE yapıldı ve başlatıldı! 🔥")
-    ModalFireAsk.Visible = false
-end)
-
-RedBtn.MouseButton1Click:Connect(function()
-    XenoSettings.FireEnabled = false
-    SafeTrigger("House", "Fire", false)
-    SendNotif("XenoHub", "Yangın Durduruldu. Dex: False ❄️")
-    ModalFireAsk.Visible = false
-end)
-
--- ============================================================================== --
 -- 5. TAB SİSTEMİ (SIDEBAR)
 -- ============================================================================== --
 
@@ -186,7 +164,7 @@ TabHolder.BackgroundTransparency = 1
 TabHolder.Parent = MainFrame
 
 local pages = {}
-local function NewTab(name, icon)
+local function NewTab(name)
     local tBtn = Instance.new("TextButton")
     tBtn.Size = UDim2.new(0.9, 0, 0, 40)
     tBtn.Position = UDim2.new(0.05, 0, 0, 60 + (#pages * 45))
@@ -206,8 +184,7 @@ local function NewTab(name, icon)
     page.Visible = false
     page.ScrollBarThickness = 2
     page.Parent = TabHolder
-    local layout = Instance.new("UIListLayout", page)
-    layout.Padding = UDim.new(0, 8)
+    Instance.new("UIListLayout", page).Padding = UDim.new(0, 8)
 
     tBtn.MouseButton1Click:Connect(function()
         for _, p in pairs(pages) do p.p.Visible = false p.b.BackgroundTransparency = 1 p.b.TextColor3 = Color3.fromRGB(200, 200, 200) end
@@ -235,45 +212,39 @@ local function AddBtn(parent, text, cb, color)
 end
 
 -- ============================================================================== --
--- 6. SAYFALAR & ÖZELLİKLER (FULL)
+-- 6. SAYFALAR & ÖZELLİKLER
 -- ============================================================================== --
 
--- ANA SAYFA
 local Home = NewTab("🏠 Ana Sayfa")
-AddBtn(Home, "🔥 MODAL FIRE ASK PANELİ AÇ", function() ModalFireAsk.Visible = true end, Color3.fromRGB(255, 80, 0))
+AddBtn(Home, "🔥 ORIJINAL MODALFIREASK TETIKLE (DEX TRUE)", function()
+    OpenOriginalFireModal()
+end, Color3.fromRGB(255, 80, 0))
 
-AddBtn(Home, "🔓 PREMIUM UNLOCK (Dex Controller)", function()
+AddBtn(Home, "🔓 PREMIUM UNLOCK (Max Bypass)", function()
     pcall(function()
         XenoSettings.PremiumEnabled = true
         local gpc = require(ReplicatedStorage.Modules.Client.UI.GamepassUnlockController)
         gpc.OwnsGamepass = function() return true end
         gpc.IsPremium = function() return true end
-        
-        -- Metatable Hooking for Dex checks
         if getrawmetatable then
             local old; old = hookmetamethod(game, "__index", function(self, key)
                 if tostring(key) == "Premium" or tostring(key) == "IsPremium" then return true end
                 return old(self, key)
             end)
         end
-        SendNotif("XenoHub", "Premium Dex & Metatable Full Aktif! ✅")
+        SendNotif("XenoHub", "Premium Dex Modu Aktif! ✅")
     end)
 end, Color3.fromRGB(145, 90, 230))
 
-AddBtn(Home, "🏦 BANKA KASASINI PATLAT", function()
-    pcall(function()
-        SafeTrigger("Tool", "Bomb")
-        SendNotif("XenoHub", "Bomba Verildi, Kasaya Git!")
-    end)
+AddBtn(Home, "🏦 BANKA SOYGUNU (Bomba Al)", function()
+    SafeTrigger("Tool", "Bomb")
 end)
 
--- OYUNCU MODLARI
 local Player = NewTab("🏃 Oyuncu")
 AddBtn(Player, "⚡ Speed (100)", function() lp.Character.Humanoid.WalkSpeed = 100 end)
 AddBtn(Player, "🚀 Jump (150)", function() lp.Character.Humanoid.JumpPower = 150 end)
-AddBtn(Player, "👻 Noclip (Duvar Geç)", function()
+AddBtn(Player, "👻 Noclip", function()
     XenoSettings.Noclip = not XenoSettings.Noclip
-    SendNotif("XenoHub", "Noclip: " .. tostring(XenoSettings.Noclip))
     RunService.Stepped:Connect(function()
         if XenoSettings.Noclip and lp.Character then
             for _, v in pairs(lp.Character:GetDescendants()) do
@@ -283,38 +254,27 @@ AddBtn(Player, "👻 Noclip (Duvar Geç)", function()
     end)
 end)
 
--- EŞYALAR (GİZLİ & FULL)
-local Items = NewTab("🎒 Mega Eşyalar")
+local Items = NewTab("🎒 Eşyalar")
 local items_list = {
     {"MoneyGun", "Para Tabancası"}, {"Glider", "Planör"}, {"Chainsaw", "Testere"},
-    {"Scythe", "Tırpan"}, {"UraniumRod", "Uranyum"}, {"AgencyBook", "Ajans Kitabı"},
-    {"Cannon", "Top"}, {"GoldenBasketball", "Altın Top"}, {"ElectricGuitar", "Gitar"},
-    {"LollipopPeppermint", "Lolipop"}, {"Water Balloon", "Su Balonu"}
+    {"Scythe", "Tırpan"}, {"UraniumRod", "Uranyum"}, {"AgencyBook", "Ajans Kitabı"}
 }
 for _, item in pairs(items_list) do
     AddBtn(Items, "🛠️ Get: " .. item[2], function() SafeTrigger("Tool", item[1]) end)
 end
 
--- ÖZEL GÜÇLER
 local Powers = NewTab("🔮 Güçler")
 AddBtn(Powers, "🧠 Telekinesis V5", function()
     loadstring(game:HttpGet("https://raw.githubusercontent.com/BRENOPOOF/fe-telekinessv5/refs/heads/main/Main.txt"))()
 end)
-AddBtn(Powers, "🛡️ Infinite Yield (Admin)", function()
+AddBtn(Powers, "🛡️ Infinite Yield", function()
     loadstring(game:HttpGet('https://raw.githubusercontent.com/EdgeIY/infiniteyield/master/source'))()
 end)
-AddBtn(Powers, "🎮 FE Kill Script", function()
-    loadstring(game:HttpGet("https://raw.githubusercontent.com/Lucky-S-9/FE-Kill/main/Main.lua"))()
-end)
 
--- AYARLAR
 local Settings = NewTab("⚙️ Ayarlar")
 AddBtn(Settings, "❌ SCRIPTI KAPAT", function() XenoGui:Destroy() end, Color3.fromRGB(100, 20, 20))
 
--- ============================================================================== --
--- 7. TOGGLE BUTTON (AÇ/KAPAT)
--- ============================================================================== --
-
+-- TOGGLE
 local TButton = Instance.new("TextButton")
 TButton.Size = UDim2.new(0, 60, 0, 60)
 TButton.Position = UDim2.new(0, 40, 0.5, -30)
@@ -333,4 +293,4 @@ TButton.MouseButton1Click:Connect(function()
     TButton.Text = MainFrame.Visible and "X" or "O"
 end)
 
-SendNotif("XenoHub ULTIMATE", "Tüm modüller aktif! Brookhaven'ın hakimi sensin.")
+SendNotif("XenoHub ULTIMATE", "Orijinal ModalFireAsk Entegrasyonu Hazır!")
