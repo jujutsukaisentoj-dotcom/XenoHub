@@ -39,30 +39,37 @@ local function SendNotif(title, text)
 end
 
 -- ============================================================================== --
--- 2. YANGIN SİSTEMİ (FIRE TRIGGER) - İSTEDİĞİN ÖZELLİK
+-- 2. YANGIN SİSTEMİ (FIRE TRIGGER)
 -- ============================================================================== --
 
 local function OpenOriginalFireModal()
     pcall(function()
-        -- 1. Orijinal GUI üzerinden tetiklemeye çalış (Dex True mantığı)
-        local originalModal = nil
+        -- 1. Orijinal GUI üzerinden tetiklemeye çalış (ModalFireAsk kontrolü)
+        local found = false
         for _, v in pairs(lp.PlayerGui:GetDescendants()) do
-            if v.Name == "ModalFireAsk" and (v:IsA("Frame") or v:IsA("ImageLabel")) then
-                originalModal = v
-                break
+            if v.Name == "ModalFireAsk" or v.Name == "FireAsk" then
+                if v:IsA("Frame") or v:IsA("ImageLabel") or v:IsA("CanvasGroup") then
+                    v.Visible = true
+                    found = true
+                end
             end
         end
 
-        if originalModal then
-            originalModal.Visible = true
-            originalModal.Active = true
+        if found then
             SendNotif("XenoHub", "Orijinal Yangın Paneli Açıldı! 🔥")
         else
-            -- 2. Eğer GUI bulunamazsa Remote üzerinden zorla (Fallback)
-            local Game8 = require(StarterGui:WaitForChild("Player8Handler"):WaitForChild("Game8Settings"))
-            if Game8 and Game8.PlayersHouse then
-                Game8.PlayersHouse:FireServer("PlayerWantsFire")
-                SendNotif("XenoHub", "Yangın Remote Üzerinden Tetiklendi! 🔥")
+            -- 2. Eğer GUI bulunamazsa Remote üzerinden ev yangınını tetikle
+            local Player8 = StarterGui:FindFirstChild("Player8Handler")
+            if Player8 then
+                local Game8 = require(Player8:FindFirstChild("Game8Settings"))
+                if Game8 and Game8.PlayersHouse then
+                    Game8.PlayersHouse:FireServer("PlayerWantsFire")
+                    SendNotif("XenoHub", "Yangın Remote Üzerinden Başlatıldı! 🔥")
+                end
+            else
+                -- Alternatif Remote yolu
+                ReplicatedStorage.RE["1House1Even1t"]:FireServer("PlayerWantsFire")
+                SendNotif("XenoHub", "Yangın Komutu Gönderildi! 🔥")
             end
         end
     end)
@@ -205,15 +212,15 @@ end, Color3.fromRGB(145, 90, 230))
 AddBtn(Home, "📺 FULL ADSTORE TETIKLE", TriggerFullADStore, Color3.fromRGB(0, 162, 255))
 
 -- [PLAYER]
-AddBtn(PlayerTab, "🚀 Hız Arttır (100)", function() lp.Character.Humanoid.WalkSpeed = 100 end)
-AddBtn(PlayerTab, "🦘 Zıplama Arttır (150)", function() lp.Character.Humanoid.JumpPower = 150 end)
+AddBtn(PlayerTab, "🚀 Hız Arttır (100)", function() if lp.Character and lp.Character:FindFirstChild("Humanoid") then lp.Character.Humanoid.WalkSpeed = 100 end end)
+AddBtn(PlayerTab, "🦘 Zıplama Arttır (150)", function() if lp.Character and lp.Character:FindFirstChild("Humanoid") then lp.Character.Humanoid.JumpPower = 150 end end)
 
 local noclipBtn = AddBtn(PlayerTab, "🚫 Noclip: KAPALI", function() XenoSettings.Noclip = not XenoSettings.Noclip end)
 local jumpBtn = AddBtn(PlayerTab, "🦅 Sonsuz Zıplama: KAPALI", function() XenoSettings.InfJump = not XenoSettings.InfJump end)
 local spinBtn = AddBtn(PlayerTab, "🔄 Dönme: KAPALI", function() XenoSettings.Spinning = not XenoSettings.Spinning end)
 
--- [WORLD & FIRE] -- BURASI İSTEDİĞİN YANGIN KISMI
-AddBtn(WorldTab, "🔥 MODALFIREASK AÇ (YANGIN)", function() OpenOriginalFireModal() end, Color3.fromRGB(255, 60, 0))
+-- [WORLD & FIRE]
+AddBtn(WorldTab, "🔥 YANGIN PANELİNİ AÇ (FIRE)", function() OpenOriginalFireModal() end, Color3.fromRGB(255, 60, 0))
 AddBtn(WorldTab, "☀️ Saati Gündüz Yap", function() Lighting.TimeOfDay = "12:00:00" end)
 AddBtn(WorldTab, "🌑 Saati Gece Yap", function() Lighting.TimeOfDay = "00:00:00" end)
 
@@ -269,4 +276,4 @@ TButton.MouseButton1Click:Connect(function()
     TButton.Text = MainFrame.Visible and "X" or "O"
 end)
 
-SendNotif("XenoHub ULTIMATE", "Yangın Sistemi & Tüm Özellikler Yüklendi! 🔥")
+SendNotif("XenoHub ULTIMATE", "Yangın Sistemi & Tüm Özellikler Güncellendi! 🔥")
