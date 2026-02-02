@@ -1,11 +1,11 @@
--- Services
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local TweenService = game:GetService("TweenService")
 local CoreGui = game:GetService("CoreGui")
 
 local lp = Players.LocalPlayer
 
--- Eski GUI temizliği
+-- Eski GUI'yi temizle
 if CoreGui:FindFirstChild("XenoDiscord") then CoreGui.XenoDiscord:Destroy() end
 
 local gui = Instance.new("ScreenGui")
@@ -14,24 +14,30 @@ gui.Parent = CoreGui
 
 -- ANA PANEL
 local frame = Instance.new("Frame")
-frame.Size = UDim2.new(0, 320, 0, 250)
-frame.Position = UDim2.new(0.5, -160, 0.5, -125)
-frame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+frame.Name = "MainFrame"
+frame.Size = UDim2.new(0, 320, 0, 280)
+frame.Position = UDim2.new(0.5, -160, 0.5, -140)
+frame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
 frame.BorderSizePixel = 0
 frame.Parent = gui
 
 local corner = Instance.new("UICorner", frame)
+corner.CornerRadius = UDim.new(0, 12)
 
--- KAPATMA (X) BUTONU
+-- KAPATMA BUTONU (X)
 local closeBtn = Instance.new("TextButton")
-closeBtn.Size = UDim2.new(0, 30, 0, 30)
-closeBtn.Position = UDim2.new(1, -35, 0, 5)
-closeBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
-closeBtn.Text = "X"
+closeBtn.Name = "CloseBtn"
+closeBtn.Parent = frame
+closeBtn.Size = UDim2.new(0, 35, 0, 35)
+closeBtn.Position = UDim2.new(1, -40, 0, 5)
+closeBtn.BackgroundColor3 = Color3.fromRGB(255, 60, 60)
+closeBtn.Text = "×"
 closeBtn.TextColor3 = Color3.new(1, 1, 1)
 closeBtn.Font = Enum.Font.GothamBold
-closeBtn.Parent = frame
-Instance.new("UICorner", closeBtn)
+closeBtn.TextSize = 25
+
+local closeCorner = Instance.new("UICorner", closeBtn)
+closeCorner.CornerRadius = UDim.new(1, 0) -- Yuvarlak X butonu
 
 closeBtn.MouseButton1Click:Connect(function()
     gui:Destroy()
@@ -39,43 +45,72 @@ end)
 
 -- BAŞLIK
 local title = Instance.new("TextLabel")
-title.Size = UDim2.new(1, 0, 0, 40)
-title.Text = "XenoHub | Brookhaven"
+title.Size = UDim2.new(1, 0, 0, 50)
+title.Text = "XenoHub | V1.5"
 title.TextColor3 = Color3.new(1, 1, 1)
 title.BackgroundTransparency = 1
 title.Font = Enum.Font.GothamBold
+title.TextSize = 18
 title.Parent = frame
 
--- BUTON OLUŞTURUCU
+-- 
+
+-- BUTON FONKSİYONU
 local function createButton(text, y, color, callback)
     local btn = Instance.new("TextButton")
-    btn.Size = UDim2.new(0.85, 0, 0, 40)
-    btn.Position = UDim2.new(0.075, 0, 0, y)
+    btn.Size = UDim2.new(0.9, 0, 0, 45)
+    btn.Position = UDim2.new(0.05, 0, 0, y)
     btn.BackgroundColor3 = color
     btn.Text = text
     btn.TextColor3 = Color3.new(1, 1, 1)
     btn.Font = Enum.Font.GothamMedium
+    btn.TextSize = 14
     btn.Parent = frame
-    Instance.new("UICorner", btn)
     
+    Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 8)
     btn.MouseButton1Click:Connect(callback)
 end
 
--- MONEY GUN BUTONU (Brookhaven FireServer)
-createButton("💰 Get MoneyGun", 60, Color3.fromRGB(46, 204, 113), function()
-    local args = {
-        [1] = "PickingTool",
-        [2] = "MoneyGun"
-    }
-    -- Brookhaven eşya verme tetikleyicisi
-    ReplicatedStorage:WaitForChild("RE"):WaitForChild("106197148"):WaitForChild("RemoteEvent"):FireServer(unpack(args))
+-- 💸 MONEY GUN TETİKLEYİCİ (Brookhaven Spesifik)
+createButton("💸 Money Gun (Brookhaven)", 60, Color3.fromRGB(46, 204, 113), function()
+    local itemName = "MoneyGun"
+    local rep = game:GetService("ReplicatedStorage")
+    
+    local function notify(t)
+        pcall(function()
+            game:GetService("StarterGui"):SetCore("SendNotification", {Title = "XenoHub", Text = t, Duration = 3})
+        end)
+    end
+
+    -- Brookhaven Remote Tarama ve Tetikleme
+    local re = rep:FindFirstChild("RE") or rep:FindFirstChild("Remotes") or rep
+    local trigger = re:FindFirstChild("1Playe1rTrigge1rEven1t") or rep:FindFirstChild("1Playe1rTrigge1rEven1t")
+
+    if trigger then
+        local args = {[1] = "AcceptedToolToServer", [2] = itemName, [3] = lp}
+        if trigger:IsA("RemoteEvent") then 
+            trigger:FireServer(unpack(args)) 
+        else 
+            trigger:InvokeServer(unpack(args)) 
+        end
+        notify("MoneyGun Alındı! 🎯")
+    else
+        -- Alternatif: Direkt RE üzerinden deneme
+        local r = re:FindFirstChild("GetItem") or re:FindFirstChild("Getİtem")
+        if r then
+            r:FireServer(itemName)
+            notify("MoneyGun Talep Edildi! 🔥")
+        else
+            notify("Remote bulunamadı! ❌")
+        end
+    end
 end)
 
 -- DİĞER BUTONLAR
-createButton("💜 Lcc Hub (Kopyala)", 110, Color3.fromRGB(88, 101, 242), function()
+createButton("💜 Discord: Lcc Hub", 120, Color3.fromRGB(88, 101, 242), function()
     setclipboard("https://discord.gg/7MN4RVfJ4F")
 end)
 
-createButton("🌸 Sources / Coquette", 160, Color3.fromRGB(235, 100, 190), function()
+createButton("🌸 Sources / Coquette", 180, Color3.fromRGB(235, 100, 190), function()
     setclipboard("https://discord.gg/JVmbJbycs")
 end)
