@@ -250,67 +250,79 @@ end
 local Home = NewTab("🏠 Ana Sayfa")
 
 -- ============================================================================== --
--- CMDR ADMIN FULL BYPASS & PERMISSION INJECTOR (FULL VERSION)
+-- XENOHUB CMDR ULTIMATE COMMANDS & PERMISSION BYPASS (NO PATCH - FULL ACCESS)
 -- ============================================================================== --
 
-AddBtn(Home, "⚡ CMDR FULL BYPASS (F2)", function()
+AddBtn(Home, "☢️ CMDR FULL ACCESS (NO PATCH)", function()
     pcall(function()
-        -- 1. Modül Yolları ve Yetki Bypass (Hooking)
-        local CmdrPermPath = ReplicatedStorage:WaitForChild("Modules"):WaitForChild("Shared"):WaitForChild("Cmdr"):WaitForChild("CmdrPermissions")
-        local MainPermPath = ReplicatedStorage:WaitForChild("Modules"):WaitForChild("Shared"):WaitForChild("Permissions")
+        local CmdrClient = ReplicatedStorage:WaitForChild("CmdrClient")
+        local CommandsFolder = CmdrClient:WaitForChild("Commands")
+        local Modules = ReplicatedStorage:WaitForChild("Modules")
         
-        local CmdrPermissions = require(CmdrPermPath)
-        local MainPermissions = require(MainPermPath)
-
-        -- CmdrPermissions Bypass (Senin attığın decompile kodlarını manipüle eder)
-        CmdrPermissions.hasCmdrAccess = function() return true end
-        CmdrPermissions.hasCommandAccess = function() return true end
-
-        -- Genel İzin Bypass (Admin, Creator, Mod, Staff)
-        local perms = {"hasAdminAccess", "hasContentCreatorAccess", "hasModeratorAccess", "hasStaffAccess"}
-        for _, func in pairs(perms) do
-            MainPermissions[func] = function() return true end
+        -- 1. PERMISSION & FETCHED BYPASS (DEX KONTROLÜ İÇİN)
+        -- AllPassesFetched ve Patched kontrollerini modüllerin içinden siliyoruz/false yapıyoruz
+        local CmdrPermPath = Modules:WaitForChild("Shared"):WaitForChild("Cmdr"):WaitForChild("CmdrPermissions")
+        local Permissions = require(CmdrPermPath)
+        
+        -- AllPassesFetched değişkenini false yap ve erişimi aç
+        if Permissions.AllPassesFetched ~= nil then
+            Permissions.AllPassesFetched = false
         end
 
-        -- 2. Cmdr Controller & Client Yükleme
-        local CmdrClient = ReplicatedStorage:WaitForChild("CmdrClient")
-        local InstanceLoadingUtil = require(ReplicatedStorage.Modules.Shared.Utils.InstanceLoadingUtil)
-        local Promise = require(ReplicatedStorage:WaitForChild("Packages").Promise)
-        local Platform = require(ReplicatedStorage.Modules.Client.Util.Platform)
-
-        -- Aktivasyon Tuşları (F2, L3, Semicolon)
-        local keys = {Enum.KeyCode.F2, Enum.KeyCode.ButtonL3, Enum.KeyCode.Semicolon}
-
-        -- İçerikleri zorla yükle
-        local tbl = {}
-        table.insert(tbl, InstanceLoadingUtil.waitForDescendantsToLoad(CmdrClient:WaitForChild("Commands"), 4))
-        table.insert(tbl, InstanceLoadingUtil.waitForDescendantsToLoad(CmdrClient:WaitForChild("Types"), 4))
+        -- hasCmdrAccess ve hasCommandAccess fonksiyonlarını "Full Pass" yap
+        Permissions.hasCmdrAccess = function() return true end
+        Permissions.hasCommandAccess = function() return true end
         
-        Promise.allSettled(tbl):expect()
-        
-        -- Cmdr'ı Başlat
-        local Cmdr = require(CmdrClient)
-        Cmdr:SetActivationKeys(keys)
-
-        -- Mobil Kullanıcı Desteği
-        if Platform.IsMobile() then
-            if not lp.PlayerGui:FindFirstChild("CmdrMobile") then
-                local ScreenGui = Instance.new("ScreenGui", lp.PlayerGui)
-                ScreenGui.Name = "CmdrMobile"
-                local Btn = Instance.new("TextButton", ScreenGui)
-                Btn.Size = UDim2.fromScale(0.12, 0.08)
-                Btn.Position = UDim2.fromScale(0.85, 0.15)
-                Btn.Text = "CMDR ADMIN"
-                Btn.TextColor3 = Color3.new(1, 1, 1)
-                Btn.BackgroundColor3 = Color3.fromRGB(145, 90, 230)
-                Btn.Font = Enum.Font.GothamBold
-                Btn.TextScaled = true
-                Instance.new("UICorner", Btn).CornerRadius = UDim.new(0.5, 0.5)
-                Btn.Activated:Connect(function() Cmdr:Toggle() end)
+        -- 2. COMMAND MODULES BYPASS (PATCHED SİLME)
+        -- Commands klasöründeki her bir modülü tek tek gezip içindeki kısıtlamaları kaldırır
+        for _, cmdModule in pairs(CommandsFolder:GetDescendants()) do
+            if cmdModule:IsA("ModuleScript") then
+                pcall(function()
+                    local loadedModule = require(cmdModule)
+                    -- Eğer modül içinde 'Patched' veya 'Disabled' kontrolü varsa bypass et
+                    if type(loadedModule) == "table" then
+                        if loadedModule.Patched ~= nil then loadedModule.Patched = false end
+                        if loadedModule.Enabled ~= nil then loadedModule.Enabled = true end
+                        -- Bazı modüller yetkiyi tablodan kontrol eder
+                        if loadedModule.PermissionLevel then loadedModule.PermissionLevel = 0 end
+                    end
+                end)
             end
         end
 
-        SendNotif("XenoHub", "FULL BYPASS: Tüm Admin Yetkileri Tanımlandı! (F2)")
+        -- 3. ANA PERMISSIONS BYPASS (Staff/Admin/Creator)
+        local MainPerm = require(Modules.Shared.Permissions)
+        for _, name in pairs({"hasAdminAccess", "hasContentCreatorAccess", "hasModeratorAccess", "hasStaffAccess"}) do
+            MainPerm[name] = function() return true end
+        end
+
+        -- 4. CMDR ÇALIŞTIRMA
+        local Cmdr = require(CmdrClient)
+        local InstanceLoadingUtil = require(Modules.Shared.Utils.InstanceLoadingUtil)
+        local Promise = require(ReplicatedStorage:WaitForChild("Packages").Promise)
+
+        local tbl = {}
+        table.insert(tbl, InstanceLoadingUtil.waitForDescendantsToLoad(CommandsFolder, 5))
+        table.insert(tbl, InstanceLoadingUtil.waitForDescendantsToLoad(CmdrClient:WaitForChild("Types"), 5))
+        Promise.allSettled(tbl):expect()
+
+        Cmdr:SetActivationKeys({Enum.KeyCode.F2, Enum.KeyCode.Semicolon})
+
+        -- Mobil Desteği
+        local Platform = require(Modules.Client.Util.Platform)
+        if Platform.IsMobile() and not lp.PlayerGui:FindFirstChild("CmdrMobile") then
+            local sg = Instance.new("ScreenGui", lp.PlayerGui)
+            sg.Name = "CmdrMobile"
+            local b = Instance.new("TextButton", sg)
+            b.Size = UDim2.fromScale(0.12, 0.08)
+            b.Position = UDim2.fromScale(0.85, 0.25)
+            b.Text = "CMDR UNLOCKED"
+            b.BackgroundColor3 = Color3.fromRGB(145, 90, 230)
+            Instance.new("UICorner", b).CornerRadius = UDim.new(0.5, 0.5)
+            b.Activated:Connect(function() Cmdr:Toggle() end)
+        end
+
+        SendNotif("XenoHub", "TÜM KOMUTLAR AÇILDI: Patched temizlendi, Full Erişim sağlandı!")
         Cmdr:Toggle()
     end)
 end, Color3.fromRGB(145, 90, 230))
