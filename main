@@ -1,7 +1,6 @@
 --[[
-    XENOHUB V11 - REDZ HUB ULTIMATE EDITION
-    Geliştirici: XenoHub Team & EgeKazak_Real1
-    Özellikler: ModalFireAsk, ADStore Bypass, WASD Fly, Cmdr Unlock, Toggle UI
+    XENOHUB V10 - REDZ HUB STYLE EDITION
+    Full Brookhaven Script: WASD Fly, Player View/Goto, Cmdr Bypass, Item Trigger
 ]]
 
 local Players = game:GetService("Players")
@@ -13,6 +12,7 @@ local CoreGui = game:GetService("CoreGui")
 local StarterGui = game:GetService("StarterGui")
 
 local lp = Players.LocalPlayer
+local char = lp.Character or lp.CharacterAdded:Wait()
 local ParentFolder = (gethui and gethui()) or CoreGui
 
 -- === DURUM DEĞİŞKENLERİ === --
@@ -21,143 +21,36 @@ local noclip = false
 local flySpeed = 100
 local flyKeys = {W = false, S = false, A = false, D = false, Q = false, E = false}
 local noclipConn = nil
-local uiVisible = true
+local viewingPlayer = nil
 
 -- === TEMEL FONKSİYONLAR === --
 local function SendNotif(title, text)
-    pcall(function()
-        StarterGui:SetCore("SendNotification", {
-            Title = title,
-            Text = text,
-            Duration = 3
-        })
-    end)
+    StarterGui:SetCore("SendNotification", {
+        Title = title,
+        Text = text,
+        Duration = 3
+    })
 end
 
-local function TriggerAdSystems()
-    pcall(function()
-        local re = ReplicatedStorage:FindFirstChild("RE")
-        if re then
-            local modalEvent = re:FindFirstChild("1Modal1Fire1Ask")
-            local videoEvent = re:FindFirstChild("1Video1Ad1Even1t")
-            if modalEvent then modalEvent:FireServer("Accepted", "VideoAd") end
-            if videoEvent then videoEvent:FireServer("Finished") end
-            local adStore = re:FindFirstChild("1AD1Stor1e")
-            if adStore then adStore:FireServer("VideoReward", "PremiumUnlock") end
-        end
-    end)
-end
-
--- === UI CREATION (REDZ STYLE) === --
+-- === REDZ HUB STYLE UI CREATION === --
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "XenoHub_Redz_V11"
+ScreenGui.Name = "XenoHub_Redz"
 ScreenGui.Parent = ParentFolder
-ScreenGui.ResetOnSpawn = false
 ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 
--- Toggle Button (Açma/Kapama Logosu)
-local ToggleButton = Instance.new("TextButton")
-ToggleButton.Name = "XenoToggle"
-ToggleButton.Size = UDim2.new(0, 50, 0, 50)
-ToggleButton.Position = UDim2.new(0, 20, 0.5, -25)
-ToggleButton.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
-ToggleButton.Text = "X"
-ToggleButton.TextColor3 = Color3.fromRGB(255, 40, 40)
-ToggleButton.Font = Enum.Font.GothamBlack
-ToggleButton.TextSize = 25
-ToggleButton.Parent = ScreenGui
-
-local TBCorner = Instance.new("UICorner")
-TBCorner.CornerRadius = UDim.new(1, 0)
-TBCorner.Parent = ToggleButton
-
-local TBStroke = Instance.new("UIStroke")
-TBStroke.Thickness = 2
-TBStroke.Color = Color3.fromRGB(255, 40, 40)
-TBStroke.Parent = ToggleButton
-
--- Main Frame
 local MainFrame = Instance.new("Frame")
 MainFrame.Name = "MainFrame"
-MainFrame.Size = UDim2.new(0, 550, 0, 360)
-MainFrame.Position = UDim2.new(0.5, -275, 0.5, -180)
+MainFrame.Size = UDim2.new(0, 500, 0, 320)
+MainFrame.Position = UDim2.new(0.5, -250, 0.5, -160)
 MainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 18)
 MainFrame.BorderSizePixel = 0
-MainFrame.ClipsDescendants = true
 MainFrame.Parent = ScreenGui
 
 local UICorner = Instance.new("UICorner")
 UICorner.CornerRadius = UDim.new(0, 10)
 UICorner.Parent = MainFrame
 
-local UIStroke = Instance.new("UIStroke")
-UIStroke.Thickness = 1.5
-UIStroke.Color = Color3.fromRGB(40, 40, 45)
-UIStroke.Parent = MainFrame
-
--- Top Bar (Close Button Section)
-local TopBar = Instance.new("Frame")
-TopBar.Size = UDim2.new(1, 0, 0, 40)
-TopBar.BackgroundTransparency = 1
-TopBar.Parent = MainFrame
-
-local CloseBtn = Instance.new("TextButton")
-CloseBtn.Name = "CloseBtn"
-CloseBtn.Size = UDim2.new(0, 30, 0, 30)
-CloseBtn.Position = UDim2.new(1, -35, 0, 5)
-CloseBtn.BackgroundColor3 = Color3.fromRGB(255, 40, 40)
-CloseBtn.Text = "X"
-CloseBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-CloseBtn.Font = Enum.Font.GothamBold
-CloseBtn.TextSize = 14
-CloseBtn.Parent = TopBar
-
-local CBCorner = Instance.new("UICorner")
-CBCorner.CornerRadius = UDim.new(0, 6)
-CBCorner.Parent = CloseBtn
-
--- Sidebar
-local Sidebar = Instance.new("Frame")
-Sidebar.Size = UDim2.new(0, 160, 1, -40)
-Sidebar.Position = UDim2.new(0, 0, 0, 40)
-Sidebar.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
-Sidebar.BorderSizePixel = 0
-Sidebar.Parent = MainFrame
-
-local TabList = Instance.new("ScrollingFrame")
-TabList.Size = UDim2.new(1, -10, 1, -20)
-TabList.Position = UDim2.new(0, 5, 0, 10)
-TabList.BackgroundTransparency = 1
-TabList.ScrollBarThickness = 0
-TabList.Parent = Sidebar
-
-local UIList = Instance.new("UIListLayout")
-UIList.Padding = UDim.new(0, 5)
-UIList.Parent = TabList
-
-local Container = Instance.new("Frame")
-Container.Name = "Container"
-Container.Position = UDim2.new(0, 170, 0, 50)
-Container.Size = UDim2.new(1, -180, 1, -60)
-Container.BackgroundTransparency = 1
-Container.Parent = MainFrame
-
-local Pages = {}
-
--- UI Toggle Logic
-ToggleButton.MouseButton1Click:Connect(function()
-    uiVisible = not uiVisible
-    MainFrame.Visible = uiVisible
-    ToggleButton.Text = uiVisible and "X" or "XENO"
-end)
-
-CloseBtn.MouseButton1Click:Connect(function()
-    uiVisible = false
-    MainFrame.Visible = false
-    ToggleButton.Text = "XENO"
-end)
-
--- Sürükleme
+-- Sürükleme Özelliği
 local dragging, dragInput, dragStart, startPos
 MainFrame.InputBegan:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.MouseButton1 then
@@ -166,20 +59,60 @@ MainFrame.InputBegan:Connect(function(input)
         startPos = MainFrame.Position
     end
 end)
+MainFrame.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then dragging = false end
+end)
 UserInputService.InputChanged:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.MouseMovement and dragging then
         local delta = input.Position - dragStart
         MainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
     end
 end)
-MainFrame.InputEnded:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 then dragging = false end
-end)
 
--- Tab & Button Creator
+-- Sidebar
+local Sidebar = Instance.new("Frame")
+Sidebar.Size = UDim2.new(0, 140, 1, 0)
+Sidebar.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
+Sidebar.BorderSizePixel = 0
+Sidebar.Parent = MainFrame
+
+local SideCorner = Instance.new("UICorner")
+SideCorner.CornerRadius = UDim.new(0, 10)
+SideCorner.Parent = Sidebar
+
+local Logo = Instance.new("TextLabel")
+Logo.Size = UDim2.new(1, 0, 0, 50)
+Logo.Text = "XENOHUB V10"
+Logo.TextColor3 = Color3.fromRGB(255, 255, 255)
+Logo.Font = Enum.Font.GothamBlack
+Logo.TextSize = 16
+Logo.BackgroundTransparency = 1
+Logo.Parent = Sidebar
+
+local Container = Instance.new("Frame")
+Container.Name = "Container"
+Container.Position = UDim2.new(0, 150, 0, 10)
+Container.Size = UDim2.new(1, -160, 1, -20)
+Container.BackgroundTransparency = 1
+Container.Parent = MainFrame
+
+local TabList = Instance.new("ScrollingFrame")
+TabList.Position = UDim2.new(0, 5, 0, 60)
+TabList.Size = UDim2.new(1, -10, 1, -70)
+TabList.BackgroundTransparency = 1
+TabList.ScrollBarThickness = 0
+TabList.Parent = Sidebar
+
+local UIListLayout = Instance.new("UIListLayout")
+UIListLayout.Padding = UDim.new(0, 5)
+UIListLayout.Parent = TabList
+
+local Pages = {}
+local currentTab = nil
+
 local function CreateTab(name)
     local TabBtn = Instance.new("TextButton")
-    TabBtn.Size = UDim2.new(1, 0, 0, 40)
+    TabBtn.Size = UDim2.new(1, 0, 0, 35)
     TabBtn.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
     TabBtn.Text = name
     TabBtn.TextColor3 = Color3.fromRGB(150, 150, 150)
@@ -188,30 +121,28 @@ local function CreateTab(name)
     TabBtn.AutoButtonColor = false
     TabBtn.Parent = TabList
     
-    local TBC = Instance.new("UICorner")
-    TBC.CornerRadius = UDim.new(0, 8)
-    TBC.Parent = TabBtn
+    local TBCorner = Instance.new("UICorner")
+    TBCorner.CornerRadius = UDim.new(0, 6)
+    TBCorner.Parent = TabBtn
 
     local Page = Instance.new("ScrollingFrame")
     Page.Size = UDim2.new(1, 0, 1, 0)
     Page.BackgroundTransparency = 1
     Page.Visible = false
-    Page.ScrollBarThickness = 3
-    Page.ScrollBarImageColor3 = Color3.fromRGB(255, 40, 40)
+    Page.ScrollBarThickness = 2
     Page.Parent = Container
     
-    local PL = Instance.new("UIListLayout")
-    PL.Padding = UDim.new(0, 8)
-    PL.Parent = Page
+    local PageLayout = Instance.new("UIListLayout")
+    PageLayout.Padding = UDim.new(0, 8)
+    PageLayout.Parent = Page
 
     TabBtn.MouseButton1Click:Connect(function()
         for _, p in pairs(Pages) do p.Visible = false end
         for _, b in pairs(TabList:GetChildren()) do 
-            if b:IsA("TextButton") then b.TextColor3 = Color3.fromRGB(150, 150, 150) b.BackgroundColor3 = Color3.fromRGB(30, 30, 35) end
+            if b:IsA("TextButton") then b.TextColor3 = Color3.fromRGB(150, 150, 150) end
         end
         Page.Visible = true
         TabBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-        TabBtn.BackgroundColor3 = Color3.fromRGB(255, 40, 40)
     end)
 
     table.insert(Pages, Page)
@@ -220,54 +151,28 @@ end
 
 local function AddButton(page, text, color, callback)
     local Btn = Instance.new("TextButton")
-    Btn.Size = UDim2.new(1, -10, 0, 42)
-    Btn.BackgroundColor3 = color or Color3.fromRGB(25, 25, 30)
+    Btn.Size = UDim2.new(1, -10, 0, 38)
+    Btn.BackgroundColor3 = color or Color3.fromRGB(40, 40, 45)
     Btn.Text = text
     Btn.TextColor3 = Color3.fromRGB(255, 255, 255)
     Btn.Font = Enum.Font.GothamMedium
     Btn.TextSize = 13
     Btn.Parent = page
     
-    local BC = Instance.new("UICorner")
-    BC.CornerRadius = UDim.new(0, 8)
-    BC.Parent = Btn
+    local BCorner = Instance.new("UICorner")
+    BCorner.CornerRadius = UDim.new(0, 6)
+    BCorner.Parent = Btn
     
-    local BS = Instance.new("UIStroke")
-    BS.Thickness = 1
-    BS.Color = Color3.fromRGB(45, 45, 50)
-    BS.Parent = Btn
-    
-    Btn.MouseButton1Click:Connect(function()
-        pcall(callback)
-        Btn.BackgroundColor3 = Color3.fromRGB(255, 40, 40)
-        task.wait(0.1)
-        Btn.BackgroundColor3 = color or Color3.fromRGB(25, 25, 30)
-    end)
+    Btn.MouseButton1Click:Connect(callback)
 end
 
--- === SAYFALAR === --
-local Home = CreateTab("🏠 Ana Menü")
-local Player = CreateTab("👤 Oyuncu")
-local Items = CreateTab("🎒 Eşyalar")
-local Settings = CreateTab("⚙️ Ayarlar")
+-- === TABS === --
+local PlayerTab = CreateTab("👤 Oyuncu")
+local BypassTab = CreateTab("☢️ Bypass")
+local ItemTab = CreateTab("🎒 Eşyalar")
 
--- Home Section
-AddButton(Home, "☢️ FULL BYPASS (ADSTORE/VIDEO)", Color3.fromRGB(40, 40, 45), function()
-    TriggerAdSystems()
-    SendNotif("XenoHub", "Tüm Reklam Sistemleri Devre Dışı!")
-end)
-
-AddButton(Home, "⚡ CMDR FULL UNLOCK (F2)", Color3.fromRGB(40, 40, 45), function()
-    pcall(function()
-        local Perms = require(ReplicatedStorage.Modules.Shared.Cmdr.CmdrPermissions)
-        Perms.hasCmdrAccess = function() return true end
-        require(ReplicatedStorage.CmdrClient):SetActivationKeys({Enum.KeyCode.F2})
-        SendNotif("XenoHub", "Cmdr Açıldı! F2 Bas.")
-    end)
-end)
-
--- Player Section
-AddButton(Player, "✈️ FLY (WASD+QE): AÇ/KAPAT", nil, function()
+-- === PLAYER LOGIC === --
+AddButton(PlayerTab, "✈️ Fly (WASD+QE): AÇ/KAPAT", Color3.fromRGB(45, 120, 255), function()
     flying = not flying
     local root = lp.Character:FindFirstChild("HumanoidRootPart")
     if flying and root then
@@ -275,9 +180,12 @@ AddButton(Player, "✈️ FLY (WASD+QE): AÇ/KAPAT", nil, function()
         bv.Name = "XenoFly"
         bv.MaxForce = Vector3.new(1,1,1) * math.huge
         bv.Velocity = Vector3.new(0,0,0)
+        
         local bg = Instance.new("BodyGyro", root)
         bg.Name = "XenoGyro"
         bg.MaxTorque = Vector3.new(1,1,1) * math.huge
+        bg.P = 9e4
+        
         task.spawn(function()
             while flying do
                 RunService.RenderStepped:Wait()
@@ -294,13 +202,14 @@ AddButton(Player, "✈️ FLY (WASD+QE): AÇ/KAPAT", nil, function()
             end
             bv:Destroy() bg:Destroy()
         end)
+        SendNotif("XenoHub", "Uçma Aktif!")
+    else
+        SendNotif("XenoHub", "Uçma Kapatıldı.")
     end
 end)
 
-AddButton(Player, "👻 NOCLIP: AÇ/KAPAT", nil, function()
-    noclip = not noclip
-    if noclipConn then noclipConn:Disconnect() end
-    if noclip then
+AddButton(PlayerTab, "👻 Noclip: AÇ/KAPAT", nil, function()
+    if noclipConn then noclipConn:Disconnect() noclipConn = nil else
         noclipConn = RunService.Stepped:Connect(function()
             for _, v in pairs(lp.Character:GetDescendants()) do
                 if v:IsA("BasePart") then v.CanCollide = false end
@@ -309,34 +218,67 @@ AddButton(Player, "👻 NOCLIP: AÇ/KAPAT", nil, function()
     end
 end)
 
--- Items Section
-local function GetItem(name)
+AddButton(PlayerTab, "👁️ Rastgele İzle (View)", nil, function()
+    local p = Players:GetPlayers()
+    local target = p[math.random(1, #p)]
+    if target ~= lp then workspace.CurrentCamera.CameraSubject = target.Character.Humanoid end
+end)
+
+AddButton(PlayerTab, "❌ İzlemeyi Bırak", Color3.fromRGB(150, 0, 0), function()
+    workspace.CurrentCamera.CameraSubject = lp.Character.Humanoid
+end)
+
+AddButton(PlayerTab, "📍 Rastgele Goto", nil, function()
+    local p = Players:GetPlayers()
+    local target = p[math.random(1, #p)]
+    if target ~= lp then lp.Character.HumanoidRootPart.CFrame = target.Character.HumanoidRootPart.CFrame end
+end)
+
+-- === BYPASS LOGIC === --
+AddButton(BypassTab, "☢️ CMDR FULL BYPASS", Color3.fromRGB(120, 50, 200), function()
     pcall(function()
-        ReplicatedStorage.RE["1Playe1rTrigge1rEven1t"]:FireServer("AcceptedToolToServer", name, lp)
+        local CmdrClient = ReplicatedStorage:WaitForChild("CmdrClient")
+        local Commands = CmdrClient:WaitForChild("Commands")
+        local Perms = require(ReplicatedStorage.Modules.Shared.Cmdr.CmdrPermissions)
+        Perms.AllPassesFetched = false
+        Perms.hasCmdrAccess = function() return true end
+        for _, m in pairs(Commands:GetDescendants()) do
+            if m:IsA("ModuleScript") then
+                local d = require(m)
+                if type(d) == "table" then d.Patched = false d.Enabled = true end
+            end
+        end
+        require(CmdrClient):SetActivationKeys({Enum.KeyCode.F2})
+        SendNotif("XenoHub", "Cmdr Bypass Başarılı! (F2)")
+    end)
+end)
+
+-- === ITEM LOGIC === --
+local function SafeTrigger(tool)
+    pcall(function()
+        local re = ReplicatedStorage:FindFirstChild("RE")
+        local event = re and re:FindFirstChild("1Playe1rTrigge1rEven1t")
+        if event then event:FireServer("AcceptedToolToServer", tool, lp) end
     end)
 end
 
-AddButton(Items, "💸 Para Tabancası Al", nil, function() GetItem("MoneyGun") end)
-AddButton(Items, "🪂 Planör Al", nil, function() GetItem("Glider") end)
-AddButton(Items, "🪚 Testere Al", nil, function() GetItem("Chainsaw") end)
-AddButton(Items, "☢️ Uranyum Çubuğu Al", nil, function() GetItem("UraniumRod") end)
+local tools = {{"MoneyGun", "Para Tabancası"}, {"Glider", "Planör"}, {"Chainsaw", "Testere"}, {"Scythe", "Tırpan"}}
+for _, t in pairs(tools) do
+    AddButton(ItemTab, "🛠️ Al: " .. t[2], nil, function() SafeTrigger(t[1]) end)
+end
 
--- Settings Section
-AddButton(Settings, "🔴 SCRIPT'I TAMAMEN SİL", Color3.fromRGB(60, 20, 20), function()
-    ScreenGui:Destroy()
-end)
-
--- Fly Keybinds
+-- === FLY KEYS === --
 UserInputService.InputBegan:Connect(function(i, g)
     if g then return end
-    if flyKeys[i.KeyCode.Name] ~= nil then flyKeys[i.KeyCode.Name] = true end
+    local k = i.KeyCode.Name
+    if flyKeys[k] ~= nil then flyKeys[k] = true end
 end)
 UserInputService.InputEnded:Connect(function(i)
-    if flyKeys[i.KeyCode.Name] ~= nil then flyKeys[i.KeyCode.Name] = false end
+    local k = i.KeyCode.Name
+    if flyKeys[k] ~= nil then flyKeys[k] = false end
 end)
 
--- Init
+-- İlk sayfayı aç
 Pages[1].Visible = true
-TabList:GetChildren()[2].BackgroundColor3 = Color3.fromRGB(255, 40, 40)
 TabList:GetChildren()[2].TextColor3 = Color3.fromRGB(255, 255, 255)
-SendNotif("XenoHub V11", "Redz Style Yüklendi! 'X' Butonuna Bas.")
+SendNotif("XenoHub", "Redz Style Yüklendi!")
