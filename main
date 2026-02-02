@@ -1,385 +1,230 @@
 --[[ 
     XENOHUB ULTIMATE - BROOKHAVEN MEGA FULL SCRIPT
     Geliştirici: XenoHub Team & EgeKazak_Real1
-    Özellikler: Orijinal ModalFireAsk, ADStore & VideoAd Tetikleyici, Premium Unlock, Max Bypass
-    Version: 10.0 (Ultimate UI, X-Close & Full Optimization)
+    Kütüphane: RedzHub UI
+    Version: 11.0 (Full UI Upgrade & Mega Features)
 ]]
-local Libary = loadstring(game:HttpGet("https://raw.githubusercontent.com/tbao143/Library-ui/refs/heads/main/Redzhubui"))()
+
+local Lib = loadstring(game:HttpGet("https://raw.githubusercontent.com/tbao143/Library-ui/refs/heads/main/Redzhubui"))()
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local UserInputService = game:GetService("UserInputService")
-local TweenService = game:GetService("TweenService")
-local CoreGui = game:GetService("CoreGui")
 local RunService = game:GetService("RunService")
-local Lighting = game:GetService("Lighting")
-local StarterGui = game:GetService("StarterGui")
-
 local lp = Players.LocalPlayer
-local PlayerGui = lp:WaitForChild("PlayerGui")
-local ParentFolder = (gethui and gethui()) or CoreGui
+local char = lp.Character or lp.CharacterAdded:Wait()
+local hum = char:WaitForChild("Humanoid")
 
 -- ============================================================================== --
--- 1. TEMEL AYARLAR
+-- AYARLAR & DEĞİŞKENLER
 -- ============================================================================== --
-
 local XenoSettings = {
-    PremiumEnabled = false,
-    Speed = 16,
-    Jump = 50,
-    Noclip = false
+    Fly = false,
+    FlySpeed = 50,
+    Noclip = false,
+    InfJump = false,
+    Spectating = nil
 }
 
-local function SendNotif(title, text)
-    pcall(function()
-        StarterGui:SetCore("SendNotification", {
-            Title = title;
-            Text = text;
-            Duration = 5;
-        })
-    end)
-end
-
 -- ============================================================================== --
--- 2. BYPASS VE TETIKLEYICI FONKSIYONLAR
+-- FONKSİYONLAR
 -- ============================================================================== --
 
-local function TriggerFullADStore()
-    pcall(function()
-        local AdsController = require(ReplicatedStorage.Modules.Client.Ads.AdvertisementsController)
-        local PanelController = require(ReplicatedStorage.Modules.Client.UI.PanelController)
-        local AdJoinController = require(ReplicatedStorage.Modules.Client.Ads.AdvertisementJoinController)
-        
-        local MainGUI = PlayerGui:FindFirstChild("MainGUIHandler")
-        if not MainGUI then return end
-
-        local adStore = MainGUI:FindFirstChild("AdStore", true)
-        if adStore then
-            adStore.Visible = true
-            adStore.Active = true
-            for _, v in pairs(adStore:GetDescendants()) do
-                if v:IsA("GuiButton") or v:IsA("CanvasGroup") then v.Visible = true end
-            end
-        end
-
-        local shopButtons = MainGUI:FindFirstChild("ShopButtons", true)
-        if shopButtons then
-            local adsBtn = shopButtons:FindFirstChild("Ads", true) or shopButtons:FindFirstChild("AdsButton", true)
-            if adsBtn then adsBtn.Visible = true adsBtn.Active = true end
-        end
-
-        AdJoinController.CancelCheck()
-        AdJoinController.CheckAd()
-        PanelController.OpenPanelByContext("MainGUIHandler", "AdStore")
-
-        AdsController.RequestRewardedVideoAd("XenoBypass_PremiumItem", "rbxassetid://0", 0, "Item Refresh", "Item Refresh", false, false)
-        SendNotif("XenoHub", "ADStore ve Reklamlar Full Aktif Edildi! ✅")
-    end)
-end
-
-local function OpenOriginalFireModal()
-    pcall(function()
-        local originalModal = nil
-        for _, v in pairs(PlayerGui:GetDescendants()) do
-            if v.Name == "ModalFireAsk" and (v:IsA("Frame") or v:IsA("ImageLabel")) then
-                originalModal = v
-                break
-            end
-        end
-
-        if originalModal then
-            originalModal.Visible = true
-            originalModal.Active = true
-            for _, btn in pairs(originalModal:GetDescendants()) do
-                if btn:IsA("GuiButton") then
-                    if btn.Name:lower():find("yes") or btn.BackgroundColor3 == Color3.fromRGB(34, 139, 34) then
-                        btn.MouseButton1Click:Connect(function()
-                            local Game8 = require(StarterGui.Player8Handler.Game8Settings)
-                            Game8.PlayersHouse:FireServer("PlayerWantsFire")
-                            SendNotif("XenoHub", "Orijinal Yangın Tetiklendi! 🔥")
-                        end)
-                    end
-                end
-            end
-        else
-            local Game8 = require(StarterGui.Player8Handler.Game8Settings)
-            Game8.PlayersHouse:FireServer("PlayerWantsFire")
-            SendNotif("XenoHub", "Yangın Remote Tetiklendi.")
-        end
-    end)
-end
-
--- ============================================================================== --
--- 3. ANA UI TASARIMI (V10 ULTIMATE)
--- ============================================================================== --
-
-if ParentFolder:FindFirstChild("XenoBrookhaven") then ParentFolder.XenoBrookhaven:Destroy() end
-
-local XenoGui = Instance.new("ScreenGui")
-XenoGui.Name = "XenoBrookhaven"
-XenoGui.Parent = ParentFolder
-XenoGui.ResetOnSpawn = false
-
-local MainFrame = Instance.new("Frame")
-MainFrame.Size = UDim2.new(0, 650, 0, 420)
-MainFrame.Position = UDim2.new(0.5, -325, 0.5, -210)
-MainFrame.BackgroundColor3 = Color3.fromRGB(13, 13, 17)
-MainFrame.BorderSizePixel = 0
-MainFrame.Visible = false
-MainFrame.ClipsDescendants = true
-MainFrame.Parent = XenoGui
-
-local MainCorner = Instance.new("UICorner", MainFrame)
-MainCorner.CornerRadius = UDim.new(0, 12)
-
-local MainStroke = Instance.new("UIStroke", MainFrame)
-MainStroke.Color = Color3.fromRGB(145, 90, 230)
-MainStroke.Thickness = 2
-MainStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
-
--- RGB Kenar Animasyonu (Full Efekt)
-spawn(function()
-    while MainFrame do
-        for i = 0, 1, 0.01 do
-            if not MainStroke then break end
-            MainStroke.Color = Color3.fromHSV(i, 0.7, 0.9)
-            task.wait(0.05)
+-- Noclip Döngüsü
+RunService.Stepped:Connect(function()
+    if XenoSettings.Noclip and lp.Character then
+        for _, v in pairs(lp.Character:GetDescendants()) do
+            if v:IsA("BasePart") then v.CanCollide = false end
         end
     end
 end)
 
--- Draggable Logic
-local function MakeDraggable(f)
-    local dragging, dragInput, dragStart, startPos
-    f.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-            dragging = true dragStart = input.Position startPos = f.Position
-            input.Changed:Connect(function() if input.UserInputState == Enum.UserInputState.End then dragging = false end end)
-        end
-    end)
-    f.InputChanged:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then dragInput = input end
-    end)
-    RunService.RenderStepped:Connect(function()
-        if dragging and dragInput then
-            local delta = dragInput.Position - dragStart
-            f.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
-        end
-    end)
-end
-MakeDraggable(MainFrame)
-
--- ============================================================================== --
--- 4. ÜST PANEL VE KAPATMA (X)
--- ============================================================================== --
-
-local TopBar = Instance.new("Frame")
-TopBar.Size = UDim2.new(1, 0, 0, 35)
-TopBar.BackgroundTransparency = 1
-TopBar.Parent = MainFrame
-
-local Title = Instance.new("TextLabel")
-Title.Size = UDim2.new(0, 200, 1, 0)
-Title.Position = UDim2.new(0, 15, 0, 0)
-Title.BackgroundTransparency = 1
-Title.Text = "XENOHUB ULTIMATE v10"
-Title.TextColor3 = Color3.new(1, 1, 1)
-Title.Font = Enum.Font.GothamBlack
-Title.TextSize = 14
-Title.TextXAlignment = Enum.TextXAlignment.Left
-Title.Parent = TopBar
-
-local CloseBtn = Instance.new("TextButton")
-CloseBtn.Name = "CloseBtn"
-CloseBtn.Size = UDim2.new(0, 30, 0, 30)
-CloseBtn.Position = UDim2.new(1, -35, 0, 5)
-CloseBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
-CloseBtn.BackgroundTransparency = 0.3
-CloseBtn.Text = "X"
-CloseBtn.TextColor3 = Color3.new(1, 1, 1)
-CloseBtn.Font = Enum.Font.GothamBold
-CloseBtn.TextSize = 16
-CloseBtn.Parent = TopBar
-Instance.new("UICorner", CloseBtn).CornerRadius = UDim.new(0, 6)
-
-CloseBtn.MouseButton1Click:Connect(function()
-    MainFrame.Visible = false
+-- Infinite Jump
+game:GetService("UserInputService").JumpRequest:Connect(function()
+    if XenoSettings.InfJump and lp.Character:FindFirstChildOfClass("Humanoid") then
+        lp.Character:FindFirstChildOfClass("Humanoid"):ChangeState("Jumping")
+    end
 end)
 
--- ============================================================================== --
--- 5. SIDEBAR & TABS
--- ============================================================================== --
-
-local SideBar = Instance.new("Frame")
-SideBar.Size = UDim2.new(0, 160, 1, -35)
-SideBar.Position = UDim2.new(0, 0, 0, 35)
-SideBar.BackgroundColor3 = Color3.fromRGB(18, 18, 22)
-SideBar.BorderSizePixel = 0
-SideBar.Parent = MainFrame
-Instance.new("UICorner", SideBar).CornerRadius = UDim.new(0, 12)
-
-local TabHolder = Instance.new("Frame")
-TabHolder.Size = UDim2.new(1, -180, 1, -55)
-TabHolder.Position = UDim2.new(0, 175, 0, 45)
-TabHolder.BackgroundTransparency = 1
-TabHolder.Parent = MainFrame
-
-local pages = {}
-local function NewTab(name)
-    local tBtn = Instance.new("TextButton")
-    tBtn.Size = UDim2.new(0.9, 0, 0, 38)
-    tBtn.Position = UDim2.new(0.05, 0, 0, 10 + (#pages * 42))
-    tBtn.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
-    tBtn.BackgroundTransparency = 1
-    tBtn.Text = "  " .. name
-    tBtn.TextColor3 = Color3.fromRGB(180, 180, 180)
-    tBtn.Font = Enum.Font.GothamBold
-    tBtn.TextSize = 12
-    tBtn.TextXAlignment = Enum.TextXAlignment.Left
-    tBtn.Parent = SideBar
-    Instance.new("UICorner", tBtn).CornerRadius = UDim.new(0, 5)
-
-    local page = Instance.new("ScrollingFrame")
-    page.Size = UDim2.new(1, 0, 1, 0)
-    page.BackgroundTransparency = 1
-    page.Visible = false
-    page.ScrollBarThickness = 2
-    page.ScrollBarImageColor3 = Color3.fromRGB(145, 90, 230)
-    page.Parent = TabHolder
-    Instance.new("UIListLayout", page).Padding = UDim.new(0, 8)
-
-    tBtn.MouseButton1Click:Connect(function()
-        for _, p in pairs(pages) do p.p.Visible = false p.b.BackgroundTransparency = 1 p.b.TextColor3 = Color3.fromRGB(180, 180, 180) end
-        page.Visible = true
-        tBtn.BackgroundTransparency = 0.8
-        tBtn.TextColor3 = Color3.fromRGB(160, 110, 255)
-    end)
-
-    if #pages == 0 then page.Visible = true tBtn.BackgroundTransparency = 0.8 tBtn.TextColor3 = Color3.fromRGB(160, 110, 255) end
-    table.insert(pages, {b = tBtn, p = page})
-    return page
-end
-
-local function AddBtn(parent, text, cb, color)
-    local b = Instance.new("TextButton")
-    b.Size = UDim2.new(0.98, 0, 0, 45)
-    b.BackgroundColor3 = color or Color3.fromRGB(25, 25, 30)
-    b.Text = text
-    b.TextColor3 = Color3.new(0.95, 0.95, 0.95)
-    b.Font = Enum.Font.GothamBold
-    b.TextSize = 12
-    b.Parent = parent
-    Instance.new("UICorner", b).CornerRadius = UDim.new(0, 8)
-    
-    local stroke = Instance.new("UIStroke", b)
-    stroke.Color = Color3.new(1,1,1)
-    stroke.Thickness = 0.5
-    stroke.Transparency = 0.8
-
-    b.MouseButton1Click:Connect(function()
-        local t = TweenService:Create(b, TweenInfo.new(0.1, Enum.EasingStyle.Quad, Enum.EasingDirection.Out, 0, true), {BackgroundColor3 = Color3.fromRGB(40,40,50)})
-        t:Play()
-        cb()
-    end)
-end
-
--- ============================================================================== --
--- 6. SAYFALAR VE İÇERİKLER
--- ============================================================================== --
-
-local Home = NewTab("🏠 Ana Sayfa")
-AddBtn(Home, "⚡ CMDR ADMIN BYPASS (F2)", function()
-    -- Admin Bypass Logic (From v9.5)
-    pcall(function()
-        local CmdrPermPath = ReplicatedStorage:WaitForChild("Modules"):WaitForChild("Shared"):WaitForChild("Cmdr"):WaitForChild("CmdrPermissions")
-        local MainPermPath = ReplicatedStorage:WaitForChild("Modules"):WaitForChild("Shared"):WaitForChild("Permissions")
-        require(CmdrPermPath).hasCmdrAccess = function() return true end
-        require(CmdrPermPath).hasCommandAccess = function() return true end
-        local perms = {"hasAdminAccess", "hasContentCreatorAccess", "hasModeratorAccess", "hasStaffAccess"}
-        for _, func in pairs(perms) do require(MainPermPath)[func] = function() return true end end
-        local Cmdr = require(ReplicatedStorage:WaitForChild("CmdrClient"))
-        Cmdr:SetActivationKeys({Enum.KeyCode.F2, Enum.KeyCode.ButtonL3})
-        Cmdr:Toggle()
-        SendNotif("XenoHub", "Admin Paneli Açıldı!")
-    end)
-end, Color3.fromRGB(145, 90, 230))
-
-AddBtn(Home, "📺 FULL ADSTORE AKTIF ET", TriggerFullADStore, Color3.fromRGB(0, 162, 255))
-AddBtn(Home, "🔥 YANGIN TETIKLE (FIRE ASK)", OpenOriginalFireModal, Color3.fromRGB(255, 80, 0))
-
-local PlayerTab = NewTab("🏃 Oyuncu")
-AddBtn(PlayerTab, "⚡ Süper Hız (150)", function() lp.Character.Humanoid.WalkSpeed = 150 end)
-AddBtn(PlayerTab, "🚀 Mega Zıplama (200)", function() lp.Character.Humanoid.JumpPower = 200 end)
-AddBtn(PlayerTab, "🔄 Hızı Sıfırla", function() lp.Character.Humanoid.WalkSpeed = 16 end)
-
-local ItemsTab = NewTab("🎒 Eşyalar")
-local items_list = {
-    {"MoneyGun", "Para Tabancası 💸"}, {"Glider", "Planör 🪂"}, {"Chainsaw", "Testere 🪚"},
-    {"Scythe", "Tırpan ☠️"}, {"UraniumRod", "Uranyum ☢️"}, {"AgencyBook", "Ajans Kitabı 📘"}
-}
-for _, item in pairs(items_list) do
-    AddBtn(ItemsTab, "Al: " .. item[2], function()
-        pcall(function()
-            ReplicatedStorage.RE["1Playe1rTrigge1rEven1t"]:FireServer("AcceptedToolToServer", item[1], lp)
+-- Fly Sistemi
+local function ToggleFly(state)
+    XenoSettings.Fly = state
+    if state then
+        local bv = Instance.new("BodyVelocity")
+        local bg = Instance.new("BodyGyro")
+        bv.Name = "XenoFlyV"
+        bg.Name = "XenoFlyG"
+        bv.MaxForce = Vector3.new(1e8, 1e8, 1e8)
+        bv.Velocity = Vector3.new(0, 0, 0)
+        bg.MaxTorque = Vector3.new(1e8, 1e8, 1e8)
+        bg.P = 90000
+        bv.Parent = lp.Character.HumanoidRootPart
+        bg.Parent = lp.Character.HumanoidRootPart
+        
+        spawn(function()
+            while XenoSettings.Fly do
+                local cam = workspace.CurrentCamera
+                local moveDir = Vector3.new(0,0,0)
+                if game:GetService("UserInputService"):IsKeyDown(Enum.KeyCode.W) then moveDir += cam.CFrame.LookVector end
+                if game:GetService("UserInputService"):IsKeyDown(Enum.KeyCode.S) then moveDir -= cam.CFrame.LookVector end
+                if game:GetService("UserInputService"):IsKeyDown(Enum.KeyCode.A) then moveDir -= cam.CFrame.RightVector end
+                if game:GetService("UserInputService"):IsKeyDown(Enum.KeyCode.D) then moveDir += cam.CFrame.RightVector end
+                bv.Velocity = moveDir * XenoSettings.FlySpeed
+                bg.CFrame = cam.CFrame
+                task.wait()
+            end
+            bv:Destroy()
+            bg:Destroy()
         end)
-    end)
+    end
 end
 
-local SettingsTab = NewTab("⚙️ Ayarlar")
-AddBtn(SettingsTab, "❌ SCRIPTI TAMAMEN KAPAT", function()
-    XenoGui:Destroy()
-    SendNotif("XenoHub", "Script başarıyla sonlandırıldı.")
-end, Color3.fromRGB(150, 0, 0))
-
 -- ============================================================================== --
--- 7. MODERN TOGGLE BUTTON (LOGO & GLOW)
+-- UI OLUŞTURMA
 -- ============================================================================== --
 
-local function CreateXenoToggle()
-    local isMobile = UserInputService.TouchEnabled
-    
-    local ToggleButton = Instance.new("TextButton")
-    ToggleButton.Name = "XenoToggle"
-    ToggleButton.Parent = XenoGui
-    ToggleButton.BackgroundColor3 = Color3.fromRGB(15, 15, 20)
-    ToggleButton.Size = isMobile and UDim2.new(0, 70, 0, 70) or UDim2.new(0, 55, 0, 55)
-    ToggleButton.Position = isMobile and UDim2.new(0.02, 0, 0.4, 0) or UDim2.new(0.01, 0, 0.5, -25)
-    ToggleButton.Text = ""
-    ToggleButton.ZIndex = 10
+local Window = Lib:MakeWindow({
+    Title = "XenoHub Ultimate v11",
+    SubTitle = "Brookhaven Mega Script",
+    SideColor = Color3.fromRGB(145, 90, 230)
+})
 
-    local ToggleCorner = Instance.new("UICorner", ToggleButton)
-    ToggleCorner.CornerRadius = UDim.new(1, 0)
+-- ANA SAYFA
+local Home = Window:MakeTab("Ana Sayfa", "home")
 
-    local ToggleStroke = Instance.new("UIStroke", ToggleButton)
-    ToggleStroke.Color = Color3.fromRGB(145, 90, 230)
-    ToggleStroke.Thickness = 3
-    
-    local Glow = Instance.new("ImageLabel", ToggleButton)
-    Glow.BackgroundTransparency = 1
-    Glow.Position = UDim2.new(-0.6, 0, -0.6, 0)
-    Glow.Size = UDim2.new(2.2, 0, 2.2, 0)
-    Glow.Image = "rbxassetid://5028857084"
-    Glow.ImageColor3 = Color3.fromRGB(145, 90, 230)
-    Glow.ImageTransparency = 0.5
-    Glow.ZIndex = 9
+Home:AddButton({
+    Name = "⚡ CMDR ADMIN BYPASS (F2)",
+    Callback = function()
+        pcall(function()
+            local CmdrPermPath = ReplicatedStorage:WaitForChild("Modules"):WaitForChild("Shared"):WaitForChild("Cmdr"):WaitForChild("CmdrPermissions")
+            require(CmdrPermPath).hasCmdrAccess = function() return true end
+            require(CmdrPermPath).hasCommandAccess = function() return true end
+            local Cmdr = require(ReplicatedStorage:WaitForChild("CmdrClient"))
+            Cmdr:SetActivationKeys({Enum.KeyCode.F2, Enum.KeyCode.ButtonL3})
+            Cmdr:Toggle()
+        end)
+    end
+})
 
-    local Icon = Instance.new("TextLabel", ToggleButton)
-    Icon.Size = UDim2.new(1, 0, 1, 0)
-    Icon.BackgroundTransparency = 1
-    Icon.Text = "X"
-    Icon.TextColor3 = Color3.new(1, 1, 1)
-    Icon.Font = Enum.Font.GothamBlack
-    Icon.TextSize = isMobile and 32 or 24
-    Icon.ZIndex = 11
+Home:AddButton({
+    Name = "📺 FULL ADSTORE AKTİF ET",
+    Callback = function()
+        pcall(function()
+            local AdsController = require(ReplicatedStorage.Modules.Client.Ads.AdvertisementsController)
+            AdsController.RequestRewardedVideoAd("XenoBypass_PremiumItem", "rbxassetid://0", 0, "Item Refresh", "Item Refresh", false, false)
+        end)
+    end
+})
 
-    ToggleButton.MouseButton1Click:Connect(function()
-        MainFrame.Visible = not MainFrame.Visible
-        local push = TweenService:Create(ToggleButton, TweenInfo.new(0.1, Enum.EasingStyle.Back, Enum.EasingDirection.Out, 0, true), {Size = ToggleButton.Size - UDim2.new(0,8,0,8)})
-        push:Play()
-    end)
+Home:AddButton({
+    Name = "🔥 YANGIN TETİKLE",
+    Callback = function()
+        pcall(function()
+            local Game8 = require(game:GetService("StarterGui").Player8Handler.Game8Settings)
+            Game8.PlayersHouse:FireServer("PlayerWantsFire")
+        end)
+    end
+})
 
-    MakeDraggable(ToggleButton)
+-- OYUNCU AYARLARI
+local PlayerTab = Window:MakeTab("Oyuncu", "user")
+
+PlayerTab:AddSlider({
+    Name = "Yürüme Hızı (Speed)",
+    Min = 16,
+    Max = 300,
+    Default = 16,
+    Callback = function(v) lp.Character.Humanoid.WalkSpeed = v end
+})
+
+PlayerTab:AddSlider({
+    Name = "Zıplama Gücü (Jump)",
+    Min = 50,
+    Max = 500,
+    Default = 50,
+    Callback = function(v) lp.Character.Humanoid.JumpPower = v end
+})
+
+PlayerTab:AddToggle({
+    Name = "Uçma (Fly)",
+    Default = false,
+    Callback = function(state) ToggleFly(state) end
+})
+
+PlayerTab:AddToggle({
+    Name = "Duvarlardan Geçme (Noclip)",
+    Default = false,
+    Callback = function(state) XenoSettings.Noclip = state end
+})
+
+PlayerTab:AddToggle({
+    Name = "Sonsuz Zıplama (Inf Jump)",
+    Default = false,
+    Callback = function(state) XenoSettings.InfJump = state end
+})
+
+-- İZLEME VE GÖRÜNÜM
+local ViewTab = Window:MakeTab("İzleme & Görüş", "eye")
+
+local PlayerList = {}
+for _, p in pairs(Players:GetPlayers()) do table.insert(PlayerList, p.Name) end
+
+local SpectateDrop = ViewTab:AddDropdown({
+    Name = "Oyuncu İzle (Spectate)",
+    Options = PlayerList,
+    Default = lp.Name,
+    Callback = function(val)
+        local target = Players:FindFirstChild(val)
+        if target and target.Character then
+            workspace.CurrentCamera.CameraSubject = target.Character.Humanoid
+        end
+    end
+})
+
+ViewTab:AddButton({
+    Name = "❌ İZLEMEYİ KAPAT / RESET VIEW",
+    Callback = function()
+        workspace.CurrentCamera.CameraSubject = lp.Character.Humanoid
+    end
+})
+
+ViewTab:AddSlider({
+    Name = "Görüş Açısı (FOV)",
+    Min = 70,
+    Max = 120,
+    Default = 70,
+    Callback = function(v) workspace.CurrentCamera.FieldOfView = v end
+})
+
+-- EŞYALAR
+local ItemsTab = Window:MakeTab("Eşyalar", "package")
+local tools = {
+    {"MoneyGun", "Para Tabancası"}, {"Glider", "Planör"}, {"Chainsaw", "Testere"},
+    {"Scythe", "Tırpan"}, {"UraniumRod", "Uranyum"}, {"AgencyBook", "Ajans Kitabı"}
+}
+
+for _, t in pairs(tools) do
+    ItemsTab:AddButton({
+        Name = "Al: " .. t[2],
+        Callback = function()
+            pcall(function()
+                ReplicatedStorage.RE["1Playe1rTrigge1rEven1t"]:FireServer("AcceptedToolToServer", t[1], lp)
+            end)
+        end
+    })
 end
 
-CreateXenoToggle()
-SendNotif("XenoHub v10", "XenoHub Ultimate Yüklendi! Kapatmak için Ayarlar'a bak.")
+-- AYARLAR & KAPATMA
+local SettingsTab = Window:MakeTab("Ayarlar", "settings")
+
+SettingsTab:AddButton({
+    Name = "❌ SCRİPTİ TAMAMEN KAPAT",
+    Callback = function()
+        pcall(function()
+            XenoSettings.Fly = false
+            XenoSettings.Noclip = false
+            Lib:Destroy() -- Kütüphaneyi kapatır
+        end)
+    end
+})
+
+Lib:SelectTab(Home)
