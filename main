@@ -167,19 +167,33 @@ end
 -- ============================================================================== --
 
 local HomeTab = CreateTab("🏠 Ana Menu")
-AddButton(HomeTab, "🔥 TÜM EVLERİ YAK (Mega Bypass)", function()
+AddButton(HomeTab, "🔥 TÜM EVLERİ YAK (Fire & FireAsk)", function()
     local re = ReplicatedStorage:FindFirstChild("RE")
     if re and re:FindFirstChild("1Playe1rTrigge1rEven1t") then
+        -- FireAsk kontrolü ve Fire tetikleme (Dex Mantığı)
         re["1Playe1rTrigge1rEven1t"]:FireServer("HouseSettings", "Fire", true)
-        SendNotif("XenoHub", "Yangın Protokolü Başlatıldı! 🔥")
+        re["1Playe1rTrigge1rEven1t"]:FireServer("HouseSettings", "FireAsk", true)
+        SendNotif("XenoHub", "Yangın & FireAsk Aktif! 🔥")
     end
 end, Color3.fromRGB(180, 40, 40))
 
-AddButton(HomeTab, "🔓 PREMIUM & GAMEPASS UNLOCK", function()
+AddButton(HomeTab, "🔓 PREMIUM UNLOCK (Dex Controller)", function()
     pcall(function()
+        -- Dex üzerinden kontrol edilen modüllerin manipülasyonu
         local mod = require(ReplicatedStorage.Modules.Client.UI.GamepassUnlockController)
+        -- Tüm Gamepass kontrollerini true olarak döndür
         mod.OwnsGamepass = function() return true end
-        SendNotif("Premium", "Tüm Gamepass Özellikleri Açıldı!")
+        mod.IsPremium = function() return true end
+        
+        -- Bazı Brookhaven sürümlerinde metatable üzerinden kontrol edilir
+        if getrawmetatable then
+            local old; old = hookmetamethod(game, "__index", function(self, key)
+                if key == "Premium" or key == "IsPremium" then return true end
+                return old(self, key)
+            end)
+        end
+        
+        SendNotif("XenoHub", "Premium Dex Üzerinden Full Aktif! ✅")
     end)
 end, Color3.fromRGB(145, 90, 230))
 
