@@ -1,8 +1,8 @@
 --[[ 
     XENOHUB ULTIMATE - BROOKHAVEN MEGA FULL SCRIPT
     Geliştirici: XenoHub Team & EgeKazak_Real1
-    Özellikler: Orijinal ModalFireAsk & ADStore Tetikleyici, Premium Unlock, All Items, Max Bypass
-    Version: 7.0 (Orijinal Shop & Fire Entegre)
+    Özellikler: Orijinal ModalFireAsk, ADStore & VideoAd Tetikleyici, Premium Unlock, Max Bypass
+    Version: 8.0 (Decompiled Ad-System Integrated)
 ]]
 
 local Players = game:GetService("Players")
@@ -19,7 +19,7 @@ local PlayerGui = lp:WaitForChild("PlayerGui")
 local ParentFolder = (gethui and gethui()) or CoreGui
 
 -- ============================================================================== --
--- 1. TEMEL AYARLAR & DEX LOGIC
+-- 1. TEMEL AYARLAR & REKLAM SISTEMI ENTEGRASYONU
 -- ============================================================================== --
 
 local XenoSettings = {
@@ -40,30 +40,60 @@ local function SendNotif(title, text)
 end
 
 -- ============================================================================== --
--- 2. MAX BYPASS TETİKLEYİCİLER
+-- 2. ORIJINAL REKLAM & MAGAZA BYPASS (DEX LOGIC)
 -- ============================================================================== --
 
-local function SafeTrigger(mode, ...)
-    local args = {...}
+local function TriggerVideoAdSystem()
     pcall(function()
-        local re = ReplicatedStorage:FindFirstChild("RE")
-        local mainEvent = re and re:FindFirstChild("1Playe1rTrigge1rEven1t")
+        -- Decompiled kodlardaki AdvertisementsController ve PanelController erişimi
+        local AdsController = require(ReplicatedStorage.Modules.Client.Ads.AdvertisementsController)
+        local PanelController = require(ReplicatedStorage.Modules.Client.UI.PanelController)
         
-        if mode == "House" then
-            mainEvent:FireServer("HouseSettings", unpack(args))
-        elseif mode == "Tool" then
-            mainEvent:FireServer("AcceptedToolToServer", args[1], lp)
-        elseif mode == "Avatar" then
-            mainEvent:FireServer("AvatarSettings", unpack(args))
+        -- AdStore ve Ads butonlarını bul ve DEX gibi zorla aç
+        local MainGUI = PlayerGui:FindFirstChild("MainGUIHandler")
+        if MainGUI then
+            local adStore = MainGUI:FindFirstChild("AdStore", true)
+            local shopButtons = MainGUI:FindFirstChild("ShopButtons", true)
+            
+            if shopButtons then
+                local adsBtn = shopButtons:FindFirstChild("Ads", true) or shopButtons:FindFirstChild("AdsButton", true)
+                if adsBtn then
+                    adsBtn.Visible = true
+                    adsBtn.Active = true
+                end
+            end
+            
+            if adStore then
+                adStore.Visible = true
+                adStore.Active = true
+                SendNotif("XenoHub", "ADStore Paneli Zorla Açıldı! (Dex Logic)")
+            end
         end
+
+        -- Reklam Hazırlığı ve Tetikleme (Decompiled Start mantığı)
+        -- Normalde "Ad not available" hatası veren kontrolleri bypass ediyoruz
+        SendNotif("XenoHub", "Reklam Sistemleri Bypass Ediliyor...")
+        
+        -- Orijinal RequestRewardedVideoAd fonksiyonunu kullanarak sistemi tetikle
+        -- Args: itemId, icon, gamepassId, category, action, boolean, boolean
+        AdsController.RequestRewardedVideoAd(
+            "XenoBypass", 
+            "rbxassetid://0", 
+            0, 
+            "Item Refresh", 
+            "Item Refresh", 
+            false, 
+            false
+        )
+        
+        SendNotif("XenoHub", "Reklam Tetiklendi! (PC/Mobil Uyumlu)")
     end)
 end
 
 -- ============================================================================== --
--- 3. ORIJINAL GAME GUI TETİKLEYİCİLER (FIRE & SHOP)
+-- 3. DIGER ORIJINAL GUI TETİKLEYİCİLER
 -- ============================================================================== --
 
--- ModalFireAsk Tetikleyici
 local function OpenOriginalFireModal()
     pcall(function()
         local originalModal = nil
@@ -89,55 +119,16 @@ local function OpenOriginalFireModal()
                     end
                 end
             end
-            SendNotif("XenoHub", "Orijinal ModalFireAsk Aktif!")
         else
             local Game8 = require(StarterGui.Player8Handler.Game8Settings)
             Game8.PlayersHouse:FireServer("PlayerWantsFire")
-            SendNotif("XenoHub", "Modal bulunamadı, doğrudan Remote tetiklendi.")
-        end
-    end)
-end
-
--- ADStore Shop Tetikleyici
-local function OpenOriginalADStore()
-    pcall(function()
-        local mainGuiHandler = PlayerGui:FindFirstChild("MainGUIHandler")
-        if mainGuiHandler then
-            local shopButtons = mainGuiHandler:FindFirstChild("ShopButtons", true)
-            local adStore = mainGuiHandler:FindFirstChild("ADStore", true)
-            
-            -- Ads Butonunu Dex gibi zorla aktif et
-            if shopButtons then
-                local adsBtn = shopButtons:FindFirstChild("Ads", true) or shopButtons:FindFirstChild("AdsButton", true)
-                if adsBtn then
-                    adsBtn.Visible = true
-                    SendNotif("XenoHub", "Ads Butonu Görünür Yapıldı! ✅")
-                end
-            end
-            
-            -- ADStore Menüsünü aç
-            if adStore then
-                adStore.Visible = true
-                if adStore:IsA("Frame") then adStore.Active = true end
-                SendNotif("XenoHub", "ADStore Menüsü Açıldı! 🛒")
-            else
-                -- Eğer isim farklıysa tüm descandantlarda ara
-                for _, v in pairs(mainGuiHandler:GetDescendants()) do
-                    if v.Name == "ADStore" then
-                        v.Visible = true
-                        SendNotif("XenoHub", "ADStore Bulundu ve Açıldı!")
-                        break
-                    end
-                end
-            end
-        else
-            SendNotif("XenoHub", "MainGUIHandler bulunamadı!")
+            SendNotif("XenoHub", "Remote Yangın Tetiklendi.")
         end
     end)
 end
 
 -- ============================================================================== --
--- 4. MEGA UI - XENOHUB ULTIMATE FRAME
+-- 4. MEGA UI TASARIMI
 -- ============================================================================== --
 
 if ParentFolder:FindFirstChild("XenoBrookhaven") then ParentFolder.XenoBrookhaven:Destroy() end
@@ -180,7 +171,7 @@ end
 MakeDraggable(MainFrame)
 
 -- ============================================================================== --
--- 5. TAB SİSTEMİ (SIDEBAR)
+-- 5. SAYFALAR & ÖZELLİKLER (SIDEBAR)
 -- ============================================================================== --
 
 local SideBar = Instance.new("Frame")
@@ -244,17 +235,18 @@ local function AddBtn(parent, text, cb, color)
 end
 
 -- ============================================================================== --
--- 6. SAYFALAR & ÖZELLİKLER
+-- 6. ANA SAYFA & OZELLIKLER
 -- ============================================================================== --
 
 local Home = NewTab("🏠 Ana Sayfa")
+
+AddBtn(Home, "📺 REKLAM & ADSTORE TETIKLE (FULL BYPASS)", function()
+    TriggerVideoAdSystem()
+end, Color3.fromRGB(0, 162, 255))
+
 AddBtn(Home, "🔥 MODALFIREASK AÇ (DEX TRUE)", function()
     OpenOriginalFireModal()
 end, Color3.fromRGB(255, 80, 0))
-
-AddBtn(Home, "🛒 ADSTORE & ADS BUTTON AÇ", function()
-    OpenOriginalADStore()
-end, Color3.fromRGB(0, 120, 215))
 
 AddBtn(Home, "🔓 PREMIUM UNLOCK (Max Bypass)", function()
     pcall(function()
@@ -262,12 +254,6 @@ AddBtn(Home, "🔓 PREMIUM UNLOCK (Max Bypass)", function()
         local gpc = require(ReplicatedStorage.Modules.Client.UI.GamepassUnlockController)
         gpc.OwnsGamepass = function() return true end
         gpc.IsPremium = function() return true end
-        if getrawmetatable then
-            local old; old = hookmetamethod(game, "__index", function(self, key)
-                if tostring(key) == "Premium" or tostring(key) == "IsPremium" then return true end
-                return old(self, key)
-            end)
-        end
         SendNotif("XenoHub", "Premium Dex Modu Aktif! ✅")
     end)
 end, Color3.fromRGB(145, 90, 230))
@@ -275,38 +261,28 @@ end, Color3.fromRGB(145, 90, 230))
 local Player = NewTab("🏃 Oyuncu")
 AddBtn(Player, "⚡ Speed (100)", function() lp.Character.Humanoid.WalkSpeed = 100 end)
 AddBtn(Player, "🚀 Jump (150)", function() lp.Character.Humanoid.JumpPower = 150 end)
-AddBtn(Player, "👻 Noclip", function()
-    XenoSettings.Noclip = not XenoSettings.Noclip
-    RunService.Stepped:Connect(function()
-        if XenoSettings.Noclip and lp.Character then
-            for _, v in pairs(lp.Character:GetDescendants()) do
-                if v:IsA("BasePart") then v.CanCollide = false end
-            end
-        end
-    end)
-end)
 
 local Items = NewTab("🎒 Eşyalar")
+local function SafeTriggerTool(tool)
+    pcall(function()
+        local re = ReplicatedStorage:FindFirstChild("RE")
+        local event = re and re:FindFirstChild("1Playe1rTrigge1rEven1t")
+        if event then event:FireServer("AcceptedToolToServer", tool, lp) end
+    end)
+end
+
 local items_list = {
     {"MoneyGun", "Para Tabancası"}, {"Glider", "Planör"}, {"Chainsaw", "Testere"},
     {"Scythe", "Tırpan"}, {"UraniumRod", "Uranyum"}, {"AgencyBook", "Ajans Kitabı"}
 }
 for _, item in pairs(items_list) do
-    AddBtn(Items, "🛠️ Get: " .. item[2], function() SafeTrigger("Tool", item[1]) end)
+    AddBtn(Items, "🛠️ Get: " .. item[2], function() SafeTriggerTool(item[1]) end)
 end
-
-local Powers = NewTab("🔮 Güçler")
-AddBtn(Powers, "🧠 Telekinesis V5", function()
-    loadstring(game:HttpGet("https://raw.githubusercontent.com/BRENOPOOF/fe-telekinessv5/refs/heads/main/Main.txt"))()
-end)
-AddBtn(Powers, "🛡️ Infinite Yield", function()
-    loadstring(game:HttpGet('https://raw.githubusercontent.com/EdgeIY/infiniteyield/master/source'))()
-end)
 
 local Settings = NewTab("⚙️ Ayarlar")
 AddBtn(Settings, "❌ SCRIPTI KAPAT", function() XenoGui:Destroy() end, Color3.fromRGB(100, 20, 20))
 
--- TOGGLE
+-- TOGGLE BUTTON
 local TButton = Instance.new("TextButton")
 TButton.Size = UDim2.new(0, 60, 0, 60)
 TButton.Position = UDim2.new(0, 40, 0.5, -30)
@@ -325,4 +301,4 @@ TButton.MouseButton1Click:Connect(function()
     TButton.Text = MainFrame.Visible and "X" or "O"
 end)
 
-SendNotif("XenoHub ULTIMATE", "ADStore & Ads Button Entegrasyonu Hazır!")
+SendNotif("XenoHub ULTIMATE", "Reklam & AdStore Entegrasyonu Başarılı!")
