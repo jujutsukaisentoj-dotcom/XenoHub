@@ -347,10 +347,6 @@ AddBtn(Home, "🔓 PREMIUM UNLOCK (Max Bypass)", function()
     end)
 end, Color3.fromRGB(145, 90, 230))
 
--- ============================================================================== --
--- 4. PLAYER (OYUNCU) & CMDR ULTIMATE BYPASS INTEGRATION
--- ============================================================================== --
-
 local PlayerTab = NewTab("👤 Oyuncu")
 
 -- DURUM DEĞİŞKENLERİ
@@ -359,8 +355,10 @@ local flying = false
 local speedVal = 16
 local jumpVal = 50
 local viewingPlayer = nil
+local flySpeed = 100
+local flyKeys = {W = false, S = false, A = false, D = false, Q = false, E = false}
 
--- ⚡ CMDR & COMMANDS FULL BYPASS (PATCED & FETCHED REMOVER)
+-- ⚡ CMDR & COMMANDS FULL BYPASS (PATCHED & FETCHED REMOVER)
 AddBtn(PlayerTab, "☢️ CMDR FULL UNLOCK (PATCH & FETCH BYPASS)", function()
     pcall(function()
         local CmdrClient = ReplicatedStorage:WaitForChild("CmdrClient")
@@ -425,7 +423,7 @@ AddBtn(PlayerTab, "👻 Noclip (Duvar Geçme): AÇ/KAPAT", function()
     end
 end, Color3.fromRGB(80, 80, 80))
 
--- ✈️ FLY (UÇMA)
+-- ✈️ FLY (UÇMA - WASD+QE DESTEKLİ)
 AddBtn(PlayerTab, "✈️ Fly (Uçma): AÇ/KAPAT", function()
     flying = not flying
     local root = lp.Character:FindFirstChild("HumanoidRootPart")
@@ -435,18 +433,46 @@ AddBtn(PlayerTab, "✈️ Fly (Uçma): AÇ/KAPAT", function()
         bv.MaxForce = Vector3.new(1,1,1) * math.huge
         bv.Velocity = Vector3.new(0,0,0)
         
+        local bg = Instance.new("BodyGyro", root)
+        bg.Name = "XenoFlyGyro"
+        bg.MaxTorque = Vector3.new(1,1,1) * math.huge
+        bg.P = 9e4
+        
         task.spawn(function()
             while flying do
                 RunService.RenderStepped:Wait()
-                bv.Velocity = workspace.CurrentCamera.CFrame.LookVector * 100
+                bg.CFrame = workspace.CurrentCamera.CFrame
+                local dir = Vector3.new(0,0,0)
+                local cam = workspace.CurrentCamera.CFrame
+                
+                if flyKeys.W then dir = dir + cam.LookVector end
+                if flyKeys.S then dir = dir - cam.LookVector end
+                if flyKeys.A then dir = dir - cam.RightVector end
+                if flyKeys.D then dir = dir + cam.RightVector end
+                if flyKeys.Q then dir = dir + Vector3.new(0, 1, 0) end
+                if flyKeys.E then dir = dir - Vector3.new(0, 1, 0) end
+                
+                bv.Velocity = dir * flySpeed
             end
             bv:Destroy()
+            bg:Destroy()
         end)
-        SendNotif("XenoHub", "Uçma Aktif! (Kamera Yönü)")
+        SendNotif("XenoHub", "Uçma Aktif! WASD + QE Tuşlarını Kullanın.")
     else
         SendNotif("XenoHub", "Uçma Devre Dışı.")
     end
 end, Color3.fromRGB(0, 255, 127))
+
+-- Uçuş Tuş Kontrolleri
+UserInputService.InputBegan:Connect(function(input, gpe)
+    if gpe then return end
+    local k = input.KeyCode.Name
+    if flyKeys[k] ~= nil then flyKeys[k] = true end
+end)
+UserInputService.InputEnded:Connect(function(input)
+    local k = input.KeyCode.Name
+    if flyKeys[k] ~= nil then flyKeys[k] = false end
+end)
 
 -- 👁️ VIEW (İZLEME)
 AddBtn(PlayerTab, "👁️ Rastgele Birini İzle (View)", function()
