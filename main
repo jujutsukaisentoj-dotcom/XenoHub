@@ -4,6 +4,7 @@
     Özellikler: Orijinal ModalFireAsk, ADStore & VideoAd Tetikleyici, Premium Unlock, Max Bypass
     Version: 10.0 (Ultimate UI, X-Close & Full Optimization)
 ]]
+local Libary = loadstring(game:HttpGet("https://raw.githubusercontent.com/tbao143/Library-ui/refs/heads/main/Redzhubui"))()
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
