@@ -1,7 +1,7 @@
 --[[ 
     XENOHUB ULTIMATE - BROOKHAVEN PREMIUM EDITION
     Geliştirici: XenoHub Team & EgeKazak_Real1
-    Özellikler: Custom UI, Full Premium Bypass, Item Spawner, Teleport, Auto House Burner
+    Özellikler: Custom UI, Full Premium Bypass, Item Spawner, Teleport, Modal Fire System
 ]]
 
 local Players = game:GetService("Players")
@@ -140,28 +140,102 @@ CloseBtn.MouseButton1Click:Connect(function()
 end)
 
 -- ============================================================================== --
--- 3. ÖZEL SİSTEMLER (ITEM & PREMIUM BYPASS)
+-- 3. ÖZEL SİSTEMLER (MODAL & HOUSE FIRE)
 -- ============================================================================== --
+
+local function CreateFireModal()
+    local ModalFrame = Instance.new("Frame")
+    ModalFrame.Name = "ModalFireAsk"
+    ModalFrame.Size = UDim2.new(0, 300, 0, 180)
+    ModalFrame.Position = UDim2.new(0.5, -150, 0.5, -90)
+    ModalFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
+    ModalFrame.BorderSizePixel = 0
+    ModalFrame.Parent = XenoGui
+    ModalFrame.Visible = false
+    ModalFrame.ZIndex = 10
+
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 10)
+    corner.Parent = ModalFrame
+
+    local ModalTitle = Instance.new("TextLabel")
+    ModalTitle.Size = UDim2.new(1, 0, 0, 50)
+    ModalTitle.BackgroundTransparency = 1
+    ModalTitle.Text = "Yangın Kontrolü"
+    ModalTitle.TextColor3 = Color3.new(1, 1, 1)
+    ModalTitle.Font = Enum.Font.GothamBold
+    ModalTitle.TextSize = 18
+    ModalTitle.Parent = ModalFrame
+
+    local Desc = Instance.new("TextLabel")
+    Desc.Size = UDim2.new(1, 0, 0, 40)
+    Desc.Position = UDim2.new(0, 0, 0, 45)
+    Desc.BackgroundTransparency = 1
+    Desc.Text = "Evleri yakmak mı yoksa söndürmek mi istersiniz?"
+    Desc.TextColor3 = Color3.fromRGB(200, 200, 200)
+    Desc.Font = Enum.Font.GothamMedium
+    Desc.TextSize = 12
+    Desc.TextWrapped = true
+    Desc.Parent = ModalFrame
+
+    -- Yeşim Buton (YAK)
+    local BurnBtn = Instance.new("TextButton")
+    BurnBtn.Size = UDim2.new(0, 120, 0, 40)
+    BurnBtn.Position = UDim2.new(0.08, 0, 0.65, 0)
+    BurnBtn.BackgroundColor3 = Color3.fromRGB(46, 204, 113)
+    BurnBtn.Text = "YAK 🔥"
+    BurnBtn.TextColor3 = Color3.new(1, 1, 1)
+    BurnBtn.Font = Enum.Font.GothamBold
+    BurnBtn.Parent = ModalFrame
+    Instance.new("UICorner", BurnBtn).CornerRadius = UDim.new(0, 6)
+
+    -- Kırmızı Buton (DURDUR)
+    local StopBtn = Instance.new("TextButton")
+    StopBtn.Size = UDim2.new(0, 120, 0, 40)
+    StopBtn.Position = UDim2.new(0.55, 0, 0.65, 0)
+    StopBtn.BackgroundColor3 = Color3.fromRGB(231, 76, 60)
+    StopBtn.Text = "SÖNDÜR 💧"
+    StopBtn.TextColor3 = Color3.new(1, 1, 1)
+    StopBtn.Font = Enum.Font.GothamBold
+    StopBtn.Parent = ModalFrame
+    Instance.new("UICorner", StopBtn).CornerRadius = UDim.new(0, 6)
+
+    local function ExecuteFire(state)
+        local re = ReplicatedStorage:FindFirstChild("RE") or ReplicatedStorage:FindFirstChild("Remotes")
+        if not re then return end
+        
+        local msg = state and "Evler yakılıyor..." or "Yangınlar söndürülüyor..."
+        SendNotif("XenoHub", msg, 2)
+
+        for i = 1, 30 do
+            task.spawn(function()
+                pcall(function()
+                    re.RemoteEvent:FireServer("HouseSettings", "Fire", state)
+                    if state then
+                        SendNotif("Bilgi", "Ev No: " .. tostring(i) .. " yaniyor! 🔥", 1)
+                    end
+                end)
+            end)
+            task.wait(0.02)
+        end
+        ModalFrame.Visible = false
+    end
+
+    BurnBtn.MouseButton1Click:Connect(function() ExecuteFire(true) end)
+    StopBtn.MouseButton1Click:Connect(function() ExecuteFire(false) end)
+
+    return ModalFrame
+end
+
+local FireModal = CreateFireModal()
 
 local function GetBrookhavenItem(itemName)
     local rep = game:GetService("ReplicatedStorage")
     local ok, err = pcall(function()
         local re = rep:FindFirstChild("RE") or rep:FindFirstChild("Remotes") or rep
-        
-        local candidates = {"GetItem", "GetTool", "GetToolToServer", "Getİtem"}
-        for _, name in ipairs(candidates) do
-            local r = re:FindFirstChild(name)
-            if r then
-                if r:IsA("RemoteEvent") then r:FireServer(itemName)
-                elseif r:IsA("RemoteFunction") then r:InvokeServer(itemName) end
-            end
-        end
-
-        local trigger = re:FindFirstChild("1Playe1rTrigge1rEven1t") or rep:FindFirstChild("1Playe1rTrigge1rEven1t")
+        local trigger = re:FindFirstChild("1Playe1rTrigge1rEven1t")
         if trigger then
-            local args = {[1] = "AcceptedToolToServer", [2] = itemName, [3] = lp}
-            if trigger:IsA("RemoteEvent") then trigger:FireServer(unpack(args))
-            elseif trigger:IsA("RemoteFunction") then trigger:InvokeServer(unpack(args)) end
+            trigger:FireServer("AcceptedToolToServer", itemName, lp)
             SendNotif("Envanter", itemName.." başarıyla alındı! 🎒")
         end
     end)
@@ -178,7 +252,7 @@ end
 -- ============================================================================== --
 
 local tabs = {}
-local function CreateTab(name, icon)
+local function CreateTab(name)
     local tabBtn = Instance.new("TextButton")
     tabBtn.Size = UDim2.new(0.9, 0, 0, 38)
     tabBtn.Position = UDim2.new(0.05, 0, 0, 70 + (#tabs * 42))
@@ -190,16 +264,12 @@ local function CreateTab(name, icon)
     tabBtn.TextSize = 13
     tabBtn.TextXAlignment = Enum.TextXAlignment.Left
     tabBtn.Parent = SideBar
-    
-    local corner = Instance.new("UICorner")
-    corner.CornerRadius = UDim.new(0, 6)
-    corner.Parent = tabBtn
+    Instance.new("UICorner", tabBtn).CornerRadius = UDim.new(0, 6)
 
     local page = Instance.new("ScrollingFrame")
     page.Size = UDim2.new(1, 0, 1, 0)
     page.BackgroundTransparency = 1
-    page.ScrollBarThickness = 3
-    page.ScrollBarImageColor3 = Color3.fromRGB(145, 90, 230)
+    page.ScrollBarThickness = 2
     page.Visible = false
     page.Parent = TabContainer
     
@@ -237,32 +307,16 @@ local function AddButton(parent, text, color, callback)
     btn.Font = Enum.Font.GothamMedium
     btn.TextSize = 14
     btn.Parent = parent
-    
     Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 8)
-    
-    btn.MouseButton1Click:Connect(function()
-        pcall(callback)
-        btn.BackgroundTransparency = 0.5
-        task.wait(0.1)
-        btn.BackgroundTransparency = 0
-    end)
+    btn.MouseButton1Click:Connect(function() pcall(callback) end)
 end
 
 -- ============================================================================== --
 -- 5. SAYFA İÇERİKLERİ
 -- ============================================================================== --
 
--- --> SAYFA: ANA (PREMIUM)
-local PremiumPage = CreateTab("⭐ Premium", "")
-AddButton(PremiumPage, "🔓 FULL PREMIUM UNLOCK (Client)", Color3.fromRGB(145, 90, 230), function()
-    local PlayerGui = lp:WaitForChild("PlayerGui")
-    for _, gui in pairs(PlayerGui:GetDescendants()) do
-        if gui:IsA("ImageButton") or gui:IsA("TextButton") then
-            if gui.Name:lower():find("lock") or gui.Name:lower():find("premium") then
-                gui.Visible = false
-            end
-        end
-    end
+local PremiumPage = CreateTab("⭐ Premium")
+AddButton(PremiumPage, "🔓 FULL PREMIUM UNLOCK", Color3.fromRGB(145, 90, 230), function()
     pcall(function()
         local GC = require(ReplicatedStorage.Modules.Client.UI.GamepassUnlockController)
         GC.OwnsGamepass = function() return true end
@@ -270,45 +324,19 @@ AddButton(PremiumPage, "🔓 FULL PREMIUM UNLOCK (Client)", Color3.fromRGB(145, 
     SendNotif("Başarılı", "Premium kilitleri kaldırıldı!")
 end)
 
--- GELİŞMİŞ HOUSE FIRE ÖZELLİĞİ
-AddButton(PremiumPage, "🔥 House Fire (Gelişmiş)", Color3.fromRGB(46, 204, 113), function()
-    local re = ReplicatedStorage:FindFirstChild("RE") or ReplicatedStorage:FindFirstChild("Remotes")
-    if not re then return end
-    
-    SendNotif("XenoHub", "Tüm evler taranıyor ve yakılıyor...", 3)
-    
-    -- Brookhaven'daki tüm evleri taranması (House Data üzerinden)
-    for i = 1, 30 do
-        task.spawn(function()
-            pcall(function()
-                -- Remote tetiği: HouseSettings -> Fire -> true
-                re.RemoteEvent:FireServer("HouseSettings", "Fire", true)
-                -- Bazı versiyonlar için alternatif tetik
-                re:FindFirstChild("1Playe1rTrigge1rEven1t"):FireServer("HouseSettings", "Fire", true)
-                
-                -- Bilgi mesajı (Üstte yandığını belirtir)
-                SendNotif("Yangın", "Ev No: "..tostring(i).." yanıyor! 🔥", 1.5)
-            end)
-        end)
-        task.wait(0.05) -- Hafif gecikme
-    end
-    SendNotif("Tamamlandı", "Müsait olan tüm evler ateşe verildi.", 3)
+-- MODAL TETİKLEYİCİ BUTON
+AddButton(PremiumPage, "🔥 House Fire Kontrol", Color3.fromRGB(46, 204, 113), function()
+    FireModal.Visible = not FireModal.Visible
 end)
 
--- --> SAYFA: EŞYALAR (ITEMS)
-local ItemsPage = CreateTab("🎒 Eşyalar", "")
+local ItemsPage = CreateTab("🎒 Eşyalar")
 AddButton(ItemsPage, "💸 Money Gun", Color3.fromRGB(46, 204, 113), function() GetBrookhavenItem("MoneyGun") end)
 AddButton(ItemsPage, "🆔 Ajan Kartı", nil, function() GetBrookhavenItem("AgencyCard") end)
-AddButton(ItemsPage, "🚫 Ban Hammer (Prop)", nil, function() GetBrookhavenItem("BanHammer") end)
-AddButton(ItemsPage, "🎸 Gitar", nil, function() GetBrookhavenItem("Guitar") end)
-AddButton(ItemsPage, "🛹 Kaykay", nil, function() GetBrookhavenItem("Skateboard") end)
-AddButton(ItemsPage, "💣 Top (Cannon)", nil, function() GetBrookhavenItem("Cannon") end)
+AddButton(ItemsPage, "🚫 Ban Hammer", nil, function() GetBrookhavenItem("BanHammer") end)
 
--- --> SAYFA: OYUNCU (PLAYER)
-local PlayerPage = CreateTab("🏃 Oyuncu", "")
-AddButton(PlayerPage, "⚡ Süper Hız (Speed 100)", nil, function() if lp.Character then lp.Character.Humanoid.WalkSpeed = 100 end end)
-AddButton(PlayerPage, "🕊️ Uçma (Fly)", nil, function() loadstring(game:HttpGet("https://raw.githubusercontent.com/XNEOFF/FlyGuiV3/main/FlyGuiV3.txt"))() end)
-AddButton(PlayerPage, "👻 Noclip (Duvar Geç)", nil, function()
+local PlayerPage = CreateTab("🏃 Oyuncu")
+AddButton(PlayerPage, "⚡ Speed 100", nil, function() if lp.Character then lp.Character.Humanoid.WalkSpeed = 100 end end)
+AddButton(PlayerPage, "👻 Noclip", nil, function()
     RunService.Stepped:Connect(function()
         if lp.Character then
             for _, v in pairs(lp.Character:GetDescendants()) do
@@ -318,24 +346,10 @@ AddButton(PlayerPage, "👻 Noclip (Duvar Geç)", nil, function()
     end)
 end)
 
--- --> SAYFA: IŞINLANMA (TELEPORT)
-local TPPage = CreateTab("📍 Işınlanma", "")
-local locs = {
-    {"Spawn", CFrame.new(0, 10, 0)},
-    {"Banka Kasası", CFrame.new(21, 16, 35)},
-    {"Polis Merkezi", CFrame.new(-168, 16, 52)},
-    {"Gizli Üs", CFrame.new(-220, 15, 600)},
-    {"Havaalanı", CFrame.new(-140, 16, -180)}
-}
+local TPPage = CreateTab("📍 Işınlanma")
+local locs = {{"Spawn", CFrame.new(0, 10, 0)}, {"Banka", CFrame.new(21, 16, 35)}}
 for _, v in ipairs(locs) do
     AddButton(TPPage, "✈️ " .. v[1], nil, function() TeleportTo(v[2]) end)
 end
 
--- --> SAYFA: TROLL & SOSYAL
-local SocialPage = CreateTab("🔗 Sosyal", "")
-AddButton(SocialPage, "💜 Discord Sunucumuz", Color3.fromRGB(88, 101, 242), function()
-    setclipboard("https://discord.gg/7MN4RVfJ4F")
-    SendNotif("Başarılı", "Discord linki kopyalandı!")
-end)
-
-SendNotif("XenoHub", "Script başarıyla yüklendi! Keyfini çıkar.", 5)
+SendNotif("XenoHub", "Script başarıyla yüklendi!", 5)
