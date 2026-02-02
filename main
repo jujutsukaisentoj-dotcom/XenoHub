@@ -1,14 +1,17 @@
 --[[ 
-    XENOHUB ULTIMATE V10 - BROOKHAVEN MEGA SCRIPT
-    Geliştirici: XenoHub Team
-    Özellikler: Fly, Noclip, Custom Speed/Jump, ADStore Bypass, Premium Unlock
+    XENOHUB ULTIMATE - BROOKHAVEN MEGA FULL SCRIPT
+    Geliştirici: XenoHub Team & EgeKazak_Real1
+    Özellikler: Orijinal ModalFireAsk, ADStore & VideoAd Tetikleyici, Premium Unlock, Max Bypass
+    Version: 9.0 (Full ADStore & Remote Trigger Integrated)
 ]]
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local UserInputService = game:GetService("UserInputService")
-local RunService = game:GetService("RunService")
+local TweenService = game:GetService("TweenService")
 local CoreGui = game:GetService("CoreGui")
+local RunService = game:GetService("RunService")
+local Lighting = game:GetService("Lighting")
 local StarterGui = game:GetService("StarterGui")
 
 local lp = Players.LocalPlayer
@@ -16,16 +19,14 @@ local PlayerGui = lp:WaitForChild("PlayerGui")
 local ParentFolder = (gethui and gethui()) or CoreGui
 
 -- ============================================================================== --
--- 1. DURUM & AYARLAR
+-- 1. TEMEL AYARLAR & REKLAM SISTEMI ENTEGRASYONU
 -- ============================================================================== --
 
-local XenoState = {
+local XenoSettings = {
+    PremiumEnabled = false,
     Speed = 16,
     Jump = 50,
-    Noclip = false,
-    Fly = false,
-    FlySpeed = 50,
-    Premium = false
+    Noclip = false
 }
 
 local function SendNotif(title, text)
@@ -33,72 +34,69 @@ local function SendNotif(title, text)
         StarterGui:SetCore("SendNotification", {
             Title = title;
             Text = text;
-            Duration = 3;
+            Duration = 5;
         })
     end)
 end
 
 -- ============================================================================== --
--- 2. LOOPS & FONKSIYONLAR
+-- 2. FULL ADSTORE & VIDEO AD BYPASS (KONSTANT DECOMPILED LOGIC)
 -- ============================================================================== --
 
--- Noclip Döngüsü
-RunService.Stepped:Connect(function()
-    if XenoState.Noclip and lp.Character then
-        for _, part in pairs(lp.Character:GetDescendants()) do
-            if part:IsA("BasePart") then
-                part.CanCollide = false
-            end
-        end
-    end
-end)
+local function TriggerFullADStore()
+    pcall(function()
+        -- Decompiled kodlardaki ana modüllere erişim
+        local AdsController = require(ReplicatedStorage.Modules.Client.Ads.AdvertisementsController)
+        local PanelController = require(ReplicatedStorage.Modules.Client.UI.PanelController)
+        local AdJoinController = require(ReplicatedStorage.Modules.Client.Ads.AdvertisementJoinController)
+        
+        local MainGUI = PlayerGui:FindFirstChild("MainGUIHandler")
+        if not MainGUI then return end
 
--- Fly Sistemi
-local flyConnection
-local function ToggleFly()
-    if XenoState.Fly then
-        local char = lp.Character
-        local hrp = char:WaitForChild("HumanoidRootPart")
-        local hum = char:WaitForChild("Humanoid")
-        
-        hum.PlatformStand = true
-        local bg = Instance.new("BodyGyro", hrp)
-        bg.P = 9e4
-        bg.maxTorque = Vector3.new(9e9, 9e9, 9e9)
-        bg.cframe = hrp.CFrame
-        
-        local bv = Instance.new("BodyVelocity", hrp)
-        bv.velocity = Vector3.new(0,0,0)
-        bv.maxForce = Vector3.new(9e9, 9e9, 9e9)
-        
-        flyConnection = RunService.RenderStepped:Connect(function()
-            local cam = workspace.CurrentCamera
-            local direction = Vector3.new(0,0,0)
-            
-            if UserInputService:IsKeyDown(Enum.KeyCode.W) then direction = direction + cam.CFrame.LookVector end
-            if UserInputService:IsKeyDown(Enum.KeyCode.S) then direction = direction - cam.CFrame.LookVector end
-            if UserInputService:IsKeyDown(Enum.KeyCode.A) then direction = direction - cam.CFrame.RightVector end
-            if UserInputService:IsKeyDown(Enum.KeyCode.D) then direction = direction + cam.CFrame.RightVector end
-            if UserInputService:IsKeyDown(Enum.KeyCode.Space) then direction = direction + Vector3.new(0,1,0) end
-            if UserInputService:IsKeyDown(Enum.KeyCode.LeftShift) then direction = direction - Vector3.new(0,1,0) end
-            
-            bv.velocity = direction * XenoState.FlySpeed
-            bg.cframe = cam.CFrame
-        end)
-    else
-        if flyConnection then flyConnection:Disconnect() end
-        local char = lp.Character
-        if char then
-            local hrp = char:FindFirstChild("HumanoidRootPart")
-            local hum = char:FindFirstChild("Humanoid")
-            if hrp then
-                for _, v in pairs(hrp:GetChildren()) do
-                    if v:IsA("BodyGyro") or v:IsA("BodyVelocity") then v:Destroy() end
+        -- 1. ADSTORE MENÜSÜNÜ BUL VE DEX MANTIGIYLA AÇ
+        local adStore = MainGUI:FindFirstChild("AdStore", true)
+        if adStore then
+            adStore.Visible = true
+            adStore.Active = true
+            -- Tüm alt butonları (VideoAdAvailable, UnlockButton vb.) aktif et
+            for _, v in pairs(adStore:GetDescendants()) do
+                if v:IsA("GuiButton") or v:IsA("CanvasGroup") then
+                    v.Visible = true
                 end
             end
-            if hum then hum.PlatformStand = false end
         end
-    end
+
+        -- 2. ADS BUTONUNU (GİRİŞ NOKTASI) ZORLA GÖRÜNÜR YAP
+        local shopButtons = MainGUI:FindFirstChild("ShopButtons", true)
+        if shopButtons then
+            local adsBtn = shopButtons:FindFirstChild("Ads", true) or shopButtons:FindFirstChild("AdsButton", true)
+            if adsBtn then
+                adsBtn.Visible = true
+                adsBtn.Active = true
+            end
+        end
+
+        -- 3. REKLAM TETİKLEME VE BYPASS (PC/MOBIL)
+        -- Decompiled koddaki 'CheckAd' mantığını simüle ediyoruz
+        AdJoinController.CancelCheck()
+        AdJoinController.CheckAd()
+
+        -- Orijinal PanelController üzerinden menüyü resmi olarak aç (Context tetikleme)
+        PanelController.OpenPanelByContext("MainGUIHandler", "AdStore")
+
+        -- Reklam Hazır mı Kontrolü Bypass
+        AdsController.RequestRewardedVideoAd(
+            "XenoBypass_PremiumItem", 
+            "rbxassetid://0", 
+            0, 
+            "Item Refresh", 
+            "Item Refresh", 
+            false, 
+            false
+        )
+
+        SendNotif("XenoHub", "ADStore ve Reklamlar Full Aktif Edildi! ✅")
+    end)
 end
 
 -- ============================================================================== --
@@ -139,96 +137,103 @@ local function OpenOriginalFireModal()
 end
 
 -- ============================================================================== --
--- 3. UI TASARIMI (MODERN & GELİŞMİŞ)
+-- 4. MEGA UI TASARIMI
 -- ============================================================================== --
 
-if ParentFolder:FindFirstChild("XenoUltimateV10") then ParentFolder.XenoUltimateV10:Destroy() end
+if ParentFolder:FindFirstChild("XenoBrookhaven") then ParentFolder.XenoBrookhaven:Destroy() end
 
 local XenoGui = Instance.new("ScreenGui")
-XenoGui.Name = "XenoUltimateV10"
+XenoGui.Name = "XenoBrookhaven"
 XenoGui.Parent = ParentFolder
 XenoGui.ResetOnSpawn = false
 
 local MainFrame = Instance.new("Frame")
-MainFrame.Size = UDim2.new(0, 650, 0, 420)
-MainFrame.Position = UDim2.new(0.5, -325, 0.5, -210)
-MainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 17)
+MainFrame.Size = UDim2.new(0, 700, 0, 480)
+MainFrame.Position = UDim2.new(0.5, -350, 0.5, -240)
+MainFrame.BackgroundColor3 = Color3.fromRGB(10, 10, 12)
 MainFrame.Parent = XenoGui
-Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 10)
-Instance.new("UIStroke", MainFrame).Color = Color3.fromRGB(145, 90, 230)
+Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 12)
 
--- Draggable Logic
-local dragging, dragInput, dragStart, startPos
-MainFrame.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 then dragging = true dragStart = input.Position startPos = MainFrame.Position end
-end)
-MainFrame.InputChanged:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseMovement then dragInput = input end
-end)
-UserInputService.InputEnded:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 then dragging = false end
-end)
-RunService.RenderStepped:Connect(function()
-    if dragging and dragInput then
-        local delta = dragInput.Position - dragStart
-        MainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
-    end
-end)
+local MainStroke = Instance.new("UIStroke")
+MainStroke.Color = Color3.fromRGB(145, 90, 230)
+MainStroke.Thickness = 2
+MainStroke.Parent = MainFrame
 
--- Sidebar
-local Sidebar = Instance.new("Frame")
-Sidebar.Size = UDim2.new(0, 160, 1, 0)
-Sidebar.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
-Sidebar.Parent = MainFrame
-Instance.new("UICorner", Sidebar).CornerRadius = UDim.new(0, 10)
+local function MakeDraggable(f)
+    local dragging, dragInput, dragStart, startPos
+    f.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = true dragStart = input.Position startPos = f.Position
+            input.Changed:Connect(function() if input.UserInputState == Enum.UserInputState.End then dragging = false end end)
+        end
+    end)
+    f.InputChanged:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then dragInput = input end
+    end)
+    RunService.RenderStepped:Connect(function()
+        if dragging and dragInput then
+            local delta = dragInput.Position - dragStart
+            f.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+        end
+    end)
+end
+MakeDraggable(MainFrame)
 
-local Container = Instance.new("Frame")
-Container.Size = UDim2.new(1, -170, 1, -20)
-Container.Position = UDim2.new(0, 165, 0, 10)
-Container.BackgroundTransparency = 1
-Container.Parent = MainFrame
+-- ============================================================================== --
+-- 5. SAYFALAR & ÖZELLİKLER (SIDEBAR)
+-- ============================================================================== --
+
+local SideBar = Instance.new("Frame")
+SideBar.Size = UDim2.new(0, 180, 1, 0)
+SideBar.BackgroundColor3 = Color3.fromRGB(15, 15, 18)
+SideBar.Parent = MainFrame
+Instance.new("UICorner", SideBar).CornerRadius = UDim.new(0, 12)
+
+local TabHolder = Instance.new("Frame")
+TabHolder.Size = UDim2.new(1, -200, 1, -20)
+TabHolder.Position = UDim2.new(0, 190, 0, 10)
+TabHolder.BackgroundTransparency = 1
+TabHolder.Parent = MainFrame
 
 local pages = {}
-local function NewPage(name, icon)
-    local btn = Instance.new("TextButton")
-    btn.Size = UDim2.new(0.9, 0, 0, 35)
-    btn.Position = UDim2.new(0.05, 0, 0, 50 + (#pages * 40))
-    btn.BackgroundColor3 = Color3.fromRGB(145, 90, 230)
-    btn.BackgroundTransparency = 1
-    btn.Text = "  " .. name
-    btn.TextColor3 = Color3.new(0.8, 0.8, 0.8)
-    btn.Font = Enum.Font.GothamBold
-    btn.TextSize = 13
-    btn.TextXAlignment = Enum.TextXAlignment.Left
-    btn.Parent = Sidebar
-    Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 5)
+local function NewTab(name)
+    local tBtn = Instance.new("TextButton")
+    tBtn.Size = UDim2.new(0.9, 0, 0, 40)
+    tBtn.Position = UDim2.new(0.05, 0, 0, 60 + (#pages * 45))
+    tBtn.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
+    tBtn.BackgroundTransparency = 1
+    tBtn.Text = "  " .. name
+    tBtn.TextColor3 = Color3.fromRGB(200, 200, 200)
+    tBtn.Font = Enum.Font.GothamBold
+    tBtn.TextSize = 13
+    tBtn.TextXAlignment = Enum.TextXAlignment.Left
+    tBtn.Parent = SideBar
+    Instance.new("UICorner", tBtn).CornerRadius = UDim.new(0, 6)
 
     local page = Instance.new("ScrollingFrame")
     page.Size = UDim2.new(1, 0, 1, 0)
     page.BackgroundTransparency = 1
     page.Visible = false
     page.ScrollBarThickness = 2
-    page.Parent = Container
-    local layout = Instance.new("UIListLayout", page)
-    layout.Padding = UDim.new(0, 10)
-    layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+    page.Parent = TabHolder
+    Instance.new("UIListLayout", page).Padding = UDim.new(0, 8)
 
-    btn.MouseButton1Click:Connect(function()
-        for _, p in pairs(pages) do p.p.Visible = false p.b.BackgroundTransparency = 1 end
+    tBtn.MouseButton1Click:Connect(function()
+        for _, p in pairs(pages) do p.p.Visible = false p.b.BackgroundTransparency = 1 p.b.TextColor3 = Color3.fromRGB(200, 200, 200) end
         page.Visible = true
-        btn.BackgroundTransparency = 0.8
+        tBtn.BackgroundTransparency = 0.8
+        tBtn.TextColor3 = Color3.fromRGB(145, 90, 230)
     end)
 
-    if #pages == 0 then page.Visible = true btn.BackgroundTransparency = 0.8 end
-    table.insert(pages, {b = btn, p = page})
+    if #pages == 0 then page.Visible = true tBtn.BackgroundTransparency = 0.8 tBtn.TextColor3 = Color3.fromRGB(145, 90, 230) end
+    table.insert(pages, {b = tBtn, p = page})
     return page
 end
 
--- UI Component Helpers
-local function AddButton(parent, text, cb, color)
+local function AddBtn(parent, text, cb, color)
     local b = Instance.new("TextButton")
-    b.Size = UDim2.new(0.95, 0, 0, 40)
-    b.BackgroundColor3 = color or Color3.fromRGB(30, 30, 35)
+    b.Size = UDim2.new(0.96, 0, 0, 44)
+    b.BackgroundColor3 = color or Color3.fromRGB(25, 25, 30)
     b.Text = text
     b.TextColor3 = Color3.new(1, 1, 1)
     b.Font = Enum.Font.GothamBold
@@ -238,173 +243,254 @@ local function AddButton(parent, text, cb, color)
     b.MouseButton1Click:Connect(cb)
 end
 
-local function AddToggle(parent, text, default, cb)
-    local frame = Instance.new("Frame")
-    frame.Size = UDim2.new(0.95, 0, 0, 40)
-    frame.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
-    frame.Parent = parent
-    Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 6)
-
-    local label = Instance.new("TextLabel")
-    label.Size = UDim2.new(0.7, 0, 1, 0)
-    label.Position = UDim2.new(0.05, 0, 0, 0)
-    label.BackgroundTransparency = 1
-    label.Text = text
-    label.TextColor3 = Color3.new(0.9, 0.9, 0.9)
-    label.Font = Enum.Font.Gotham
-    label.TextSize = 14
-    label.TextXAlignment = Enum.TextXAlignment.Left
-    label.Parent = frame
-
-    local btn = Instance.new("TextButton")
-    btn.Size = UDim2.new(0, 40, 0, 20)
-    btn.Position = UDim2.new(0.9, -40, 0.5, -10)
-    btn.BackgroundColor3 = default and Color3.fromRGB(145, 90, 230) or Color3.fromRGB(50, 50, 55)
-    btn.Text = ""
-    btn.Parent = frame
-    Instance.new("UICorner", btn).CornerRadius = UDim.new(1, 0)
-
-    local state = default
-    btn.MouseButton1Click:Connect(function()
-        state = not state
-        btn.BackgroundColor3 = state and Color3.fromRGB(145, 90, 230) or Color3.fromRGB(50, 50, 55)
-        cb(state)
-    end)
-end
-
-local function AddTextBox(parent, text, placeholder, cb)
-    local frame = Instance.new("Frame")
-    frame.Size = UDim2.new(0.95, 0, 0, 45)
-    frame.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
-    frame.Parent = parent
-    Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 6)
-
-    local label = Instance.new("TextLabel")
-    label.Size = UDim2.new(0.5, 0, 1, 0)
-    label.Position = UDim2.new(0.05, 0, 0, 0)
-    label.BackgroundTransparency = 1
-    label.Text = text
-    label.TextColor3 = Color3.new(0.9, 0.9, 0.9)
-    label.Font = Enum.Font.Gotham
-    label.TextSize = 13
-    label.TextXAlignment = Enum.TextXAlignment.Left
-    label.Parent = frame
-
-    local box = Instance.new("TextBox")
-    box.Size = UDim2.new(0.35, 0, 0.6, 0)
-    box.Position = UDim2.new(0.6, 0, 0.2, 0)
-    box.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
-    box.TextColor3 = Color3.new(1, 1, 1)
-    box.PlaceholderText = placeholder
-    box.Text = ""
-    box.Font = Enum.Font.Gotham
-    box.TextSize = 13
-    box.Parent = frame
-    Instance.new("UICorner", box).CornerRadius = UDim.new(0, 4)
-
-    box.FocusLost:Connect(function(enter)
-        if enter then cb(box.Text) end
-    end)
-end
-
 -- ============================================================================== --
--- 4. SAYFALARIN DOLDURULMASI
+-- 6. ANA SAYFA & OZELLIKLER
 -- ============================================================================== --
 
-local Home = NewPage("Ana Sayfa")
-AddButton(Home, "⚡ CMDR ADMIN BYPASS (F2)", function()
-    -- Mevcut bypass kodu entegre edildi
+local Home = NewTab("🏠 Ana Sayfa")
+
+-- ============================================================================== --
+-- CMDR ADMIN FULL BYPASS & PERMISSION INJECTOR (FULL VERSION)
+-- ============================================================================== --
+
+AddBtn(Home, "⚡ CMDR FULL BYPASS (F2)", function()
     pcall(function()
-        local MainPerms = require(ReplicatedStorage.Modules.Shared.Permissions)
-        MainPerms.hasAdminAccess = function() return true end
-        local Cmdr = require(ReplicatedStorage.WaitForChild("CmdrClient"))
-        Cmdr:SetActivationKeys({Enum.KeyCode.F2})
+        -- 1. Modül Yolları ve Yetki Bypass (Hooking)
+        local CmdrPermPath = ReplicatedStorage:WaitForChild("Modules"):WaitForChild("Shared"):WaitForChild("Cmdr"):WaitForChild("CmdrPermissions")
+        local MainPermPath = ReplicatedStorage:WaitForChild("Modules"):WaitForChild("Shared"):WaitForChild("Permissions")
+        
+        local CmdrPermissions = require(CmdrPermPath)
+        local MainPermissions = require(MainPermPath)
+
+        -- CmdrPermissions Bypass (Senin attığın decompile kodlarını manipüle eder)
+        CmdrPermissions.hasCmdrAccess = function() return true end
+        CmdrPermissions.hasCommandAccess = function() return true end
+
+        -- Genel İzin Bypass (Admin, Creator, Mod, Staff)
+        local perms = {"hasAdminAccess", "hasContentCreatorAccess", "hasModeratorAccess", "hasStaffAccess"}
+        for _, func in pairs(perms) do
+            MainPermissions[func] = function() return true end
+        end
+
+        -- 2. Cmdr Controller & Client Yükleme
+        local CmdrClient = ReplicatedStorage:WaitForChild("CmdrClient")
+        local InstanceLoadingUtil = require(ReplicatedStorage.Modules.Shared.Utils.InstanceLoadingUtil)
+        local Promise = require(ReplicatedStorage:WaitForChild("Packages").Promise)
+        local Platform = require(ReplicatedStorage.Modules.Client.Util.Platform)
+
+        -- Aktivasyon Tuşları (F2, L3, Semicolon)
+        local keys = {Enum.KeyCode.F2, Enum.KeyCode.ButtonL3, Enum.KeyCode.Semicolon}
+
+        -- İçerikleri zorla yükle
+        local tbl = {}
+        table.insert(tbl, InstanceLoadingUtil.waitForDescendantsToLoad(CmdrClient:WaitForChild("Commands"), 4))
+        table.insert(tbl, InstanceLoadingUtil.waitForDescendantsToLoad(CmdrClient:WaitForChild("Types"), 4))
+        
+        Promise.allSettled(tbl):expect()
+        
+        -- Cmdr'ı Başlat
+        local Cmdr = require(CmdrClient)
+        Cmdr:SetActivationKeys(keys)
+
+        -- Mobil Kullanıcı Desteği
+        if Platform.IsMobile() then
+            if not lp.PlayerGui:FindFirstChild("CmdrMobile") then
+                local ScreenGui = Instance.new("ScreenGui", lp.PlayerGui)
+                ScreenGui.Name = "CmdrMobile"
+                local Btn = Instance.new("TextButton", ScreenGui)
+                Btn.Size = UDim2.fromScale(0.12, 0.08)
+                Btn.Position = UDim2.fromScale(0.85, 0.15)
+                Btn.Text = "CMDR ADMIN"
+                Btn.TextColor3 = Color3.new(1, 1, 1)
+                Btn.BackgroundColor3 = Color3.fromRGB(145, 90, 230)
+                Btn.Font = Enum.Font.GothamBold
+                Btn.TextScaled = true
+                Instance.new("UICorner", Btn).CornerRadius = UDim.new(0.5, 0.5)
+                Btn.Activated:Connect(function() Cmdr:Toggle() end)
+            end
+        end
+
+        SendNotif("XenoHub", "FULL BYPASS: Tüm Admin Yetkileri Tanımlandı! (F2)")
         Cmdr:Toggle()
-        SendNotif("Xeno", "Admin Aktif (F2)")
     end)
 end, Color3.fromRGB(145, 90, 230))
+
+-- ============================================================================== --
+
+AddBtn(Home, "📺 FULL ADSTORE & ADS BUTTON TETIKLE", function()
+    TriggerFullADStore()
+end, Color3.fromRGB(0, 162, 255))
 
 AddBtn(Home, "🔥 MODALFIREASK AÇ (DEX TRUE)", function()
     OpenOriginalFireModal()
 end, Color3.fromRGB(255, 80, 0))
 
-AddButton(Home, "🔓 PREMIUM MODU AÇ", function()
+AddBtn(Home, "🔓 PREMIUM UNLOCK (Max Bypass)", function()
     pcall(function()
+        XenoSettings.PremiumEnabled = true
         local gpc = require(ReplicatedStorage.Modules.Client.UI.GamepassUnlockController)
         gpc.OwnsGamepass = function() return true end
         gpc.IsPremium = function() return true end
-        SendNotif("Xeno", "Premium Bypass Aktif!")
+        SendNotif("XenoHub", "Premium Dex Modu Aktif! ✅")
     end)
-end)
+end, Color3.fromRGB(145, 90, 230))
 
-local PlayerTab = NewPage("Oyuncu")
-AddTextBox(PlayerTab, "Yürüme Hızı", "Sayı gir...", function(val)
-    local n = tonumber(val)
-    if n then 
-        XenoState.Speed = n 
-        lp.Character.Humanoid.WalkSpeed = n
-        SendNotif("Hız", "Yeni hız: " .. n)
+local PlayerTab = Window:MakeTab({
+    Title = "Oyuncu 👤",
+    Icon = "rbxassetid://17132521951"
+})
+
+--================ HAREKETLER =================--
+PlayerTab:AddSection({ "🏃‍♂️ Hareketler" })
+
+PlayerTab:AddSlider({
+    Name = "🏃 Yürüme Hızı",
+    Min = 16,
+    Max = 500,
+    Default = humanoid.WalkSpeed,
+    Callback = function(v)
+        humanoid.WalkSpeed = v
+    end
+})
+
+PlayerTab:AddSlider({
+    Name = "🦘 Zıplama Gücü",
+    Min = 50,
+    Max = 500,
+    Default = humanoid.JumpPower,
+    Callback = function(v)
+        humanoid.JumpPower = v
+    end
+})
+
+PlayerTab:AddSlider({
+    Name = "🌍 Yerçekimi",
+    Min = 10,
+    Max = 500,
+    Default = Workspace.Gravity,
+    Callback = function(v)
+        Workspace.Gravity = v
+    end
+})
+
+PlayerTab:AddButton({
+    Name = "♻️ Oyuncu İstatistiklerini Sıfırla",
+    Callback = function()
+        humanoid.WalkSpeed = 16
+        humanoid.JumpPower = 50
+        Workspace.Gravity = 196.2
+    end
+})
+
+--================ DÖNME =================--
+local spinning = false
+local spinSpeed = 50
+
+PlayerTab:AddSection({ "🌀 Dönme" })
+
+PlayerTab:AddToggle({
+    Name = "🔄 Dönme",
+    Default = false,
+    Callback = function(v)
+        spinning = v
+    end
+})
+
+PlayerTab:AddSlider({
+    Name = "⚡ Dönme Hızı",
+    Min = 1,
+    Max = 1000,
+    Default = spinSpeed,
+    Callback = function(v)
+        spinSpeed = v
+    end
+})
+
+RunService.RenderStepped:Connect(function(dt)
+    if spinning and hrp then
+        hrp.CFrame *= CFrame.Angles(0, math.rad(spinSpeed * dt), 0)
     end
 end)
 
-AddTextBox(PlayerTab, "Zıplama Gücü", "Sayı gir...", function(val)
-    local n = tonumber(val)
-    if n then 
-        XenoState.Jump = n 
-        lp.Character.Humanoid.JumpPower = n
-        SendNotif("Zıplama", "Yeni güç: " .. n)
+--================ ÇARPIŞMA =================--
+local noclip = false
+
+PlayerTab:AddToggle({
+    Name = "🚫 Çarpışma Yok",
+    Default = false,
+    Callback = function(v)
+        noclip = v
+    end
+})
+
+RunService.Stepped:Connect(function()
+    if noclip and character then
+        for _, v in ipairs(character:GetDescendants()) do
+            if v:IsA("BasePart") then
+                v.CanCollide = false
+            end
+        end
     end
 end)
 
-AddToggle(PlayerTab, "Noclip (Duvarlardan Geçme)", false, function(s)
-    XenoState.Noclip = s
-    SendNotif("Noclip", s and "Aktif" or "Kapalı")
+--================ SONSUS ZIPLAMA =================--
+local infJump = false
+
+PlayerTab:AddToggle({
+    Name = "🦅 Sonsuz Zıplama",
+    Default = false,
+    Callback = function(v)
+        infJump = v
+    end
+})
+
+UserInputService.JumpRequest:Connect(function()
+    if infJump and humanoid then
+        humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+    end
 end)
 
-AddToggle(PlayerTab, "Uçma (Fly)", false, function(s)
-    XenoState.Fly = s
-    ToggleFly()
-    SendNotif("Fly", s and "Aktif" or "Kapalı")
-end)
-
-AddTextBox(PlayerTab, "Uçma Hızı", "Varsayılan: 50", function(val)
-    local n = tonumber(val)
-    if n then XenoState.FlySpeed = n end
-end)
-
-local Utility = NewPage("Araçlar")
-AddButton(Utility, "📺 Reklam Menüsünü Aç", function()
+local Items = NewTab("🎒 Eşyalar")
+local function SafeTriggerTool(tool)
     pcall(function()
-        local PC = require(ReplicatedStorage.Modules.Client.UI.PanelController)
-        PC.OpenPanelByContext("MainGUIHandler", "AdStore")
+        local re = ReplicatedStorage:FindFirstChild("RE")
+        local event = re and re:FindFirstChild("1Playe1rTrigge1rEven1t")
+        if event then event:FireServer("AcceptedToolToServer", tool, lp) end
     end)
-end)
+end
 
-AddButton(Utility, "🔥 Yangın Başlat (Remote)", function()
-    pcall(function()
-        local Game8 = require(StarterGui.Player8Handler.Game8Settings)
-        Game8.PlayersHouse:FireServer("PlayerWantsFire")
-    end)
-end)
+local items_list = {
+    {"MoneyGun",   "Money Gun 💸🔫 (Para Tabancası)"},
+    {"Glider",     "Glider 🪂 (Planör)"},
+    {"Chainsaw",   "Chainsaw 🪚 (Testere)"},
+    {"Scythe",     "Scythe ☠️🌾 (Tırpan)"},
+    {"UraniumRod", "Uranium Rod ☢️ (Uranyum)"},
+    {"AgencyBook", "Agency Book 📘🕵️ (Ajans Kitabı)"}
+}
+for _, item in pairs(items_list) do
+    AddBtn(Items, "🛠️ Get: " .. item[2], function() SafeTriggerTool(item[1]) end)
+end
 
-local Settings = NewPage("Ayarlar")
-AddButton(Settings, "❌ SCRIPTI TAMAMEN KAPAT", function() XenoGui:Destroy() end, Color3.fromRGB(150, 40, 40))
+local Settings = NewTab("⚙️ Ayarlar")
+AddBtn(Settings, "❌ SCRIPTI KAPAT", function() XenoGui:Destroy() end, Color3.fromRGB(100, 20, 20))
 
--- Toggle Butonu
-local ToggleBtn = Instance.new("TextButton")
-ToggleBtn.Size = UDim2.new(0, 50, 0, 50)
-ToggleBtn.Position = UDim2.new(0, 10, 0.5, -25)
-ToggleBtn.BackgroundColor3 = Color3.fromRGB(145, 90, 230)
-ToggleBtn.Text = "X"
-ToggleBtn.TextColor3 = Color3.new(1, 1, 1)
-ToggleBtn.Font = Enum.Font.GothamBold
-ToggleBtn.TextSize = 20
-ToggleBtn.Parent = XenoGui
-Instance.new("UICorner", ToggleBtn).CornerRadius = UDim.new(1, 0)
+-- TOGGLE BUTTON
+local TButton = Instance.new("TextButton")
+TButton.Size = UDim2.new(0, 60, 0, 60)
+TButton.Position = UDim2.new(0, 40, 0.5, -30)
+TButton.BackgroundColor3 = Color3.fromRGB(12, 12, 15)
+TButton.Text = "X"
+TButton.TextColor3 = Color3.fromRGB(145, 90, 230)
+TButton.Font = Enum.Font.GothamBlack
+TButton.TextSize = 25
+TButton.Parent = XenoGui
+Instance.new("UICorner", TButton).CornerRadius = UDim.new(1, 0)
+Instance.new("UIStroke", TButton).Color = Color3.fromRGB(145, 90, 230)
+MakeDraggable(TButton)
 
-ToggleBtn.MouseButton1Click:Connect(function()
+TButton.MouseButton1Click:Connect(function()
     MainFrame.Visible = not MainFrame.Visible
-    ToggleBtn.Text = MainFrame.Visible and "X" or "Xeno"
+    TButton.Text = MainFrame.Visible and "X" or "O"
 end)
 
-SendNotif("XenoHub V10", "Hazır ve Nazır!")
+SendNotif("XenoHub ULTIMATE", "ADStore Sistemi Full Aktif!")
