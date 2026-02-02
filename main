@@ -1,7 +1,7 @@
 --[[ 
     XENOHUB ULTIMATE - BROOKHAVEN PREMIUM EDITION (MEGA UPDATE)
     Geliştirici: XenoHub Team & EgeKazak_Real1
-    Özellikler: Mega UI, Loading Screen, Full Bypass, Fire System, Advanced Trolls
+    Özellikler: Mega UI, Loading Screen, Full Bypass, Fire System, Toggle Button
 ]]
 
 local Players = game:GetService("Players")
@@ -78,7 +78,7 @@ end
 task.spawn(ShowLoading)
 
 -- ============================================================================== --
--- 2. ANA ARAYÜZ (BÜYÜK PANEL)
+-- 2. ANA ARAYÜZ HAZIRLIK
 -- ============================================================================== --
 
 if CoreGui:FindFirstChild("XenoBrookhaven") then
@@ -90,11 +90,6 @@ XenoGui.Name = "XenoBrookhaven"
 XenoGui.Parent = CoreGui
 XenoGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 
-local blur = Instance.new("BlurEffect")
-blur.Size = 0
-blur.Parent = Lighting
-TweenService:Create(blur, TweenInfo.new(0.5), {Size = 15}):Play()
-
 function SendNotif(title, text, duration)
     game:GetService("StarterGui"):SetCore("SendNotification", {
         Title = title;
@@ -105,7 +100,7 @@ end
 
 local MainFrame = Instance.new("Frame")
 MainFrame.Name = "MainFrame"
-MainFrame.Size = UDim2.new(0, 650, 0, 420) -- Daha büyük boyut
+MainFrame.Size = UDim2.new(0, 650, 0, 420)
 MainFrame.Position = UDim2.new(0.5, -325, 0.5, -210)
 MainFrame.BackgroundColor3 = Color3.fromRGB(12, 12, 15)
 MainFrame.BorderSizePixel = 0
@@ -118,25 +113,61 @@ mainStroke.Thickness = 1.5
 mainStroke.Parent = MainFrame
 
 -- Sürükleme Mantığı
-local dragging, dragStart, startPos
-MainFrame.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-        dragging = true
-        dragStart = input.Position
-        startPos = MainFrame.Position
-    end
-end)
-MainFrame.InputChanged:Connect(function(input)
-    if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
-        local delta = input.Position - dragStart
-        MainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
-    end
-end)
-UserInputService.InputEnded:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then dragging = false end
+local function MakeDraggable(frame)
+    local dragging, dragStart, startPos
+    frame.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = true
+            dragStart = input.Position
+            startPos = frame.Position
+        end
+    end)
+    frame.InputChanged:Connect(function(input)
+        if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+            local delta = input.Position - dragStart
+            frame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+        end
+    end)
+    UserInputService.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then dragging = false end
+    end)
+end
+
+MakeDraggable(MainFrame)
+
+-- ============================================================================== --
+-- 3. AÇMA / KAPAMA BUTONU (TOGGLE)
+-- ============================================================================== --
+
+local ToggleBtn = Instance.new("TextButton")
+ToggleBtn.Name = "ToggleBtn"
+ToggleBtn.Size = UDim2.new(0, 60, 0, 60)
+ToggleBtn.Position = UDim2.new(1, -70, 0.5, -30)
+ToggleBtn.BackgroundColor3 = Color3.fromRGB(12, 12, 15)
+ToggleBtn.Text = "X"
+ToggleBtn.TextColor3 = Color3.fromRGB(145, 90, 230)
+ToggleBtn.Font = Enum.Font.GothamBlack
+ToggleBtn.TextSize = 25
+ToggleBtn.Parent = XenoGui
+ToggleBtn.ZIndex = 10
+
+Instance.new("UICorner", ToggleBtn).CornerRadius = UDim.new(0, 50)
+local toggleStroke = Instance.new("UIStroke")
+toggleStroke.Color = Color3.fromRGB(145, 90, 230)
+toggleStroke.Thickness = 2
+toggleStroke.Parent = ToggleBtn
+
+MakeDraggable(ToggleBtn)
+
+ToggleBtn.MouseButton1Click:Connect(function()
+    MainFrame.Visible = not MainFrame.Visible
+    ToggleBtn.Text = MainFrame.Visible and "X" or "O"
 end)
 
--- Yan Menü (SideBar)
+-- ============================================================================== --
+-- 4. YAN MENÜ VE İÇERİK
+-- ============================================================================== --
+
 local SideBar = Instance.new("Frame")
 SideBar.Size = UDim2.new(0, 170, 1, 0)
 SideBar.BackgroundColor3 = Color3.fromRGB(18, 18, 22)
@@ -158,26 +189,20 @@ TabContainer.Position = UDim2.new(0, 180, 0, 10)
 TabContainer.BackgroundTransparency = 1
 TabContainer.Parent = MainFrame
 
--- ============================================================================== --
--- 3. ÖZEL BYPASS VE FIRE SİSTEMİ
--- ============================================================================== --
-
+-- Bypass ve Fire Sistemi
 local function ExecuteFireBypass(state)
-    -- Dexter Kontrollü Bypass
     local MainGUIHandler = PlayerGui:FindFirstChild("MainGUIHandler")
     if MainGUIHandler and MainGUIHandler:FindFirstChild("ModalFireAsk") then
-        MainGUIHandler.ModalFireAsk.Visible = state -- Frame Kontrolü
+        MainGUIHandler.ModalFireAsk.Visible = state
     end
 
     pcall(function()
-        -- Konstant Decompiled Tetikleyici
         local GameSettings = require(game:GetService("StarterGui"):WaitForChild("Player8Handler"):WaitForChild("Game8Settings"))
         if GameSettings and GameSettings.PlayersHouse then
             GameSettings.PlayersHouse:FireServer(state and "PlayerWantsFire" or "PlayerWantsStopFire")
         end
     end)
 
-    -- Multi-Remote Bypass
     local RE = ReplicatedStorage:FindFirstChild("RE") or ReplicatedStorage:FindFirstChild("Remotes")
     if RE and RE:FindFirstChild("RemoteEvent") then
         RE.RemoteEvent:FireServer("HouseSettings", "Fire", state)
@@ -191,10 +216,7 @@ local function ExecuteFireBypass(state)
     SendNotif("XenoHub", state and "Yangın Tetiklendi! 🔥" or "Yangın Durduruldu! 💧")
 end
 
--- ============================================================================== --
--- 4. BİLEŞENLER VE SAYFALAR
--- ============================================================================== --
-
+-- Tab ve Buton Fonksiyonları
 local tabs = {}
 function CreateTab(name)
     local tabBtn = Instance.new("TextButton")
@@ -251,34 +273,21 @@ function AddButton(parent, text, color, callback)
     btn.MouseButton1Click:Connect(callback)
 end
 
--- ============================================================================== --
--- 5. SAYFALAR VE ÖZELLİKLER
--- ============================================================================== --
-
--- HOME / PREMIUM
+-- Sayfalar
 local HomeTab = CreateTab("⭐ Premium & Main")
-
-AddButton(HomeTab, "🔥 EVLERİ YAK (Bypass V3)", Color3.fromRGB(200, 50, 50), function()
-    ExecuteFireBypass(true)
-end)
-
-AddButton(HomeTab, "💧 YANGIN DURDUR", Color3.fromRGB(50, 120, 200), function()
-    ExecuteFireBypass(false)
-end)
-
+AddButton(HomeTab, "🔥 EVLERİ YAK (Bypass V3)", Color3.fromRGB(200, 50, 50), function() ExecuteFireBypass(true) end)
+AddButton(HomeTab, "💧 YANGIN DURDUR", Color3.fromRGB(50, 120, 200), function() ExecuteFireBypass(false) end)
 AddButton(HomeTab, "🔓 FULL PREMIUM UNLOCK", Color3.fromRGB(145, 90, 230), function()
     pcall(function()
         require(ReplicatedStorage.Modules.Client.UI.GamepassUnlockController).OwnsGamepass = function() return true end
-        SendNotif("Başarılı", "Tüm Premium araçlar ve evler açıldı!")
+        SendNotif("Başarılı", "Premium araçlar ve evler açıldı!")
     end)
 end)
 
--- PLAYER
 local PlayerTab = CreateTab("🏃 Oyuncu")
-
 AddButton(PlayerTab, "⚡ Speed 100", nil, function() lp.Character.Humanoid.WalkSpeed = 100 end)
 AddButton(PlayerTab, "🚀 Süper Zıplama", nil, function() lp.Character.Humanoid.JumpPower = 150 end)
-AddButton(PlayerTab, "👻 Noclip (Duvar Geç)", nil, function()
+AddButton(PlayerTab, "👻 Noclip", nil, function()
     RunService.Stepped:Connect(function()
         if lp.Character then
             for _, v in pairs(lp.Character:GetDescendants()) do
@@ -288,33 +297,15 @@ AddButton(PlayerTab, "👻 Noclip (Duvar Geç)", nil, function()
     end)
 end)
 
--- ITEMS
 local ItemsTab = CreateTab("🎒 Eşyalar")
-local function GetItem(name)
+AddButton(ItemsTab, "💸 Money Gun", nil, function()
     local re = ReplicatedStorage:FindFirstChild("RE") or ReplicatedStorage:FindFirstChild("Remotes")
-    if re and re:FindFirstChild("RemoteEvent") then
-        re.RemoteEvent:FireServer("GetItem", name)
-    end
-    SendNotif("Eşya", name .. " alındı!")
-end
-
-AddButton(ItemsTab, "💸 Money Gun", nil, function() GetItem("MoneyGun") end)
-AddButton(ItemsTab, "🆔 Agency Card", nil, function() GetItem("AgencyCard") end)
-AddButton(ItemsTab, "🚫 Ban Hammer", nil, function() GetItem("BanHammer") end)
-
--- TELEPORT
-local TPTab = CreateTab("📍 Işınlanma")
-local function TP(cf) lp.Character.HumanoidRootPart.CFrame = cf end
-
-AddButton(TPTab, "Spawn", nil, function() TP(CFrame.new(0, 10, 0)) end)
-AddButton(TPTab, "Banka Kasası", nil, function() TP(CFrame.new(21, 16, 35)) end)
-AddButton(TPTab, "Gizli Üs", nil, function() TP(CFrame.new(-220, 15, 600)) end)
-
--- SETTINGS
-local SettingsTab = CreateTab("⚙️ Ayarlar")
-AddButton(SettingsTab, "❌ Scripti Kapat", Color3.fromRGB(150, 0, 0), function()
-    XenoGui:Destroy()
-    blur:Destroy()
+    if re and re:FindFirstChild("RemoteEvent") then re.RemoteEvent:FireServer("GetItem", "MoneyGun") end
 end)
 
-SendNotif("XenoHub", "Script Başarıyla Hazırlandı!", 5)
+local SettingsTab = CreateTab("⚙️ Ayarlar")
+AddButton(SettingsTab, "❌ Scripti Tamamen Kapat", Color3.fromRGB(150, 0, 0), function()
+    XenoGui:Destroy()
+end)
+
+SendNotif("XenoHub", "Script Başarıyla Hazırlandı! Toggle Butonu Sağdadır.", 5)
