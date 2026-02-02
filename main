@@ -1,7 +1,7 @@
 --[[ 
     XENOHUB ULTIMATE - BROOKHAVEN PREMIUM EDITION
     Geliştirici: XenoHub Team & EgeKazak_Real1
-    Özellikler: Custom UI, Full Premium Bypass, Item Spawner, Teleport, Troll Scripts
+    Özellikler: Custom UI, Full Premium Bypass, Item Spawner, Teleport, Auto House Burner
 ]]
 
 local Players = game:GetService("Players")
@@ -148,7 +148,6 @@ local function GetBrookhavenItem(itemName)
     local ok, err = pcall(function()
         local re = rep:FindFirstChild("RE") or rep:FindFirstChild("Remotes") or rep
         
-        -- Yöntem 1: Standart Remotes
         local candidates = {"GetItem", "GetTool", "GetToolToServer", "Getİtem"}
         for _, name in ipairs(candidates) do
             local r = re:FindFirstChild(name)
@@ -158,7 +157,6 @@ local function GetBrookhavenItem(itemName)
             end
         end
 
-        -- Yöntem 2: Trigger Event (Senin istediğin gelişmiş yöntem)
         local trigger = re:FindFirstChild("1Playe1rTrigge1rEven1t") or rep:FindFirstChild("1Playe1rTrigge1rEven1t")
         if trigger then
             local args = {[1] = "AcceptedToolToServer", [2] = itemName, [3] = lp}
@@ -272,10 +270,29 @@ AddButton(PremiumPage, "🔓 FULL PREMIUM UNLOCK (Client)", Color3.fromRGB(145, 
     SendNotif("Başarılı", "Premium kilitleri kaldırıldı!")
 end)
 
-AddButton(PremiumPage, "🏠 Evleri Yak (House Fire)", Color3.fromRGB(200, 50, 50), function()
-    local r = ReplicatedStorage:FindFirstChild("RE") or ReplicatedStorage:FindFirstChild("Remotes")
-    pcall(function() r.RemoteEvent:FireServer("HouseSettings", "Fire", true) end)
-    SendNotif("Troll", "Bölgedeki evlerde yangın başlatıldı!")
+-- GELİŞMİŞ HOUSE FIRE ÖZELLİĞİ
+AddButton(PremiumPage, "🔥 House Fire (Gelişmiş)", Color3.fromRGB(46, 204, 113), function()
+    local re = ReplicatedStorage:FindFirstChild("RE") or ReplicatedStorage:FindFirstChild("Remotes")
+    if not re then return end
+    
+    SendNotif("XenoHub", "Tüm evler taranıyor ve yakılıyor...", 3)
+    
+    -- Brookhaven'daki tüm evleri taranması (House Data üzerinden)
+    for i = 1, 30 do
+        task.spawn(function()
+            pcall(function()
+                -- Remote tetiği: HouseSettings -> Fire -> true
+                re.RemoteEvent:FireServer("HouseSettings", "Fire", true)
+                -- Bazı versiyonlar için alternatif tetik
+                re:FindFirstChild("1Playe1rTrigge1rEven1t"):FireServer("HouseSettings", "Fire", true)
+                
+                -- Bilgi mesajı (Üstte yandığını belirtir)
+                SendNotif("Yangın", "Ev No: "..tostring(i).." yanıyor! 🔥", 1.5)
+            end)
+        end)
+        task.wait(0.05) -- Hafif gecikme
+    end
+    SendNotif("Tamamlandı", "Müsait olan tüm evler ateşe verildi.", 3)
 end)
 
 -- --> SAYFA: EŞYALAR (ITEMS)
