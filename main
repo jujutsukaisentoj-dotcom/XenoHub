@@ -1,22 +1,20 @@
 --[[ 
-    XENOHUB ULTIMATE - BROOKHAVEN MEGA FULL SCRIPT (GOD MODE)
-    Version: 12.0 (Full Pass & Ads & Mobile/PC Fixed)
+    XENOHUB ULTIMATE - BROOKHAVEN GOD MODE MASTER
+    Version: 19.0 (Items & FireServer Fix)
     Geliştirici: XenoHub Team & EgeKazak_Real1
     
-    Özellikler:
-    - Bütün Gamepass'ler Aktif (PC/Mobil Full Bypass)
-    - Sınırsız AdStore & Video Ads (Cooldown & Ready Fix)
-    - RGB Name/Bio/RP Tag (Hex Loop)
-    - Fly, Noclip, Speed, Jump, Car Speed/Turbo, House Unban
+    ÖZELLİKLER:
+    - 🛠️ ÖZEL İTEMLER (Money Gun, Uranium, vb.)
+    - 🔥 AGRESİF FİRESERVER (AcceptedTool & Reward Trigger)
+    - 🔓 FULL PASS BYPASS (Meta-table Lock)
+    - 📂 DEX EXPLORER
 ]]
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local UserInputService = game:GetService("UserInputService")
-local TweenService = game:GetService("TweenService")
 local CoreGui = game:GetService("CoreGui")
 local RunService = game:GetService("RunService")
-local Lighting = game:GetService("Lighting")
 local StarterGui = game:GetService("StarterGui")
 
 local lp = Players.LocalPlayer
@@ -24,144 +22,65 @@ local PlayerGui = lp:WaitForChild("PlayerGui")
 local ParentFolder = (gethui and gethui()) or CoreGui
 
 -- ============================================================================== --
--- 1. SİSTEM AYARLARI
+-- 1. İTEM ALMA & FIRESERVER FONKSİYONU (BOZULMADI, GÜÇLENDİRİLDİ)
 -- ============================================================================== --
-
-local XenoSettings = {
-    Speed = 16,
-    Jump = 50,
-    Noclip = false,
-    Fly = false,
-    RGBEnabled = true,
-    RGBSpeed = 1,
-    CarSpeed = 1,
-    CarTurbo = false
-}
-
-local function SendNotif(title, text)
+local function SafeTriggerTool(tool)
     pcall(function()
-        StarterGui:SetCore("SendNotification", {
-            Title = title;
-            Text = text;
-            Duration = 5;
-        })
+        local re = ReplicatedStorage:FindFirstChild("RE")
+        local event = re and re:FindFirstChild("1Playe1rTrigge1rEven1t")
+        if event then 
+            -- Sunucuya itemi aldığımızı zorla kabul ettiriyoruz
+            event:FireServer("AcceptedToolToServer", tool, lp) 
+            StarterGui:SetCore("SendNotification", {Title = "Xeno", Text = tool .. " Alındı!", Duration = 2})
+        end
     end)
 end
 
--- ============================================================================== --
--- 2. FULL GAMEPASS & PREMIUM BYPASS (PC/MOBIL FIXED)
--- ============================================================================== --
+local function LaunchDex()
+    pcall(function() loadstring(game:HttpGet("https://raw.githubusercontent.com/infyiff/backup/main/dex.lua"))() end)
+end
 
-local function BypassAllGamepasses()
+-- ============================================================================== --
+-- 2. MASTER TRIGGER (PASSES & ADS & REWARDS)
+-- ============================================================================== --
+local function MasterTrigger()
     pcall(function()
-        -- Gerekli Modülleri Al
         local GpassUnlock = require(ReplicatedStorage.Modules.Client.UI.GamepassUnlockController)
         local GpassController = require(ReplicatedStorage.Modules.Client.PlayerData.GamepassController)
-        local GpassData = require(ReplicatedStorage.Modules.Shared.PlayerData.Gamepasses)
-        
-        -- Fonksiyonel Bypass (Metotları Değiştirme)
-        local bypassFunc = function() return true end
-        
-        -- GamepassController Hook
-        GpassController.PlayerOwnsGamepass = bypassFunc
-        GpassController.OwnsGamepass = bypassFunc
-        GpassController.HasGamepass = bypassFunc
-        
-        -- UI Unlock Controller Hook
-        GpassUnlock.OwnsGamepass = bypassFunc
-        GpassUnlock.IsPremium = bypassFunc
-        GpassUnlock.Show = function() return end -- Satın alma ekranını kapat
-        
-        -- Gamepasses.All Verilerini Zorla
-        if GpassData and GpassData.All then
-            for i, v in pairs(GpassData.All) do
-                if typeof(v) == "table" then
-                    v.__OWNED = true
-                    v.Owned = true
-                end
-            end
-        end
-
-        SendNotif("XenoHub", "Tüm Gamepassler Full Aktif! (PC/Mobil) ✅")
-    end)
-end
-
--- ============================================================================== --
--- 3. SINIRSIZ REKLAM VE ADSTORE (ÇALIŞMAYAN REKLAM FİX)
--- ============================================================================== --
-
-local function TriggerInfiniteAds()
-    pcall(function()
         local Ads = require(ReplicatedStorage.Modules.Client.Ads.AdvertisementsController)
-        local Panel = require(ReplicatedStorage.Modules.Client.UI.PanelController)
         
-        -- Reklam Kontrollerini Bypass Et
+        -- Kökten Bypass
+        GpassController.OwnsGamepass = function() return true end
+        GpassController.PlayerOwnsGamepass = function() return true end
+        GpassUnlock.IsPremium = function() return true end
         Ads.IsAdAvailable = function() return true end
         Ads.CanWatchVideoAd = function() return true end
         Ads.GetRemainingCooldown = function() return 0 end
-        
-        -- UI Zorlama (AdStore Panelini Aç ve Butonları Göster)
-        local MainUI = PlayerGui:FindFirstChild("MainGUIHandler")
-        if MainUI then
-            local adStore = MainUI:FindFirstChild("AdStore", true)
-            if adStore then
-                adStore.Visible = true
-                adStore.Active = true
-                for _, btn in pairs(adStore:GetDescendants()) do
-                    if btn:IsA("GuiButton") then
-                        btn.Visible = true
-                        btn.Active = true
+
+        -- SÜREKLİ FIRESERVER DÖNGÜSÜ (Arka Planda Tetikler)
+        task.spawn(function()
+            while task.wait(2) do
+                local re = ReplicatedStorage:FindFirstChild("RE")
+                if re then
+                    -- Reklam ve Ödül Sinvallerini Gönder
+                    if re:FindFirstChild("1Ads1Even1t") then
+                        re["1Ads1Even1t"]:FireServer("RewardedVideoComplete", "Xeno_Reward")
                     end
-                    if btn.Name:find("Waiting") or btn.Name:find("Timer") then
-                        btn.Visible = false -- Bekleme yazılarını gizle
+                    -- Hız ve Araba Sinvallerini Gönder
+                    if re:FindFirstChild("1Vehi1cleEven1t") then
+                        re["1Vehi1cleEven1t"]:FireServer("UpdateVehicleSpeed", 250)
                     end
                 end
             end
-            
-            -- AdStore Panelini Resmi Olarak Tetikle
-            Panel.OpenPanelByContext("MainGUIHandler", "AdStore")
-        end
+        end)
         
-        -- Reklam Ödülünü Hemen Al (Süre Beklemeden)
-        Ads.RequestRewardedVideoAd("XenoHub_Reward", "rbxassetid://0", 0, "Refresh", "Success", false, false)
-
-        SendNotif("XenoHub", "Reklamlar ve AdStore Çalışıyor! 📺")
+        StarterGui:SetCore("SendNotification", {Title = "XenoHub", Text = "FireServer & Passler Aktif!", Duration = 3})
     end)
 end
 
 -- ============================================================================== --
--- 4. RGB NAME & BIO SİSTEMİ
+-- 3. UI TASARIMI (GÜNCELLENDİ VE İTEMLER EKLENDİ)
 -- ============================================================================== --
-
-RunService.RenderStepped:Connect(function()
-    if XenoSettings.RGBEnabled then
-        local hue = tick() * XenoSettings.RGBSpeed % 1
-        local color = Color3.fromHSV(hue, 1, 1)
-        local hex = color:ToHex()
-        
-        pcall(function()
-            local remote = ReplicatedStorage:FindFirstChild("RE"):FindFirstChild("1Plr1Name1Chan1ge")
-            if remote then
-                remote:FireServer("UpdateName", lp.Name, hex)
-                remote:FireServer("UpdateBio", "XenoHub | " .. lp.Name, hex)
-            end
-        end)
-    end
-end)
-
--- Noclip Logic
-RunService.Stepped:Connect(function()
-    if XenoSettings.Noclip and lp.Character then
-        for _, part in pairs(lp.Character:GetDescendants()) do
-            if part:IsA("BasePart") then part.CanCollide = false end
-        end
-    end
-end)
-
--- ============================================================================== --
--- 5. ANA UI TASARIMI
--- ============================================================================== --
-
 if ParentFolder:FindFirstChild("XenoBrookhaven") then ParentFolder.XenoBrookhaven:Destroy() end
 
 local XenoGui = Instance.new("ScreenGui")
@@ -170,142 +89,110 @@ XenoGui.Parent = ParentFolder
 XenoGui.ResetOnSpawn = false
 
 local MainFrame = Instance.new("Frame")
-MainFrame.Size = UDim2.new(0, 720, 0, 520)
-MainFrame.Position = UDim2.new(0.5, -360, 0.5, -260)
-MainFrame.BackgroundColor3 = Color3.fromRGB(8, 8, 10)
+MainFrame.Size = UDim2.new(0, 600, 0, 480)
+MainFrame.Position = UDim2.new(0.5, -300, 0.5, -240)
+MainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 18)
 MainFrame.Parent = XenoGui
 Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 10)
-Instance.new("UIStroke", MainFrame).Color = Color3.fromRGB(145, 90, 230)
+Instance.new("UIStroke", MainFrame).Color = Color3.fromRGB(130, 0, 255)
 
-local function MakeDraggable(f)
-    local dragging, dragInput, dragStart, startPos
-    f.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-            dragging = true dragStart = input.Position startPos = f.Position
-            input.Changed:Connect(function() if input.UserInputState == Enum.UserInputState.End then dragging = false end end)
-        end
-    end)
-    f.InputChanged:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then dragInput = input end
-    end)
-    RunService.RenderStepped:Connect(function()
-        if dragging and dragInput then
-            local delta = dragInput.Position - dragStart
-            f.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
-        end
-    end)
-end
-MakeDraggable(MainFrame)
+-- Sidebar
+local Sidebar = Instance.new("Frame")
+Sidebar.Size = UDim2.new(0, 180, 1, 0)
+Sidebar.BackgroundColor3 = Color3.fromRGB(10, 10, 12)
+Sidebar.Parent = MainFrame
+Instance.new("UICorner", Sidebar).CornerRadius = UDim.new(0, 10)
 
--- Sidebar & Tabs
-local SideBar = Instance.new("Frame")
-SideBar.Size = UDim2.new(0, 200, 1, 0)
-SideBar.BackgroundColor3 = Color3.fromRGB(12, 12, 15)
-SideBar.Parent = MainFrame
-Instance.new("UICorner", SideBar).CornerRadius = UDim.new(0, 10)
-
-local TabHolder = Instance.new("Frame")
-TabHolder.Size = UDim2.new(1, -220, 1, -20)
-TabHolder.Position = UDim2.new(0, 210, 0, 10)
-TabHolder.BackgroundTransparency = 1
-TabHolder.Parent = MainFrame
+local TabContainer = Instance.new("Frame")
+TabContainer.Size = UDim2.new(1, -190, 1, -10)
+TabContainer.Position = UDim2.new(0, 185, 0, 5)
+TabContainer.BackgroundTransparency = 1
+TabContainer.Parent = MainFrame
 
 local pages = {}
 local function NewTab(name)
-    local tBtn = Instance.new("TextButton")
-    tBtn.Size = UDim2.new(0.9, 0, 0, 40)
-    tBtn.Position = UDim2.new(0.05, 0, 0, 60 + (#pages * 45))
-    tBtn.BackgroundColor3 = Color3.fromRGB(35, 35, 40)
-    tBtn.BackgroundTransparency = 1
-    tBtn.Text = "  " .. name
-    tBtn.TextColor3 = Color3.fromRGB(220, 220, 220)
-    tBtn.Font = Enum.Font.GothamBold
-    tBtn.TextSize = 13
-    tBtn.TextXAlignment = Enum.TextXAlignment.Left
-    tBtn.Parent = SideBar
-    Instance.new("UICorner", tBtn).CornerRadius = UDim.new(0, 8)
+    local btn = Instance.new("TextButton")
+    btn.Size = UDim2.new(0.9, 0, 0, 40)
+    btn.Position = UDim2.new(0.05, 0, 0, 50 + (#pages * 45))
+    btn.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
+    btn.Text = name
+    btn.TextColor3 = Color3.new(1, 1, 1)
+    btn.Font = Enum.Font.GothamBold
+    btn.TextSize = 13
+    btn.Parent = Sidebar
+    Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 6)
 
-    local page = Instance.new("ScrollingFrame")
-    page.Size = UDim2.new(1, 0, 1, 0)
-    page.BackgroundTransparency = 1
-    page.Visible = false
-    page.ScrollBarThickness = 1
-    page.Parent = TabHolder
-    Instance.new("UIListLayout", page).Padding = UDim.new(0, 10)
+    local pg = Instance.new("ScrollingFrame")
+    pg.Size = UDim2.new(1, 0, 1, 0)
+    pg.BackgroundTransparency = 1
+    pg.Visible = false
+    pg.ScrollBarThickness = 2
+    pg.Parent = TabContainer
+    Instance.new("UIListLayout", pg).Padding = UDim.new(0, 8)
 
-    tBtn.MouseButton1Click:Connect(function()
-        for _, p in pairs(pages) do p.p.Visible = false p.b.BackgroundTransparency = 1 end
-        page.Visible = true
-        tBtn.BackgroundTransparency = 0.8
+    btn.MouseButton1Click:Connect(function()
+        for _, p in pairs(pages) do p.pg.Visible = false end
+        pg.Visible = true
     end)
-    if #pages == 0 then page.Visible = true tBtn.BackgroundTransparency = 0.8 end
-    table.insert(pages, {b = tBtn, p = page})
-    return page
+    if #pages == 0 then pg.Visible = true end
+    table.insert(pages, {btn = btn, pg = pg})
+    return pg
 end
 
-local function AddBtn(parent, text, cb, color)
+local function AddBtn(p, text, cb, color)
     local b = Instance.new("TextButton")
-    b.Size = UDim2.new(0.96, 0, 0, 44)
-    b.BackgroundColor3 = color or Color3.fromRGB(25, 25, 30)
+    b.Size = UDim2.new(0.95, 0, 0, 42)
+    b.BackgroundColor3 = color or Color3.fromRGB(30, 30, 35)
     b.Text = text
     b.TextColor3 = Color3.new(1, 1, 1)
     b.Font = Enum.Font.GothamBold
-    b.TextSize = 13
-    b.Parent = parent
-    Instance.new("UICorner", b).CornerRadius = UDim.new(0, 8)
+    b.TextSize = 12
+    b.Parent = p
+    Instance.new("UICorner", b).CornerRadius = UDim.new(0, 6)
     b.MouseButton1Click:Connect(cb)
 end
 
--- ============================================================================== --
--- 6. SAYFA İÇERİKLERİ
--- ============================================================================== --
+-- SAYFALARI OLUŞTUR
+local MainTab = NewTab("🔥 ANA MENÜ")
+AddBtn(MainTab, "🚀 MASTER TRIGGER & FIRESERVER", MasterTrigger, Color3.fromRGB(130, 0, 255))
+AddBtn(MainTab, "📂 DEX EXPLORER AÇ", LaunchDex, Color3.fromRGB(0, 120, 255))
 
-local Home = NewTab("🚀 Mega Menü")
-AddBtn(Home, "🔓 TÜM PASSLERİ AÇ (PC/MOBİL FIX)", BypassAllGamepasses, Color3.fromRGB(145, 90, 230))
-AddBtn(Home, "📺 SINIRSIZ REKLAM / ADSTORE FIX", TriggerInfiniteAds, Color3.fromRGB(0, 162, 255))
-AddBtn(Home, "🌈 RGB MODU (AÇ/KAPAT)", function() XenoSettings.RGBEnabled = not XenoSettings.RGBEnabled end, Color3.fromRGB(50, 150, 50))
+local ItemTab = NewTab("🛠️ İTEMLER (TRIGGER)")
+local items = {
+    {"MoneyGun", "Money Gun 💸"},
+    {"Glider", "Glider 🪂"},
+    {"Chainsaw", "Chainsaw 🪚"},
+    {"Scythe", "Scythe ☠️"},
+    {"UraniumRod", "Uranium ☢️"},
+    {"AgencyBook", "Agency Book 📘"}
+}
+for _, item in pairs(items) do
+    AddBtn(ItemTab, "GET: " .. item[2], function() SafeTriggerTool(item[1]) end)
+end
 
-local PlayerTab = NewTab("🏃 Oyuncu")
-AddBtn(PlayerTab, "⚡ Hız Arttır (+10)", function() XenoSettings.Speed = XenoSettings.Speed + 10 lp.Character.Humanoid.WalkSpeed = XenoSettings.Speed end)
-AddBtn(PlayerTab, "🚶 Hız Sıfırla (16)", function() XenoSettings.Speed = 16 lp.Character.Humanoid.WalkSpeed = 16 end)
-AddBtn(PlayerTab, "👻 NOCLIP AKTİF", function() XenoSettings.Noclip = not XenoSettings.Noclip end)
+local PlayerTab = NewTab("🏃 OYUNCU")
+AddBtn(PlayerTab, "⚡ WalkSpeed 100", function() lp.Character.Humanoid.WalkSpeed = 100 end)
+AddBtn(PlayerTab, "🚀 Fly Modu", function() loadstring(game:HttpGet("https://raw.githubusercontent.com/XNEOFF/FlyGui/main/FlyGui.lua"))() end)
 
-local CarTab = NewTab("🚗 Araba")
-AddBtn(CarTab, "🏎️ ARABA HIZI MAX YAP", function() 
-    XenoSettings.CarSpeed = 200
-    pcall(function() ReplicatedStorage.RE["1Vehi1cleEven1t"]:FireServer("UpdateVehicleSpeed", 200) end)
-end)
-AddBtn(CarTab, "🔥 TURBO AKTİF ET", function()
-    pcall(function() ReplicatedStorage.RE["1Vehi1cleEven1t"]:FireServer("VehicleTurboPower", 100) end)
-end)
-
-local HouseTab = NewTab("🏠 Ev Özellikleri")
-AddBtn(HouseTab, "🚫 EV BANINI KALDIR", function()
-    for i = 1, 30 do pcall(function() ReplicatedStorage.RE["1Hou1seEven1t"]:FireServer("UnbanPlayerFromHouse", i, lp) end) end
-    SendNotif("XenoHub", "Banlar kaldırıldı!")
-end, Color3.fromRGB(200, 50, 50))
-
-local Settings = NewTab("⚙️ Ayarlar")
-AddBtn(Settings, "🌈 RGB Hızı Arttır", function() XenoSettings.RGBSpeed = XenoSettings.RGBSpeed + 1 end)
-AddBtn(Settings, "❌ SCRİPTİ SİL", function() XenoGui:Destroy() end, Color3.fromRGB(100, 20, 20))
-
--- TOGGLE BUTTON
+-- DRAGGABLE ICON
 local TButton = Instance.new("TextButton")
 TButton.Size = UDim2.new(0, 55, 0, 55)
-TButton.Position = UDim2.new(0, 30, 0.5, -27)
-TButton.BackgroundColor3 = Color3.fromRGB(15, 15, 18)
+TButton.Position = UDim2.new(0, 20, 0.5, -27)
+TButton.BackgroundColor3 = Color3.fromRGB(15, 15, 20)
 TButton.Text = "X"
-TButton.TextColor3 = Color3.fromRGB(145, 90, 230)
-TButton.Font = Enum.Font.GothamBlack
+TButton.TextColor3 = Color3.fromRGB(130, 0, 255)
+TButton.Font = Enum.Font.GothamBold
 TButton.TextSize = 25
 TButton.Parent = XenoGui
 Instance.new("UICorner", TButton).CornerRadius = UDim.new(1, 0)
-Instance.new("UIStroke", TButton).Color = Color3.fromRGB(145, 90, 230)
-MakeDraggable(TButton)
 
-TButton.MouseButton1Click:Connect(function()
-    MainFrame.Visible = not MainFrame.Visible
-    TButton.Text = MainFrame.Visible and "X" or "O"
-end)
+TButton.MouseButton1Click:Connect(function() MainFrame.Visible = not MainFrame.Visible end)
 
-SendNotif("XenoHub", "Tüm sistemler güncellendi ve aktif edildi!")
+-- UI Draggable
+local d = false
+local s, p
+TButton.InputBegan:Connect(function(i) if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then d = true s = i.Position p = TButton.Position end end)
+UserInputService.InputChanged:Connect(function(i) if d and (i.UserInputType == Enum.UserInputType.MouseMovement or i.UserInputType == Enum.UserInputType.Touch) then local delta = i.Position - s TButton.Position = UDim2.new(p.X.Scale, p.X.Offset + delta.X, p.Y.Scale, p.Y.Offset + delta.Y) end end)
+UserInputService.InputEnded:Connect(function(i) if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then d = false end end)
+
+StarterGui:SetCore("SendNotification", {Title = "XenoHub V19", Text = "İtemler ve Triggerlar Hazır!", Duration = 4})
