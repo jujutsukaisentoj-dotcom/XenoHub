@@ -1,8 +1,8 @@
 --[[ 
     XENOHUB ULTIMATE - BROOKHAVEN MEGA FULL SCRIPT
     Geliştirici: XenoHub Team & EgeKazak_Real1
-    Özellikler: Orijinal ModalFireAsk Tetikleyici (Dex Logic), Premium Unlock, All Items, Max Bypass
-    Version: 6.0 (Orijinal Game GUI Entegre)
+    Özellikler: Orijinal ModalFireAsk & ADStore Tetikleyici, Premium Unlock, All Items, Max Bypass
+    Version: 7.0 (Orijinal Shop & Fire Entegre)
 ]]
 
 local Players = game:GetService("Players")
@@ -60,12 +60,12 @@ local function SafeTrigger(mode, ...)
 end
 
 -- ============================================================================== --
--- 3. BROOKHAVEN ORIJINAL MODALFIREASK TETİKLEYİCİ (MAX BYPASS)
+-- 3. ORIJINAL GAME GUI TETİKLEYİCİLER (FIRE & SHOP)
 -- ============================================================================== --
 
+-- ModalFireAsk Tetikleyici
 local function OpenOriginalFireModal()
     pcall(function()
-        -- Oyunun kendi GUI'si içinde ModalFireAsk'ı buluyoruz
         local originalModal = nil
         for _, v in pairs(PlayerGui:GetDescendants()) do
             if v.Name == "ModalFireAsk" and (v:IsA("Frame") or v:IsA("ImageLabel")) then
@@ -75,16 +75,11 @@ local function OpenOriginalFireModal()
         end
 
         if originalModal then
-            -- Dex gibi zorla görünür yapıyoruz
             originalModal.Visible = true
-            if originalModal:IsA("Frame") then
-                originalModal.Active = true
-            end
+            originalModal.Active = true
             
-            -- Eğer frame içindeki butonlar özelse onları da aktif et
             for _, btn in pairs(originalModal:GetDescendants()) do
                 if btn:IsA("GuiButton") then
-                    -- Yeşil butona basıldığında çalışacak orijinal fonksiyonu tetikle (veya bizimkini bağla)
                     if btn.Name:lower():find("yes") or btn.BackgroundColor3 == Color3.fromRGB(34, 139, 34) then
                         btn.MouseButton1Click:Connect(function()
                             local Game8 = require(StarterGui.Player8Handler.Game8Settings)
@@ -94,12 +89,49 @@ local function OpenOriginalFireModal()
                     end
                 end
             end
-            SendNotif("XenoHub", "Orijinal ModalFireAsk Bulundu ve Aktif Edildi!")
+            SendNotif("XenoHub", "Orijinal ModalFireAsk Aktif!")
         else
-            -- Eğer frame henüz yüklenmemişse veya bulunamazsa doğrudan Remote tetikle
-            SendNotif("XenoHub", "Modal bulunamadı, doğrudan Remote zorlanıyor...")
             local Game8 = require(StarterGui.Player8Handler.Game8Settings)
             Game8.PlayersHouse:FireServer("PlayerWantsFire")
+            SendNotif("XenoHub", "Modal bulunamadı, doğrudan Remote tetiklendi.")
+        end
+    end)
+end
+
+-- ADStore Shop Tetikleyici
+local function OpenOriginalADStore()
+    pcall(function()
+        local mainGuiHandler = PlayerGui:FindFirstChild("MainGUIHandler")
+        if mainGuiHandler then
+            local shopButtons = mainGuiHandler:FindFirstChild("ShopButtons", true)
+            local adStore = mainGuiHandler:FindFirstChild("ADStore", true)
+            
+            -- Ads Butonunu Dex gibi zorla aktif et
+            if shopButtons then
+                local adsBtn = shopButtons:FindFirstChild("Ads", true) or shopButtons:FindFirstChild("AdsButton", true)
+                if adsBtn then
+                    adsBtn.Visible = true
+                    SendNotif("XenoHub", "Ads Butonu Görünür Yapıldı! ✅")
+                end
+            end
+            
+            -- ADStore Menüsünü aç
+            if adStore then
+                adStore.Visible = true
+                if adStore:IsA("Frame") then adStore.Active = true end
+                SendNotif("XenoHub", "ADStore Menüsü Açıldı! 🛒")
+            else
+                -- Eğer isim farklıysa tüm descandantlarda ara
+                for _, v in pairs(mainGuiHandler:GetDescendants()) do
+                    if v.Name == "ADStore" then
+                        v.Visible = true
+                        SendNotif("XenoHub", "ADStore Bulundu ve Açıldı!")
+                        break
+                    end
+                end
+            end
+        else
+            SendNotif("XenoHub", "MainGUIHandler bulunamadı!")
         end
     end)
 end
@@ -216,9 +248,13 @@ end
 -- ============================================================================== --
 
 local Home = NewTab("🏠 Ana Sayfa")
-AddBtn(Home, "🔥 ORIJINAL MODALFIREASK TETIKLE (DEX TRUE)", function()
+AddBtn(Home, "🔥 MODALFIREASK AÇ (DEX TRUE)", function()
     OpenOriginalFireModal()
 end, Color3.fromRGB(255, 80, 0))
+
+AddBtn(Home, "🛒 ADSTORE & ADS BUTTON AÇ", function()
+    OpenOriginalADStore()
+end, Color3.fromRGB(0, 120, 215))
 
 AddBtn(Home, "🔓 PREMIUM UNLOCK (Max Bypass)", function()
     pcall(function()
@@ -235,10 +271,6 @@ AddBtn(Home, "🔓 PREMIUM UNLOCK (Max Bypass)", function()
         SendNotif("XenoHub", "Premium Dex Modu Aktif! ✅")
     end)
 end, Color3.fromRGB(145, 90, 230))
-
-AddBtn(Home, "🏦 BANKA SOYGUNU (Bomba Al)", function()
-    SafeTrigger("Tool", "Bomb")
-end)
 
 local Player = NewTab("🏃 Oyuncu")
 AddBtn(Player, "⚡ Speed (100)", function() lp.Character.Humanoid.WalkSpeed = 100 end)
@@ -293,4 +325,4 @@ TButton.MouseButton1Click:Connect(function()
     TButton.Text = MainFrame.Visible and "X" or "O"
 end)
 
-SendNotif("XenoHub ULTIMATE", "Orijinal ModalFireAsk Entegrasyonu Hazır!")
+SendNotif("XenoHub ULTIMATE", "ADStore & Ads Button Entegrasyonu Hazır!")
