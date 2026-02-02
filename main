@@ -15,7 +15,7 @@ ScreenGui.Parent = player:WaitForChild("PlayerGui")
 
 local Sound = Instance.new("Sound")
 Sound.SoundId = "rbxassetid://14145620056"
-Sound.Volume = 0.5
+Sound.Volume = 0.7
 Sound.Looped = true
 Sound.Parent = ScreenGui
 Sound:Play()
