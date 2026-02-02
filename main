@@ -1,230 +1,369 @@
 --[[ 
-    XENOHUB ULTIMATE - BROOKHAVEN MEGA FULL SCRIPT
-    Geliştirici: XenoHub Team & EgeKazak_Real1
-    Kütüphane: RedzHub UI
-    Version: 11.0 (Full UI Upgrade & Mega Features)
+    XENOHUB ULTIMATE V10 - BROOKHAVEN MEGA SCRIPT
+    Geliştirici: XenoHub Team
+    Özellikler: Fly, Noclip, Custom Speed/Jump, ADStore Bypass, Premium Unlock
 ]]
-
-local Lib = loadstring(game:HttpGet("https://raw.githubusercontent.com/tbao143/Library-ui/refs/heads/main/Redzhubui"))()
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
+local CoreGui = game:GetService("CoreGui")
+local StarterGui = game:GetService("StarterGui")
+
 local lp = Players.LocalPlayer
-local char = lp.Character or lp.CharacterAdded:Wait()
-local hum = char:WaitForChild("Humanoid")
+local PlayerGui = lp:WaitForChild("PlayerGui")
+local ParentFolder = (gethui and gethui()) or CoreGui
 
 -- ============================================================================== --
--- AYARLAR & DEĞİŞKENLER
+-- 1. DURUM & AYARLAR
 -- ============================================================================== --
-local XenoSettings = {
+
+local XenoState = {
+    Speed = 16,
+    Jump = 50,
+    Noclip = false,
     Fly = false,
     FlySpeed = 50,
-    Noclip = false,
-    InfJump = false,
-    Spectating = nil
+    Premium = false
 }
 
+local function SendNotif(title, text)
+    pcall(function()
+        StarterGui:SetCore("SendNotification", {
+            Title = title;
+            Text = text;
+            Duration = 3;
+        })
+    end)
+end
+
 -- ============================================================================== --
--- FONKSİYONLAR
+-- 2. LOOPS & FONKSIYONLAR
 -- ============================================================================== --
 
 -- Noclip Döngüsü
 RunService.Stepped:Connect(function()
-    if XenoSettings.Noclip and lp.Character then
-        for _, v in pairs(lp.Character:GetDescendants()) do
-            if v:IsA("BasePart") then v.CanCollide = false end
+    if XenoState.Noclip and lp.Character then
+        for _, part in pairs(lp.Character:GetDescendants()) do
+            if part:IsA("BasePart") then
+                part.CanCollide = false
+            end
         end
-    end
-end)
-
--- Infinite Jump
-game:GetService("UserInputService").JumpRequest:Connect(function()
-    if XenoSettings.InfJump and lp.Character:FindFirstChildOfClass("Humanoid") then
-        lp.Character:FindFirstChildOfClass("Humanoid"):ChangeState("Jumping")
     end
 end)
 
 -- Fly Sistemi
-local function ToggleFly(state)
-    XenoSettings.Fly = state
-    if state then
-        local bv = Instance.new("BodyVelocity")
-        local bg = Instance.new("BodyGyro")
-        bv.Name = "XenoFlyV"
-        bg.Name = "XenoFlyG"
-        bv.MaxForce = Vector3.new(1e8, 1e8, 1e8)
-        bv.Velocity = Vector3.new(0, 0, 0)
-        bg.MaxTorque = Vector3.new(1e8, 1e8, 1e8)
-        bg.P = 90000
-        bv.Parent = lp.Character.HumanoidRootPart
-        bg.Parent = lp.Character.HumanoidRootPart
+local flyConnection
+local function ToggleFly()
+    if XenoState.Fly then
+        local char = lp.Character
+        local hrp = char:WaitForChild("HumanoidRootPart")
+        local hum = char:WaitForChild("Humanoid")
         
-        spawn(function()
-            while XenoSettings.Fly do
-                local cam = workspace.CurrentCamera
-                local moveDir = Vector3.new(0,0,0)
-                if game:GetService("UserInputService"):IsKeyDown(Enum.KeyCode.W) then moveDir += cam.CFrame.LookVector end
-                if game:GetService("UserInputService"):IsKeyDown(Enum.KeyCode.S) then moveDir -= cam.CFrame.LookVector end
-                if game:GetService("UserInputService"):IsKeyDown(Enum.KeyCode.A) then moveDir -= cam.CFrame.RightVector end
-                if game:GetService("UserInputService"):IsKeyDown(Enum.KeyCode.D) then moveDir += cam.CFrame.RightVector end
-                bv.Velocity = moveDir * XenoSettings.FlySpeed
-                bg.CFrame = cam.CFrame
-                task.wait()
+        hum.PlatformStand = true
+        local bg = Instance.new("BodyGyro", hrp)
+        bg.P = 9e4
+        bg.maxTorque = Vector3.new(9e9, 9e9, 9e9)
+        bg.cframe = hrp.CFrame
+        
+        local bv = Instance.new("BodyVelocity", hrp)
+        bv.velocity = Vector3.new(0,0,0)
+        bv.maxForce = Vector3.new(9e9, 9e9, 9e9)
+        
+        flyConnection = RunService.RenderStepped:Connect(function()
+            local cam = workspace.CurrentCamera
+            local direction = Vector3.new(0,0,0)
+            
+            if UserInputService:IsKeyDown(Enum.KeyCode.W) then direction = direction + cam.CFrame.LookVector end
+            if UserInputService:IsKeyDown(Enum.KeyCode.S) then direction = direction - cam.CFrame.LookVector end
+            if UserInputService:IsKeyDown(Enum.KeyCode.A) then direction = direction - cam.CFrame.RightVector end
+            if UserInputService:IsKeyDown(Enum.KeyCode.D) then direction = direction + cam.CFrame.RightVector end
+            if UserInputService:IsKeyDown(Enum.KeyCode.Space) then direction = direction + Vector3.new(0,1,0) end
+            if UserInputService:IsKeyDown(Enum.KeyCode.LeftShift) then direction = direction - Vector3.new(0,1,0) end
+            
+            bv.velocity = direction * XenoState.FlySpeed
+            bg.cframe = cam.CFrame
+        end)
+    else
+        if flyConnection then flyConnection:Disconnect() end
+        local char = lp.Character
+        if char then
+            local hrp = char:FindFirstChild("HumanoidRootPart")
+            local hum = char:FindFirstChild("Humanoid")
+            if hrp then
+                for _, v in pairs(hrp:GetChildren()) do
+                    if v:IsA("BodyGyro") or v:IsA("BodyVelocity") then v:Destroy() end
+                end
             end
-            bv:Destroy()
-            bg:Destroy()
-        end)
+            if hum then hum.PlatformStand = false end
+        end
     end
 end
 
 -- ============================================================================== --
--- UI OLUŞTURMA
+-- 3. UI TASARIMI (MODERN & GELİŞMİŞ)
 -- ============================================================================== --
 
-local Window = Lib:MakeWindow({
-    Title = "XenoHub Ultimate v11",
-    SubTitle = "Brookhaven Mega Script",
-    SideColor = Color3.fromRGB(145, 90, 230)
-})
+if ParentFolder:FindFirstChild("XenoUltimateV10") then ParentFolder.XenoUltimateV10:Destroy() end
 
--- ANA SAYFA
-local Home = Window:MakeTab("Ana Sayfa", "home")
+local XenoGui = Instance.new("ScreenGui")
+XenoGui.Name = "XenoUltimateV10"
+XenoGui.Parent = ParentFolder
+XenoGui.ResetOnSpawn = false
 
-Home:AddButton({
-    Name = "⚡ CMDR ADMIN BYPASS (F2)",
-    Callback = function()
-        pcall(function()
-            local CmdrPermPath = ReplicatedStorage:WaitForChild("Modules"):WaitForChild("Shared"):WaitForChild("Cmdr"):WaitForChild("CmdrPermissions")
-            require(CmdrPermPath).hasCmdrAccess = function() return true end
-            require(CmdrPermPath).hasCommandAccess = function() return true end
-            local Cmdr = require(ReplicatedStorage:WaitForChild("CmdrClient"))
-            Cmdr:SetActivationKeys({Enum.KeyCode.F2, Enum.KeyCode.ButtonL3})
-            Cmdr:Toggle()
-        end)
+local MainFrame = Instance.new("Frame")
+MainFrame.Size = UDim2.new(0, 650, 0, 420)
+MainFrame.Position = UDim2.new(0.5, -325, 0.5, -210)
+MainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 17)
+MainFrame.Parent = XenoGui
+Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 10)
+Instance.new("UIStroke", MainFrame).Color = Color3.fromRGB(145, 90, 230)
+
+-- Draggable Logic
+local dragging, dragInput, dragStart, startPos
+MainFrame.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then dragging = true dragStart = input.Position startPos = MainFrame.Position end
+end)
+MainFrame.InputChanged:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseMovement then dragInput = input end
+end)
+UserInputService.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then dragging = false end
+end)
+RunService.RenderStepped:Connect(function()
+    if dragging and dragInput then
+        local delta = dragInput.Position - dragStart
+        MainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
     end
-})
+end)
 
-Home:AddButton({
-    Name = "📺 FULL ADSTORE AKTİF ET",
-    Callback = function()
-        pcall(function()
-            local AdsController = require(ReplicatedStorage.Modules.Client.Ads.AdvertisementsController)
-            AdsController.RequestRewardedVideoAd("XenoBypass_PremiumItem", "rbxassetid://0", 0, "Item Refresh", "Item Refresh", false, false)
-        end)
-    end
-})
+-- Sidebar
+local Sidebar = Instance.new("Frame")
+Sidebar.Size = UDim2.new(0, 160, 1, 0)
+Sidebar.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
+Sidebar.Parent = MainFrame
+Instance.new("UICorner", Sidebar).CornerRadius = UDim.new(0, 10)
 
-Home:AddButton({
-    Name = "🔥 YANGIN TETİKLE",
-    Callback = function()
-        pcall(function()
-            local Game8 = require(game:GetService("StarterGui").Player8Handler.Game8Settings)
-            Game8.PlayersHouse:FireServer("PlayerWantsFire")
-        end)
-    end
-})
+local Container = Instance.new("Frame")
+Container.Size = UDim2.new(1, -170, 1, -20)
+Container.Position = UDim2.new(0, 165, 0, 10)
+Container.BackgroundTransparency = 1
+Container.Parent = MainFrame
 
--- OYUNCU AYARLARI
-local PlayerTab = Window:MakeTab("Oyuncu", "user")
+local pages = {}
+local function NewPage(name, icon)
+    local btn = Instance.new("TextButton")
+    btn.Size = UDim2.new(0.9, 0, 0, 35)
+    btn.Position = UDim2.new(0.05, 0, 0, 50 + (#pages * 40))
+    btn.BackgroundColor3 = Color3.fromRGB(145, 90, 230)
+    btn.BackgroundTransparency = 1
+    btn.Text = "  " .. name
+    btn.TextColor3 = Color3.new(0.8, 0.8, 0.8)
+    btn.Font = Enum.Font.GothamBold
+    btn.TextSize = 13
+    btn.TextXAlignment = Enum.TextXAlignment.Left
+    btn.Parent = Sidebar
+    Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 5)
 
-PlayerTab:AddSlider({
-    Name = "Yürüme Hızı (Speed)",
-    Min = 16,
-    Max = 300,
-    Default = 16,
-    Callback = function(v) lp.Character.Humanoid.WalkSpeed = v end
-})
+    local page = Instance.new("ScrollingFrame")
+    page.Size = UDim2.new(1, 0, 1, 0)
+    page.BackgroundTransparency = 1
+    page.Visible = false
+    page.ScrollBarThickness = 2
+    page.Parent = Container
+    local layout = Instance.new("UIListLayout", page)
+    layout.Padding = UDim.new(0, 10)
+    layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
 
-PlayerTab:AddSlider({
-    Name = "Zıplama Gücü (Jump)",
-    Min = 50,
-    Max = 500,
-    Default = 50,
-    Callback = function(v) lp.Character.Humanoid.JumpPower = v end
-})
+    btn.MouseButton1Click:Connect(function()
+        for _, p in pairs(pages) do p.p.Visible = false p.b.BackgroundTransparency = 1 end
+        page.Visible = true
+        btn.BackgroundTransparency = 0.8
+    end)
 
-PlayerTab:AddToggle({
-    Name = "Uçma (Fly)",
-    Default = false,
-    Callback = function(state) ToggleFly(state) end
-})
-
-PlayerTab:AddToggle({
-    Name = "Duvarlardan Geçme (Noclip)",
-    Default = false,
-    Callback = function(state) XenoSettings.Noclip = state end
-})
-
-PlayerTab:AddToggle({
-    Name = "Sonsuz Zıplama (Inf Jump)",
-    Default = false,
-    Callback = function(state) XenoSettings.InfJump = state end
-})
-
--- İZLEME VE GÖRÜNÜM
-local ViewTab = Window:MakeTab("İzleme & Görüş", "eye")
-
-local PlayerList = {}
-for _, p in pairs(Players:GetPlayers()) do table.insert(PlayerList, p.Name) end
-
-local SpectateDrop = ViewTab:AddDropdown({
-    Name = "Oyuncu İzle (Spectate)",
-    Options = PlayerList,
-    Default = lp.Name,
-    Callback = function(val)
-        local target = Players:FindFirstChild(val)
-        if target and target.Character then
-            workspace.CurrentCamera.CameraSubject = target.Character.Humanoid
-        end
-    end
-})
-
-ViewTab:AddButton({
-    Name = "❌ İZLEMEYİ KAPAT / RESET VIEW",
-    Callback = function()
-        workspace.CurrentCamera.CameraSubject = lp.Character.Humanoid
-    end
-})
-
-ViewTab:AddSlider({
-    Name = "Görüş Açısı (FOV)",
-    Min = 70,
-    Max = 120,
-    Default = 70,
-    Callback = function(v) workspace.CurrentCamera.FieldOfView = v end
-})
-
--- EŞYALAR
-local ItemsTab = Window:MakeTab("Eşyalar", "package")
-local tools = {
-    {"MoneyGun", "Para Tabancası"}, {"Glider", "Planör"}, {"Chainsaw", "Testere"},
-    {"Scythe", "Tırpan"}, {"UraniumRod", "Uranyum"}, {"AgencyBook", "Ajans Kitabı"}
-}
-
-for _, t in pairs(tools) do
-    ItemsTab:AddButton({
-        Name = "Al: " .. t[2],
-        Callback = function()
-            pcall(function()
-                ReplicatedStorage.RE["1Playe1rTrigge1rEven1t"]:FireServer("AcceptedToolToServer", t[1], lp)
-            end)
-        end
-    })
+    if #pages == 0 then page.Visible = true btn.BackgroundTransparency = 0.8 end
+    table.insert(pages, {b = btn, p = page})
+    return page
 end
 
--- AYARLAR & KAPATMA
-local SettingsTab = Window:MakeTab("Ayarlar", "settings")
+-- UI Component Helpers
+local function AddButton(parent, text, cb, color)
+    local b = Instance.new("TextButton")
+    b.Size = UDim2.new(0.95, 0, 0, 40)
+    b.BackgroundColor3 = color or Color3.fromRGB(30, 30, 35)
+    b.Text = text
+    b.TextColor3 = Color3.new(1, 1, 1)
+    b.Font = Enum.Font.GothamBold
+    b.TextSize = 13
+    b.Parent = parent
+    Instance.new("UICorner", b).CornerRadius = UDim.new(0, 6)
+    b.MouseButton1Click:Connect(cb)
+end
 
-SettingsTab:AddButton({
-    Name = "❌ SCRİPTİ TAMAMEN KAPAT",
-    Callback = function()
-        pcall(function()
-            XenoSettings.Fly = false
-            XenoSettings.Noclip = false
-            Lib:Destroy() -- Kütüphaneyi kapatır
-        end)
+local function AddToggle(parent, text, default, cb)
+    local frame = Instance.new("Frame")
+    frame.Size = UDim2.new(0.95, 0, 0, 40)
+    frame.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
+    frame.Parent = parent
+    Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 6)
+
+    local label = Instance.new("TextLabel")
+    label.Size = UDim2.new(0.7, 0, 1, 0)
+    label.Position = UDim2.new(0.05, 0, 0, 0)
+    label.BackgroundTransparency = 1
+    label.Text = text
+    label.TextColor3 = Color3.new(0.9, 0.9, 0.9)
+    label.Font = Enum.Font.Gotham
+    label.TextSize = 14
+    label.TextXAlignment = Enum.TextXAlignment.Left
+    label.Parent = frame
+
+    local btn = Instance.new("TextButton")
+    btn.Size = UDim2.new(0, 40, 0, 20)
+    btn.Position = UDim2.new(0.9, -40, 0.5, -10)
+    btn.BackgroundColor3 = default and Color3.fromRGB(145, 90, 230) or Color3.fromRGB(50, 50, 55)
+    btn.Text = ""
+    btn.Parent = frame
+    Instance.new("UICorner", btn).CornerRadius = UDim.new(1, 0)
+
+    local state = default
+    btn.MouseButton1Click:Connect(function()
+        state = not state
+        btn.BackgroundColor3 = state and Color3.fromRGB(145, 90, 230) or Color3.fromRGB(50, 50, 55)
+        cb(state)
+    end)
+end
+
+local function AddTextBox(parent, text, placeholder, cb)
+    local frame = Instance.new("Frame")
+    frame.Size = UDim2.new(0.95, 0, 0, 45)
+    frame.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
+    frame.Parent = parent
+    Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 6)
+
+    local label = Instance.new("TextLabel")
+    label.Size = UDim2.new(0.5, 0, 1, 0)
+    label.Position = UDim2.new(0.05, 0, 0, 0)
+    label.BackgroundTransparency = 1
+    label.Text = text
+    label.TextColor3 = Color3.new(0.9, 0.9, 0.9)
+    label.Font = Enum.Font.Gotham
+    label.TextSize = 13
+    label.TextXAlignment = Enum.TextXAlignment.Left
+    label.Parent = frame
+
+    local box = Instance.new("TextBox")
+    box.Size = UDim2.new(0.35, 0, 0.6, 0)
+    box.Position = UDim2.new(0.6, 0, 0.2, 0)
+    box.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
+    box.TextColor3 = Color3.new(1, 1, 1)
+    box.PlaceholderText = placeholder
+    box.Text = ""
+    box.Font = Enum.Font.Gotham
+    box.TextSize = 13
+    box.Parent = frame
+    Instance.new("UICorner", box).CornerRadius = UDim.new(0, 4)
+
+    box.FocusLost:Connect(function(enter)
+        if enter then cb(box.Text) end
+    end)
+end
+
+-- ============================================================================== --
+-- 4. SAYFALARIN DOLDURULMASI
+-- ============================================================================== --
+
+local Home = NewPage("Ana Sayfa")
+AddButton(Home, "⚡ CMDR ADMIN BYPASS (F2)", function()
+    -- Mevcut bypass kodu entegre edildi
+    pcall(function()
+        local MainPerms = require(ReplicatedStorage.Modules.Shared.Permissions)
+        MainPerms.hasAdminAccess = function() return true end
+        local Cmdr = require(ReplicatedStorage.WaitForChild("CmdrClient"))
+        Cmdr:SetActivationKeys({Enum.KeyCode.F2})
+        Cmdr:Toggle()
+        SendNotif("Xeno", "Admin Aktif (F2)")
+    end)
+end, Color3.fromRGB(145, 90, 230))
+
+AddButton(Home, "🔓 PREMIUM MODU AÇ", function()
+    pcall(function()
+        local gpc = require(ReplicatedStorage.Modules.Client.UI.GamepassUnlockController)
+        gpc.OwnsGamepass = function() return true end
+        gpc.IsPremium = function() return true end
+        SendNotif("Xeno", "Premium Bypass Aktif!")
+    end)
+end)
+
+local PlayerTab = NewPage("Oyuncu")
+AddTextBox(PlayerTab, "Yürüme Hızı", "Sayı gir...", function(val)
+    local n = tonumber(val)
+    if n then 
+        XenoState.Speed = n 
+        lp.Character.Humanoid.WalkSpeed = n
+        SendNotif("Hız", "Yeni hız: " .. n)
     end
-})
+end)
 
-Lib:SelectTab(Home)
+AddTextBox(PlayerTab, "Zıplama Gücü", "Sayı gir...", function(val)
+    local n = tonumber(val)
+    if n then 
+        XenoState.Jump = n 
+        lp.Character.Humanoid.JumpPower = n
+        SendNotif("Zıplama", "Yeni güç: " .. n)
+    end
+end)
+
+AddToggle(PlayerTab, "Noclip (Duvarlardan Geçme)", false, function(s)
+    XenoState.Noclip = s
+    SendNotif("Noclip", s and "Aktif" or "Kapalı")
+end)
+
+AddToggle(PlayerTab, "Uçma (Fly)", false, function(s)
+    XenoState.Fly = s
+    ToggleFly()
+    SendNotif("Fly", s and "Aktif" or "Kapalı")
+end)
+
+AddTextBox(PlayerTab, "Uçma Hızı", "Varsayılan: 50", function(val)
+    local n = tonumber(val)
+    if n then XenoState.FlySpeed = n end
+end)
+
+local Utility = NewPage("Araçlar")
+AddButton(Utility, "📺 Reklam Menüsünü Aç", function()
+    pcall(function()
+        local PC = require(ReplicatedStorage.Modules.Client.UI.PanelController)
+        PC.OpenPanelByContext("MainGUIHandler", "AdStore")
+    end)
+end)
+
+AddButton(Utility, "🔥 Yangın Başlat (Remote)", function()
+    pcall(function()
+        local Game8 = require(StarterGui.Player8Handler.Game8Settings)
+        Game8.PlayersHouse:FireServer("PlayerWantsFire")
+    end)
+end)
+
+local Settings = NewPage("Ayarlar")
+AddButton(Settings, "❌ SCRIPTI TAMAMEN KAPAT", function() XenoGui:Destroy() end, Color3.fromRGB(150, 40, 40))
+
+-- Toggle Butonu
+local ToggleBtn = Instance.new("TextButton")
+ToggleBtn.Size = UDim2.new(0, 50, 0, 50)
+ToggleBtn.Position = UDim2.new(0, 10, 0.5, -25)
+ToggleBtn.BackgroundColor3 = Color3.fromRGB(145, 90, 230)
+ToggleBtn.Text = "X"
+ToggleBtn.TextColor3 = Color3.new(1, 1, 1)
+ToggleBtn.Font = Enum.Font.GothamBold
+ToggleBtn.TextSize = 20
+ToggleBtn.Parent = XenoGui
+Instance.new("UICorner", ToggleBtn).CornerRadius = UDim.new(1, 0)
+
+ToggleBtn.MouseButton1Click:Connect(function()
+    MainFrame.Visible = not MainFrame.Visible
+    ToggleBtn.Text = MainFrame.Visible and "X" or "Xeno"
+end)
+
+SendNotif("XenoHub V10", "Hazır ve Nazır!")
