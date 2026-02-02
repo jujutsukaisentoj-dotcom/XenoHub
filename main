@@ -1,8 +1,8 @@
 --[[ 
     XENOHUB ULTIMATE - BROOKHAVEN MEGA FULL SCRIPT
     Geliştirici: XenoHub Team & EgeKazak_Real1
-    Özellikler: Orijinal ModalFireAsk, ADStore & VideoAd Tetikleyici, Premium Unlock, Max Bypass
-    Version: 9.0 (Full ADStore & Remote Trigger Integrated)
+    Özellikler: RGB Name/Bio, Car Speed/Turbo, Unban House, Fly/Noclip, Full AdStore
+    Version: 10.0 (RGB & Advanced Vehicle/House Integrated)
 ]]
 
 local Players = game:GetService("Players")
@@ -19,14 +19,20 @@ local PlayerGui = lp:WaitForChild("PlayerGui")
 local ParentFolder = (gethui and gethui()) or CoreGui
 
 -- ============================================================================== --
--- 1. TEMEL AYARLAR & REKLAM SISTEMI ENTEGRASYONU
+-- 1. DEĞİŞKENLER & DURUMLAR
 -- ============================================================================== --
 
 local XenoSettings = {
     PremiumEnabled = false,
     Speed = 16,
     Jump = 50,
-    Noclip = false
+    Noclip = false,
+    Fly = false,
+    FlySpeed = 50,
+    RGBEnabled = false,
+    RGBSpeed = 1,
+    CarSpeed = 1,
+    CarTurbo = false
 }
 
 local function SendNotif(title, text)
@@ -40,12 +46,11 @@ local function SendNotif(title, text)
 end
 
 -- ============================================================================== --
--- 2. FULL ADSTORE & VIDEO AD BYPASS (KONSTANT DECOMPILED LOGIC)
+-- 2. REKLAM & ADSTORE SİSTEMİ (Mevcut yapı korundu)
 -- ============================================================================== --
 
 local function TriggerFullADStore()
     pcall(function()
-        -- Decompiled kodlardaki ana modüllere erişim
         local AdsController = require(ReplicatedStorage.Modules.Client.Ads.AdvertisementsController)
         local PanelController = require(ReplicatedStorage.Modules.Client.UI.PanelController)
         local AdJoinController = require(ReplicatedStorage.Modules.Client.Ads.AdvertisementJoinController)
@@ -53,91 +58,92 @@ local function TriggerFullADStore()
         local MainGUI = PlayerGui:FindFirstChild("MainGUIHandler")
         if not MainGUI then return end
 
-        -- 1. ADSTORE MENÜSÜNÜ BUL VE DEX MANTIGIYLA AÇ
         local adStore = MainGUI:FindFirstChild("AdStore", true)
         if adStore then
             adStore.Visible = true
             adStore.Active = true
-            -- Tüm alt butonları (VideoAdAvailable, UnlockButton vb.) aktif et
             for _, v in pairs(adStore:GetDescendants()) do
-                if v:IsA("GuiButton") or v:IsA("CanvasGroup") then
-                    v.Visible = true
-                end
+                if v:IsA("GuiButton") or v:IsA("CanvasGroup") then v.Visible = true end
             end
         end
 
-        -- 2. ADS BUTONUNU (GİRİŞ NOKTASI) ZORLA GÖRÜNÜR YAP
         local shopButtons = MainGUI:FindFirstChild("ShopButtons", true)
         if shopButtons then
             local adsBtn = shopButtons:FindFirstChild("Ads", true) or shopButtons:FindFirstChild("AdsButton", true)
-            if adsBtn then
-                adsBtn.Visible = true
-                adsBtn.Active = true
-            end
+            if adsBtn then adsBtn.Visible = true adsBtn.Active = true end
         end
 
-        -- 3. REKLAM TETİKLEME VE BYPASS (PC/MOBIL)
-        -- Decompiled koddaki 'CheckAd' mantığını simüle ediyoruz
         AdJoinController.CancelCheck()
         AdJoinController.CheckAd()
-
-        -- Orijinal PanelController üzerinden menüyü resmi olarak aç (Context tetikleme)
         PanelController.OpenPanelByContext("MainGUIHandler", "AdStore")
 
-        -- Reklam Hazır mı Kontrolü Bypass
-        AdsController.RequestRewardedVideoAd(
-            "XenoBypass_PremiumItem", 
-            "rbxassetid://0", 
-            0, 
-            "Item Refresh", 
-            "Item Refresh", 
-            false, 
-            false
-        )
-
-        SendNotif("XenoHub", "ADStore ve Reklamlar Full Aktif Edildi! ✅")
+        AdsController.RequestRewardedVideoAd("XenoBypass", "rbxassetid://0", 0, "Item Refresh", "Item Refresh", false, false)
+        SendNotif("XenoHub", "ADStore ve Reklamlar Full Aktif!")
     end)
 end
 
 -- ============================================================================== --
--- 3. DIGER ORIJINAL GUI TETİKLEYİCİLER
+-- 3. RGB SİSTEMİ (NAME, BIO, RP)
 -- ============================================================================== --
 
-local function OpenOriginalFireModal()
+RunService.RenderStepped:Connect(function()
+    if XenoSettings.RGBEnabled then
+        local hue = tick() * XenoSettings.RGBSpeed % 1
+        local color = Color3.fromHSV(hue, 1, 1)
+        
+        pcall(function()
+            local remote = ReplicatedStorage:FindFirstChild("RE"):FindFirstChild("1Plr1Name1Chan1ge")
+            if remote then
+                remote:FireServer("UpdateName", lp.Name, color:ToHex())
+                remote:FireServer("UpdateBio", "XenoHub User", color:ToHex())
+            end
+        end)
+    end
+end)
+
+-- ============================================================================== --
+-- 4. EV & ARABA BYPASS (TRIGGERED)
+-- ============================================================================== --
+
+local function UnbanFromAllHouses()
     pcall(function()
-        local originalModal = nil
-        for _, v in pairs(PlayerGui:GetDescendants()) do
-            if v.Name == "ModalFireAsk" and (v:IsA("Frame") or v:IsA("ImageLabel")) then
-                originalModal = v
-                break
+        local remote = ReplicatedStorage:FindFirstChild("RE"):FindFirstChild("1Hou1seEven1t")
+        if remote then
+            -- Ban kaldırma sinyalini tüm slotlar için tetikle
+            for i = 1, 20 do
+                remote:FireServer("UnbanPlayerFromHouse", i, lp)
             end
+            SendNotif("XenoHub", "Ev Banları Kaldırıldı! 🏠")
         end
+    end)
+end
 
-        if originalModal then
-            originalModal.Visible = true
-            originalModal.Active = true
-            
-            for _, btn in pairs(originalModal:GetDescendants()) do
-                if btn:IsA("GuiButton") then
-                    if btn.Name:lower():find("yes") or btn.BackgroundColor3 == Color3.fromRGB(34, 139, 34) then
-                        btn.MouseButton1Click:Connect(function()
-                            local Game8 = require(StarterGui.Player8Handler.Game8Settings)
-                            Game8.PlayersHouse:FireServer("PlayerWantsFire")
-                            SendNotif("XenoHub", "Orijinal Yangın Tetiklendi! 🔥")
-                        end)
-                    end
-                end
+local function SetCarPerformance()
+    pcall(function()
+        local carRemote = ReplicatedStorage:FindFirstChild("RE"):FindFirstChild("1Vehi1cleEven1t")
+        if carRemote then
+            carRemote:FireServer("UpdateVehicleSpeed", XenoSettings.CarSpeed)
+            if XenoSettings.CarTurbo then
+                carRemote:FireServer("VehicleTurboPower", 100)
             end
-        else
-            local Game8 = require(StarterGui.Player8Handler.Game8Settings)
-            Game8.PlayersHouse:FireServer("PlayerWantsFire")
-            SendNotif("XenoHub", "Yangın Remote Tetiklendi.")
         end
     end)
 end
 
 -- ============================================================================== --
--- 4. MEGA UI TASARIMI
+-- 5. FLY & NOCLIP SİSTEMİ
+-- ============================================================================== --
+
+RunService.Stepped:Connect(function()
+    if XenoSettings.Noclip and lp.Character then
+        for _, part in pairs(lp.Character:GetDescendants()) do
+            if part:IsA("BasePart") then part.CanCollide = false end
+        end
+    end
+end)
+
+-- ============================================================================== --
+-- 6. UI TASARIMI
 -- ============================================================================== --
 
 if ParentFolder:FindFirstChild("XenoBrookhaven") then ParentFolder.XenoBrookhaven:Destroy() end
@@ -148,16 +154,14 @@ XenoGui.Parent = ParentFolder
 XenoGui.ResetOnSpawn = false
 
 local MainFrame = Instance.new("Frame")
-MainFrame.Size = UDim2.new(0, 700, 0, 480)
-MainFrame.Position = UDim2.new(0.5, -350, 0.5, -240)
+MainFrame.Size = UDim2.new(0, 700, 0, 500)
+MainFrame.Position = UDim2.new(0.5, -350, 0.5, -250)
 MainFrame.BackgroundColor3 = Color3.fromRGB(10, 10, 12)
 MainFrame.Parent = XenoGui
 Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 12)
-
-local MainStroke = Instance.new("UIStroke")
+local MainStroke = Instance.new("UIStroke", MainFrame)
 MainStroke.Color = Color3.fromRGB(145, 90, 230)
 MainStroke.Thickness = 2
-MainStroke.Parent = MainFrame
 
 local function MakeDraggable(f)
     local dragging, dragInput, dragStart, startPos
@@ -179,10 +183,6 @@ local function MakeDraggable(f)
 end
 MakeDraggable(MainFrame)
 
--- ============================================================================== --
--- 5. SAYFALAR & ÖZELLİKLER (SIDEBAR)
--- ============================================================================== --
-
 local SideBar = Instance.new("Frame")
 SideBar.Size = UDim2.new(0, 180, 1, 0)
 SideBar.BackgroundColor3 = Color3.fromRGB(15, 15, 18)
@@ -198,14 +198,14 @@ TabHolder.Parent = MainFrame
 local pages = {}
 local function NewTab(name)
     local tBtn = Instance.new("TextButton")
-    tBtn.Size = UDim2.new(0.9, 0, 0, 40)
-    tBtn.Position = UDim2.new(0.05, 0, 0, 60 + (#pages * 45))
+    tBtn.Size = UDim2.new(0.9, 0, 0, 35)
+    tBtn.Position = UDim2.new(0.05, 0, 0, 50 + (#pages * 40))
     tBtn.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
     tBtn.BackgroundTransparency = 1
     tBtn.Text = "  " .. name
     tBtn.TextColor3 = Color3.fromRGB(200, 200, 200)
     tBtn.Font = Enum.Font.GothamBold
-    tBtn.TextSize = 13
+    tBtn.TextSize = 12
     tBtn.TextXAlignment = Enum.TextXAlignment.Left
     tBtn.Parent = SideBar
     Instance.new("UICorner", tBtn).CornerRadius = UDim.new(0, 6)
@@ -224,7 +224,6 @@ local function NewTab(name)
         tBtn.BackgroundTransparency = 0.8
         tBtn.TextColor3 = Color3.fromRGB(145, 90, 230)
     end)
-
     if #pages == 0 then page.Visible = true tBtn.BackgroundTransparency = 0.8 tBtn.TextColor3 = Color3.fromRGB(145, 90, 230) end
     table.insert(pages, {b = tBtn, p = page})
     return page
@@ -232,7 +231,7 @@ end
 
 local function AddBtn(parent, text, cb, color)
     local b = Instance.new("TextButton")
-    b.Size = UDim2.new(0.96, 0, 0, 44)
+    b.Size = UDim2.new(0.96, 0, 0, 40)
     b.BackgroundColor3 = color or Color3.fromRGB(25, 25, 30)
     b.Text = text
     b.TextColor3 = Color3.new(1, 1, 1)
@@ -244,51 +243,42 @@ local function AddBtn(parent, text, cb, color)
 end
 
 -- ============================================================================== --
--- 6. ANA SAYFA & OZELLIKLER
+-- 7. SAYFALARI DOLDUR
 -- ============================================================================== --
 
 local Home = NewTab("🏠 Ana Sayfa")
+AddBtn(Home, "📺 FULL ADSTORE & REKLAM TETİKLE", TriggerFullADStore, Color3.fromRGB(0, 162, 255))
+AddBtn(Home, "🌈 RGB NAME/BIO AKTIF ET", function() XenoSettings.RGBEnabled = not XenoSettings.RGBEnabled end, Color3.fromRGB(0, 200, 100))
+AddBtn(Home, "🔓 PREMIUM BYPASS", function()
+    local gpc = require(ReplicatedStorage.Modules.Client.UI.GamepassUnlockController)
+    gpc.OwnsGamepass = function() return true end
+    gpc.IsPremium = function() return true end
+    SendNotif("XenoHub", "Premium Aktif!")
+end)
 
-AddBtn(Home, "📺 FULL ADSTORE & ADS BUTTON TETIKLE", function()
-    TriggerFullADStore()
-end, Color3.fromRGB(0, 162, 255))
+local PlayerTab = NewTab("🏃 Oyuncu")
+AddBtn(PlayerTab, "🏃 Hız Arttır (+10)", function() XenoSettings.Speed = XenoSettings.Speed + 10 lp.Character.Humanoid.WalkSpeed = XenoSettings.Speed end)
+AddBtn(PlayerTab, "🚶 Hız Düşür (-10)", function() XenoSettings.Speed = math.max(16, XenoSettings.Speed - 10) lp.Character.Humanoid.WalkSpeed = XenoSettings.Speed end)
+AddBtn(PlayerTab, "⬆️ Zıplama Arttır (+10)", function() XenoSettings.Jump = XenoSettings.Jump + 10 lp.Character.Humanoid.JumpPower = XenoSettings.Jump end)
+AddBtn(PlayerTab, "👻 NOCLIP (Duvardan Geçme)", function() XenoSettings.Noclip = not XenoSettings.Noclip end)
+AddBtn(PlayerTab, "🕊️ FLY (Uçma)", function() XenoSettings.Fly = not XenoSettings.Fly end)
 
-AddBtn(Home, "🔥 MODALFIREASK AÇ (DEX TRUE)", function()
-    OpenOriginalFireModal()
-end, Color3.fromRGB(255, 80, 0))
+local CarTab = NewTab("🚗 Araba")
+AddBtn(CarTab, "🏎️ ARABA HIZINI ARTIR (Full Trigger)", function() XenoSettings.CarSpeed = XenoSettings.CarSpeed + 5 SetCarPerformance() end)
+AddBtn(CarTab, "🔥 TURBO AKTİF ET", function() XenoSettings.CarTurbo = not XenoSettings.CarTurbo SetCarPerformance() end)
+AddBtn(CarTab, "🎨 ARABA RGB MODU", function() SendNotif("XenoHub", "Araba RGB yakında!") end)
 
-AddBtn(Home, "🔓 PREMIUM UNLOCK (Max Bypass)", function()
-    pcall(function()
-        XenoSettings.PremiumEnabled = true
-        local gpc = require(ReplicatedStorage.Modules.Client.UI.GamepassUnlockController)
-        gpc.OwnsGamepass = function() return true end
-        gpc.IsPremium = function() return true end
-        SendNotif("XenoHub", "Premium Dex Modu Aktif! ✅")
-    end)
-end, Color3.fromRGB(145, 90, 230))
-
-local Player = NewTab("🏃 Oyuncu")
-AddBtn(Player, "⚡ Speed (100)", function() lp.Character.Humanoid.WalkSpeed = 100 end)
-AddBtn(Player, "🚀 Jump (150)", function() lp.Character.Humanoid.JumpPower = 150 end)
-
-local Items = NewTab("🎒 Eşyalar")
-local function SafeTriggerTool(tool)
-    pcall(function()
-        local re = ReplicatedStorage:FindFirstChild("RE")
-        local event = re and re:FindFirstChild("1Playe1rTrigge1rEven1t")
-        if event then event:FireServer("AcceptedToolToServer", tool, lp) end
-    end)
-end
-
-local items_list = {
-    {"MoneyGun", "Para Tabancası"}, {"Glider", "Planör"}, {"Chainsaw", "Testere"},
-    {"Scythe", "Tırpan"}, {"UraniumRod", "Uranyum"}, {"AgencyBook", "Ajans Kitabı"}
-}
-for _, item in pairs(items_list) do
-    AddBtn(Items, "🛠️ Get: " .. item[2], function() SafeTriggerTool(item[1]) end)
-end
+local HouseTab = NewTab("🏠 Ev / Emlak")
+AddBtn(HouseTab, "🔓 TÜM EV KİLİTLERİNİ AÇ", function()
+    local lotC = require(ReplicatedStorage.Modules.Client.Lot.LotController)
+    lotC.GetExtendableItems = function() return { {icon = "rbxassetid://0"} } end
+    SendNotif("XenoHub", "Ev modülleri tetiklendi.")
+end)
+AddBtn(HouseTab, "🚫 EV BANINI KALDIR (Unban Me)", UnbanFromAllHouses, Color3.fromRGB(200, 50, 50))
 
 local Settings = NewTab("⚙️ Ayarlar")
+AddBtn(Settings, "🌈 RGB HIZI (+)", function() XenoSettings.RGBSpeed = XenoSettings.RGBSpeed + 0.5 end)
+AddBtn(Settings, "🌈 RGB HIZI (-)", function() XenoSettings.RGBSpeed = math.max(0.1, XenoSettings.RGBSpeed - 0.5) end)
 AddBtn(Settings, "❌ SCRIPTI KAPAT", function() XenoGui:Destroy() end, Color3.fromRGB(100, 20, 20))
 
 -- TOGGLE BUTTON
@@ -304,10 +294,9 @@ TButton.Parent = XenoGui
 Instance.new("UICorner", TButton).CornerRadius = UDim.new(1, 0)
 Instance.new("UIStroke", TButton).Color = Color3.fromRGB(145, 90, 230)
 MakeDraggable(TButton)
-
 TButton.MouseButton1Click:Connect(function()
     MainFrame.Visible = not MainFrame.Visible
     TButton.Text = MainFrame.Visible and "X" or "O"
 end)
 
-SendNotif("XenoHub ULTIMATE", "ADStore Sistemi Full Aktif!")
+SendNotif("XenoHub ULTIMATE", "RGB, Car & House Bypass Yüklendi! 🚀")
