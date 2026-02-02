@@ -2,7 +2,7 @@
     XENOHUB ULTIMATE - BROOKHAVEN MEGA FULL SCRIPT
     Geliştirici: XenoHub Team & EgeKazak_Real1
     Özellikler: Orijinal ModalFireAsk, ADStore & VideoAd Tetikleyici, Premium Unlock, Max Bypass
-    Version: 8.0 (Decompiled Ad-System Integrated)
+    Version: 9.0 (Full ADStore & Remote Trigger Integrated)
 ]]
 
 local Players = game:GetService("Players")
@@ -40,44 +40,53 @@ local function SendNotif(title, text)
 end
 
 -- ============================================================================== --
--- 2. ORIJINAL REKLAM & MAGAZA BYPASS (DEX LOGIC)
+-- 2. FULL ADSTORE & VIDEO AD BYPASS (KONSTANT DECOMPILED LOGIC)
 -- ============================================================================== --
 
-local function TriggerVideoAdSystem()
+local function TriggerFullADStore()
     pcall(function()
-        -- Decompiled kodlardaki AdvertisementsController ve PanelController erişimi
+        -- Decompiled kodlardaki ana modüllere erişim
         local AdsController = require(ReplicatedStorage.Modules.Client.Ads.AdvertisementsController)
         local PanelController = require(ReplicatedStorage.Modules.Client.UI.PanelController)
+        local AdJoinController = require(ReplicatedStorage.Modules.Client.Ads.AdvertisementJoinController)
         
-        -- AdStore ve Ads butonlarını bul ve DEX gibi zorla aç
         local MainGUI = PlayerGui:FindFirstChild("MainGUIHandler")
-        if MainGUI then
-            local adStore = MainGUI:FindFirstChild("AdStore", true)
-            local shopButtons = MainGUI:FindFirstChild("ShopButtons", true)
-            
-            if shopButtons then
-                local adsBtn = shopButtons:FindFirstChild("Ads", true) or shopButtons:FindFirstChild("AdsButton", true)
-                if adsBtn then
-                    adsBtn.Visible = true
-                    adsBtn.Active = true
+        if not MainGUI then return end
+
+        -- 1. ADSTORE MENÜSÜNÜ BUL VE DEX MANTIGIYLA AÇ
+        local adStore = MainGUI:FindFirstChild("AdStore", true)
+        if adStore then
+            adStore.Visible = true
+            adStore.Active = true
+            -- Tüm alt butonları (VideoAdAvailable, UnlockButton vb.) aktif et
+            for _, v in pairs(adStore:GetDescendants()) do
+                if v:IsA("GuiButton") or v:IsA("CanvasGroup") then
+                    v.Visible = true
                 end
-            end
-            
-            if adStore then
-                adStore.Visible = true
-                adStore.Active = true
-                SendNotif("XenoHub", "ADStore Paneli Zorla Açıldı! (Dex Logic)")
             end
         end
 
-        -- Reklam Hazırlığı ve Tetikleme (Decompiled Start mantığı)
-        -- Normalde "Ad not available" hatası veren kontrolleri bypass ediyoruz
-        SendNotif("XenoHub", "Reklam Sistemleri Bypass Ediliyor...")
-        
-        -- Orijinal RequestRewardedVideoAd fonksiyonunu kullanarak sistemi tetikle
-        -- Args: itemId, icon, gamepassId, category, action, boolean, boolean
+        -- 2. ADS BUTONUNU (GİRİŞ NOKTASI) ZORLA GÖRÜNÜR YAP
+        local shopButtons = MainGUI:FindFirstChild("ShopButtons", true)
+        if shopButtons then
+            local adsBtn = shopButtons:FindFirstChild("Ads", true) or shopButtons:FindFirstChild("AdsButton", true)
+            if adsBtn then
+                adsBtn.Visible = true
+                adsBtn.Active = true
+            end
+        end
+
+        -- 3. REKLAM TETİKLEME VE BYPASS (PC/MOBIL)
+        -- Decompiled koddaki 'CheckAd' mantığını simüle ediyoruz
+        AdJoinController.CancelCheck()
+        AdJoinController.CheckAd()
+
+        -- Orijinal PanelController üzerinden menüyü resmi olarak aç (Context tetikleme)
+        PanelController.OpenPanelByContext("MainGUIHandler", "AdStore")
+
+        -- Reklam Hazır mı Kontrolü Bypass
         AdsController.RequestRewardedVideoAd(
-            "XenoBypass", 
+            "XenoBypass_PremiumItem", 
             "rbxassetid://0", 
             0, 
             "Item Refresh", 
@@ -85,8 +94,8 @@ local function TriggerVideoAdSystem()
             false, 
             false
         )
-        
-        SendNotif("XenoHub", "Reklam Tetiklendi! (PC/Mobil Uyumlu)")
+
+        SendNotif("XenoHub", "ADStore ve Reklamlar Full Aktif Edildi! ✅")
     end)
 end
 
@@ -122,7 +131,7 @@ local function OpenOriginalFireModal()
         else
             local Game8 = require(StarterGui.Player8Handler.Game8Settings)
             Game8.PlayersHouse:FireServer("PlayerWantsFire")
-            SendNotif("XenoHub", "Remote Yangın Tetiklendi.")
+            SendNotif("XenoHub", "Yangın Remote Tetiklendi.")
         end
     end)
 end
@@ -240,8 +249,8 @@ end
 
 local Home = NewTab("🏠 Ana Sayfa")
 
-AddBtn(Home, "📺 REKLAM & ADSTORE TETIKLE (FULL BYPASS)", function()
-    TriggerVideoAdSystem()
+AddBtn(Home, "📺 FULL ADSTORE & ADS BUTTON TETIKLE", function()
+    TriggerFullADStore()
 end, Color3.fromRGB(0, 162, 255))
 
 AddBtn(Home, "🔥 MODALFIREASK AÇ (DEX TRUE)", function()
@@ -301,4 +310,4 @@ TButton.MouseButton1Click:Connect(function()
     TButton.Text = MainFrame.Visible and "X" or "O"
 end)
 
-SendNotif("XenoHub ULTIMATE", "Reklam & AdStore Entegrasyonu Başarılı!")
+SendNotif("XenoHub ULTIMATE", "ADStore Sistemi Full Aktif!")
