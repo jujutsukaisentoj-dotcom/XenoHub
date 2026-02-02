@@ -167,33 +167,53 @@ end
 -- ============================================================================== --
 
 local HomeTab = CreateTab("🏠 Ana Menu")
-AddButton(HomeTab, "🔥 TÜM EVLERİ YAK (Fire & FireAsk)", function()
-    local re = ReplicatedStorage:FindFirstChild("RE")
-    if re and re:FindFirstChild("1Playe1rTrigge1rEven1t") then
-        -- FireAsk kontrolü ve Fire tetikleme (Dex Mantığı)
-        re["1Playe1rTrigge1rEven1t"]:FireServer("HouseSettings", "Fire", true)
-        re["1Playe1rTrigge1rEven1t"]:FireServer("HouseSettings", "FireAsk", true)
-        SendNotif("XenoHub", "Yangın & FireAsk Aktif! 🔥")
-    end
+AddButton(HomeTab, "🔥 MEGA EV YAKMA (FireAskButton Entegre)", function()
+    pcall(function()
+        -- 1. Yol: FireAskButton Modülü Üzerinden Tetikleme
+        local FireAskPath = ReplicatedStorage:FindFirstChild("Modules")
+            and ReplicatedStorage.Modules:FindFirstChild("Client")
+            and ReplicatedStorage.Modules.Client:FindFirstChild("Components")
+            and ReplicatedStorage.Modules.Client.Components:FindFirstChild("Houses")
+            and ReplicatedStorage.Modules.Client.Components.Houses:FindFirstChild("Modal")
+            and ReplicatedStorage.Modules.Client.Components.Houses.Modal:FindFirstChild("FireAskButton")
+
+        if FireAskPath then
+            local FireMod = require(FireAskPath)
+            -- Game8Settings Upvalue simülasyonu ve tetikleme
+            local Game8 = require(game:GetService("StarterGui"):WaitForChild("Player8Handler"):WaitForChild("Game8Settings"))
+            if Game8 and Game8.PlayersHouse then
+                Game8.PlayersHouse:FireServer("PlayerWantsFire")
+            end
+        end
+
+        -- 2. Yol: Dex/Property Bazlı Zorlama
+        local re = ReplicatedStorage:FindFirstChild("RE")
+        if re and re:FindFirstChild("1Playe1rTrigge1rEven1t") then
+            re["1Playe1rTrigge1rEven1t"]:FireServer("HouseSettings", "Fire", true)
+            re["1Playe1rTrigge1rEven1t"]:FireServer("HouseSettings", "FireAsk", true)
+        end
+        
+        SendNotif("XenoHub", "FireAskButton Modülü Tetiklendi! 🔥")
+    end)
 end, Color3.fromRGB(180, 40, 40))
 
-AddButton(HomeTab, "🔓 PREMIUM UNLOCK (Dex Controller)", function()
+AddButton(HomeTab, "🔓 PREMIUM UNLOCK (Dex Full Control)", function()
     pcall(function()
         -- Dex üzerinden kontrol edilen modüllerin manipülasyonu
         local mod = require(ReplicatedStorage.Modules.Client.UI.GamepassUnlockController)
-        -- Tüm Gamepass kontrollerini true olarak döndür
+        -- Tüm kontrolleri true yap
         mod.OwnsGamepass = function() return true end
         mod.IsPremium = function() return true end
         
-        -- Bazı Brookhaven sürümlerinde metatable üzerinden kontrol edilir
+        -- Metatable Hook (Daha derin Dex kontrolü için)
         if getrawmetatable then
             local old; old = hookmetamethod(game, "__index", function(self, key)
-                if key == "Premium" or key == "IsPremium" then return true end
+                if tostring(key) == "Premium" or tostring(key) == "IsPremium" then return true end
                 return old(self, key)
             end)
         end
         
-        SendNotif("XenoHub", "Premium Dex Üzerinden Full Aktif! ✅")
+        SendNotif("XenoHub", "Premium Dex & Modül Bazlı Aktif! ✅")
     end)
 end, Color3.fromRGB(145, 90, 230))
 
@@ -239,4 +259,4 @@ end)
 local SettingsTab = CreateTab("⚙️ Ayarlar")
 AddButton(SettingsTab, "❌ Scripti Tamamen Kapat", function() XenoGui:Destroy() end, Color3.fromRGB(100, 20, 20))
 
-SendNotif("XenoHub ULTIMATE", "Mega Güncelleme Yüklendi! Keyifli Oyunlar.")
+SendNotif("XenoHub ULTIMATE", "Mega Güncelleme Yüklendi! FireAsk & Premium Entegre Edildi.")
