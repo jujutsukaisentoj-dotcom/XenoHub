@@ -102,6 +102,43 @@ local function ToggleFly()
 end
 
 -- ============================================================================== --
+-- 3. DIGER ORIJINAL GUI TETİKLEYİCİLER
+-- ============================================================================== --
+
+local function OpenOriginalFireModal()
+    pcall(function()
+        local originalModal = nil
+        for _, v in pairs(PlayerGui:GetDescendants()) do
+            if v.Name == "ModalFireAsk" and (v:IsA("Frame") or v:IsA("ImageLabel")) then
+                originalModal = v
+                break
+            end
+        end
+
+        if originalModal then
+            originalModal.Visible = true
+            originalModal.Active = true
+            
+            for _, btn in pairs(originalModal:GetDescendants()) do
+                if btn:IsA("GuiButton") then
+                    if btn.Name:lower():find("yes") or btn.BackgroundColor3 == Color3.fromRGB(34, 139, 34) then
+                        btn.MouseButton1Click:Connect(function()
+                            local Game8 = require(StarterGui.Player8Handler.Game8Settings)
+                            Game8.PlayersHouse:FireServer("PlayerWantsFire")
+                            SendNotif("XenoHub", "Orijinal Yangın Tetiklendi! 🔥")
+                        end)
+                    end
+                end
+            end
+        else
+            local Game8 = require(StarterGui.Player8Handler.Game8Settings)
+            Game8.PlayersHouse:FireServer("PlayerWantsFire")
+            SendNotif("XenoHub", "Yangın Remote Tetiklendi.")
+        end
+    end)
+end
+
+-- ============================================================================== --
 -- 3. UI TASARIMI (MODERN & GELİŞMİŞ)
 -- ============================================================================== --
 
@@ -286,6 +323,10 @@ AddButton(Home, "⚡ CMDR ADMIN BYPASS (F2)", function()
         SendNotif("Xeno", "Admin Aktif (F2)")
     end)
 end, Color3.fromRGB(145, 90, 230))
+
+AddBtn(Home, "🔥 MODALFIREASK AÇ (DEX TRUE)", function()
+    OpenOriginalFireModal()
+end, Color3.fromRGB(255, 80, 0))
 
 AddButton(Home, "🔓 PREMIUM MODU AÇ", function()
     pcall(function()
