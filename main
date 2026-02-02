@@ -347,9 +347,140 @@ AddBtn(Home, "🔓 PREMIUM UNLOCK (Max Bypass)", function()
     end)
 end, Color3.fromRGB(145, 90, 230))
 
-local Player = NewTab("🏃 Oyuncu")
-AddBtn(Player, "⚡ Speed (100)", function() lp.Character.Humanoid.WalkSpeed = 100 end)
-AddBtn(Player, "🚀 Jump (150)", function() lp.Character.Humanoid.JumpPower = 150 end)
+-- ============================================================================== --
+-- 4. PLAYER (OYUNCU) & CMDR ULTIMATE BYPASS INTEGRATION
+-- ============================================================================== --
+
+local PlayerTab = NewTab("👤 Oyuncu")
+
+-- DURUM DEĞİŞKENLERİ
+local noclipConnection
+local flying = false
+local speedVal = 16
+local jumpVal = 50
+local viewingPlayer = nil
+
+-- ⚡ CMDR & COMMANDS FULL BYPASS (PATCED & FETCHED REMOVER)
+AddBtn(PlayerTab, "☢️ CMDR FULL UNLOCK (PATCH & FETCH BYPASS)", function()
+    pcall(function()
+        local CmdrClient = ReplicatedStorage:WaitForChild("CmdrClient")
+        local CommandsFolder = CmdrClient:WaitForChild("Commands")
+        local Modules = ReplicatedStorage:WaitForChild("Modules")
+        
+        -- AllPassesFetched Manipülasyonu
+        local CmdrPermPath = Modules:WaitForChild("Shared"):WaitForChild("Cmdr"):WaitForChild("CmdrPermissions")
+        local Permissions = require(CmdrPermPath)
+        
+        if Permissions.AllPassesFetched ~= nil then Permissions.AllPassesFetched = false end
+        Permissions.hasCmdrAccess = function() return true end
+        Permissions.hasCommandAccess = function() return true end
+        
+        -- Patched & Disabled Temizliği
+        for _, cmdModule in pairs(CommandsFolder:GetDescendants()) do
+            if cmdModule:IsA("ModuleScript") then
+                pcall(function()
+                    local loaded = require(cmdModule)
+                    if type(loaded) == "table" then
+                        if loaded.Patched ~= nil then loaded.Patched = false end
+                        if loaded.Enabled ~= nil then loaded.Enabled = true end
+                        if loaded.PermissionLevel then loaded.PermissionLevel = 0 end
+                    end
+                end)
+            end
+        end
+
+        local Cmdr = require(CmdrClient)
+        Cmdr:SetActivationKeys({Enum.KeyCode.F2, Enum.KeyCode.Semicolon})
+        SendNotif("XenoHub", "Tüm Cmdr Komutları Erişime Açıldı! (F2)")
+        Cmdr:Toggle()
+    end)
+end, Color3.fromRGB(145, 90, 230))
+
+-- 🏃 SPEED & JUMP
+AddBtn(PlayerTab, "⚡ Süper Hız (100)", function()
+    lp.Character.Humanoid.WalkSpeed = 100
+    SendNotif("XenoHub", "Hız 100 olarak ayarlandı.")
+end, Color3.fromRGB(255, 165, 0))
+
+AddBtn(PlayerTab, "🚀 Süper Zıplama (150)", function()
+    lp.Character.Humanoid.JumpPower = 150
+    SendNotif("XenoHub", "Zıplama Gücü 150 olarak ayarlandı.")
+end, Color3.fromRGB(0, 191, 255))
+
+-- 👻 NOCLIP (DUVAR GEÇME)
+AddBtn(PlayerTab, "👻 Noclip (Duvar Geçme): AÇ/KAPAT", function()
+    if noclipConnection then
+        noclipConnection:Disconnect()
+        noclipConnection = nil
+        SendNotif("XenoHub", "Noclip Kapatıldı.")
+    else
+        noclipConnection = RunService.Stepped:Connect(function()
+            if lp.Character then
+                for _, v in pairs(lp.Character:GetDescendants()) do
+                    if v:IsA("BasePart") then v.CanCollide = false end
+                end
+            end
+        end)
+        SendNotif("XenoHub", "Noclip Aktif! Duvarlardan geçebilirsiniz.")
+    end
+end, Color3.fromRGB(80, 80, 80))
+
+-- ✈️ FLY (UÇMA)
+AddBtn(PlayerTab, "✈️ Fly (Uçma): AÇ/KAPAT", function()
+    flying = not flying
+    local root = lp.Character:FindFirstChild("HumanoidRootPart")
+    if flying and root then
+        local bv = Instance.new("BodyVelocity", root)
+        bv.Name = "XenoFlyForce"
+        bv.MaxForce = Vector3.new(1,1,1) * math.huge
+        bv.Velocity = Vector3.new(0,0,0)
+        
+        task.spawn(function()
+            while flying do
+                RunService.RenderStepped:Wait()
+                bv.Velocity = workspace.CurrentCamera.CFrame.LookVector * 100
+            end
+            bv:Destroy()
+        end)
+        SendNotif("XenoHub", "Uçma Aktif! (Kamera Yönü)")
+    else
+        SendNotif("XenoHub", "Uçma Devre Dışı.")
+    end
+end, Color3.fromRGB(0, 255, 127))
+
+-- 👁️ VIEW (İZLEME)
+AddBtn(PlayerTab, "👁️ Rastgele Birini İzle (View)", function()
+    local plys = Players:GetPlayers()
+    local target = plys[math.random(1, #plys)]
+    if target ~= lp and target.Character and target.Character:FindFirstChild("Humanoid") then
+        workspace.CurrentCamera.CameraSubject = target.Character.Humanoid
+        viewingPlayer = target
+        SendNotif("XenoHub", "İzlenen Oyuncu: " .. target.DisplayName)
+    end
+end, Color3.fromRGB(255, 255, 255))
+
+AddBtn(PlayerTab, "❌ İzlemeyi Bırak", function()
+    if lp.Character and lp.Character:FindFirstChild("Humanoid") then
+        workspace.CurrentCamera.CameraSubject = lp.Character.Humanoid
+        viewingPlayer = nil
+        SendNotif("XenoHub", "Kendi karakterine dönüldü.")
+    end
+end, Color3.fromRGB(178, 34, 34))
+
+-- 📍 GOTO (IŞINLANMA)
+AddBtn(PlayerTab, "📍 Rastgele Birine Git (Goto)", function()
+    local plys = Players:GetPlayers()
+    local target = plys[math.random(1, #plys)]
+    if target ~= lp and target.Character and target.Character:FindFirstChild("HumanoidRootPart") then
+        lp.Character.HumanoidRootPart.CFrame = target.Character.HumanoidRootPart.CFrame
+        SendNotif("XenoHub", "Işınlanıldı: " .. target.DisplayName)
+    end
+end, Color3.fromRGB(255, 215, 0))
+
+-- 🔄 RESET
+AddBtn(PlayerTab, "💀 Karakteri Resetle", function()
+    lp.Character:BreakJoints()
+end, Color3.fromRGB(255, 0, 0))
 
 local Items = NewTab("🎒 Eşyalar")
 local function SafeTriggerTool(tool)
