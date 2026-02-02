@@ -1,7 +1,8 @@
 --[[ 
-    XENOHUB ULTIMATE - BROOKHAVEN PREMIUM EDITION (MEGA UPDATE)
+    XENOHUB ULTIMATE - BROOKHAVEN PREMIUM EDITION (UNIVERSAL MOBILE SUPPORT)
     Geliştirici: XenoHub Team & EgeKazak_Real1
     Özellikler: Mega UI, Loading Screen, Full Bypass, Fire System, Toggle Button
+    Uyumluluk: Fluxus, Delta, Arceus X, CodeX, Hydrogen (PC & Mobile)
 ]]
 
 local Players = game:GetService("Players")
@@ -10,10 +11,12 @@ local UserInputService = game:GetService("UserInputService")
 local TweenService = game:GetService("TweenService")
 local CoreGui = game:GetService("CoreGui")
 local RunService = game:GetService("RunService")
-local Lighting = game:GetService("Lighting")
 
 local lp = Players.LocalPlayer
 local PlayerGui = lp:WaitForChild("PlayerGui")
+
+-- Mobile/Universal Protect (CoreGui kontrolü)
+local ParentFolder = (gethui and gethui()) or (game:GetService("CoreGui"):FindFirstChild("RobloxGui")) or CoreGui
 
 -- ============================================================================== --
 -- 1. MEGA LOADING SCREEN (BAŞLANGIÇ)
@@ -22,7 +25,8 @@ local PlayerGui = lp:WaitForChild("PlayerGui")
 local function ShowLoading()
     local LoadGui = Instance.new("ScreenGui")
     LoadGui.Name = "XenoLoading"
-    LoadGui.Parent = CoreGui
+    LoadGui.DisplayOrder = 999
+    LoadGui.Parent = ParentFolder
     
     local MainLoad = Instance.new("Frame")
     MainLoad.Size = UDim2.new(1, 0, 1, 0)
@@ -31,17 +35,17 @@ local function ShowLoading()
     
     local Logo = Instance.new("TextLabel")
     Logo.Text = "XENOHUB"
-    Logo.Size = UDim2.new(0, 300, 0, 100)
-    Logo.Position = UDim2.new(0.5, -150, 0.4, -50)
+    Logo.Size = UDim2.new(0.8, 0, 0, 100)
+    Logo.Position = UDim2.new(0.1, 0, 0.4, -50)
     Logo.BackgroundTransparency = 1
     Logo.TextColor3 = Color3.fromRGB(145, 90, 230)
     Logo.Font = Enum.Font.GothamBlack
-    Logo.TextSize = 60
+    Logo.TextScaled = true
     Logo.Parent = MainLoad
     
     local BarBack = Instance.new("Frame")
-    BarBack.Size = UDim2.new(0, 300, 0, 4)
-    BarBack.Position = UDim2.new(0.5, -150, 0.55, 0)
+    BarBack.Size = UDim2.new(0.6, 0, 0, 6)
+    BarBack.Position = UDim2.new(0.2, 0, 0.55, 0)
     BarBack.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
     BarBack.Parent = MainLoad
     Instance.new("UICorner", BarBack)
@@ -54,20 +58,20 @@ local function ShowLoading()
     
     local Status = Instance.new("TextLabel")
     Status.Text = "Sistemler Yükleniyor..."
-    Status.Size = UDim2.new(0, 300, 0, 30)
-    Status.Position = UDim2.new(0.5, -150, 0.6, 0)
+    Status.Size = UDim2.new(0.8, 0, 0, 30)
+    Status.Position = UDim2.new(0.1, 0, 0.6, 0)
     Status.BackgroundTransparency = 1
     Status.TextColor3 = Color3.fromRGB(200, 200, 200)
     Status.Font = Enum.Font.GothamMedium
-    Status.TextSize = 14
+    Status.TextSize = 16
     Status.Parent = MainLoad
     
     -- Animasyon
     task.wait(0.5)
-    TweenService:Create(BarFill, TweenInfo.new(2, Enum.EasingStyle.Quart), {Size = UDim2.new(1, 0, 1, 0)}):Play()
+    TweenService:Create(BarFill, TweenInfo.new(2.5, Enum.EasingStyle.Quart), {Size = UDim2.new(1, 0, 1, 0)}):Play()
     task.wait(0.5) Status.Text = "Bypass Modülleri Hazırlanıyor..."
-    task.wait(0.5) Status.Text = "Brookhaven Protokolleri Aşılıyor..."
-    task.wait(1)
+    task.wait(0.5) Status.Text = "Mobile Optimize Ediliyor..."
+    task.wait(1.5)
     
     TweenService:Create(MainLoad, TweenInfo.new(0.8), {BackgroundTransparency = 1}):Play()
     TweenService:Create(Logo, TweenInfo.new(0.8), {TextTransparency = 1}):Play()
@@ -78,41 +82,44 @@ end
 task.spawn(ShowLoading)
 
 -- ============================================================================== --
--- 2. ANA ARAYÜZ HAZIRLIK
+-- 2. ANA ARAYÜZ (MOBILE RESPONSIVE)
 -- ============================================================================== --
 
-if CoreGui:FindFirstChild("XenoBrookhaven") then
-    CoreGui.XenoBrookhaven:Destroy()
+if ParentFolder:FindFirstChild("XenoBrookhaven") then
+    ParentFolder.XenoBrookhaven:Destroy()
 end
 
 local XenoGui = Instance.new("ScreenGui")
 XenoGui.Name = "XenoBrookhaven"
-XenoGui.Parent = CoreGui
+XenoGui.Parent = ParentFolder
 XenoGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 
 function SendNotif(title, text, duration)
-    game:GetService("StarterGui"):SetCore("SendNotification", {
-        Title = title;
-        Text = text;
-        Duration = duration or 3;
-    })
+    pcall(function()
+        game:GetService("StarterGui"):SetCore("SendNotification", {
+            Title = title;
+            Text = text;
+            Duration = duration or 3;
+        })
+    end)
 end
 
 local MainFrame = Instance.new("Frame")
 MainFrame.Name = "MainFrame"
-MainFrame.Size = UDim2.new(0, 650, 0, 420)
-MainFrame.Position = UDim2.new(0.5, -325, 0.5, -210)
+-- Mobilde daha iyi görünmesi için Scale kullanıldı
+MainFrame.Size = UDim2.new(0, 580, 0, 360) 
+MainFrame.Position = UDim2.new(0.5, -290, 0.5, -180)
 MainFrame.BackgroundColor3 = Color3.fromRGB(12, 12, 15)
 MainFrame.BorderSizePixel = 0
 MainFrame.Parent = XenoGui
 
-Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 15)
+Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 12)
 local mainStroke = Instance.new("UIStroke")
 mainStroke.Color = Color3.fromRGB(145, 90, 230)
-mainStroke.Thickness = 1.5
+mainStroke.Thickness = 2
 mainStroke.Parent = MainFrame
 
--- Sürükleme Mantığı
+-- Universal Sürükleme Mantığı (Mobile Friendly)
 local function MakeDraggable(frame)
     local dragging, dragStart, startPos
     frame.InputBegan:Connect(function(input)
@@ -136,32 +143,34 @@ end
 MakeDraggable(MainFrame)
 
 -- ============================================================================== --
--- 3. AÇMA / KAPAMA BUTONU (TOGGLE)
+-- 3. MOBİL AÇMA / KAPAMA BUTONU (FLOATING)
 -- ============================================================================== --
 
 local ToggleBtn = Instance.new("TextButton")
 ToggleBtn.Name = "ToggleBtn"
-ToggleBtn.Size = UDim2.new(0, 60, 0, 60)
-ToggleBtn.Position = UDim2.new(1, -70, 0.5, -30)
+ToggleBtn.Size = UDim2.new(0, 55, 0, 55)
+ToggleBtn.Position = UDim2.new(0, 20, 0.5, -27)
 ToggleBtn.BackgroundColor3 = Color3.fromRGB(12, 12, 15)
 ToggleBtn.Text = "X"
 ToggleBtn.TextColor3 = Color3.fromRGB(145, 90, 230)
 ToggleBtn.Font = Enum.Font.GothamBlack
 ToggleBtn.TextSize = 25
 ToggleBtn.Parent = XenoGui
-ToggleBtn.ZIndex = 10
+ToggleBtn.ZIndex = 100
 
-Instance.new("UICorner", ToggleBtn).CornerRadius = UDim.new(0, 50)
-local toggleStroke = Instance.new("UIStroke")
-toggleStroke.Color = Color3.fromRGB(145, 90, 230)
-toggleStroke.Thickness = 2
-toggleStroke.Parent = ToggleBtn
+Instance.new("UICorner", ToggleBtn).CornerRadius = UDim.new(1, 0)
+local tStroke = Instance.new("UIStroke")
+tStroke.Color = Color3.fromRGB(145, 90, 230)
+tStroke.Thickness = 2
+tStroke.Parent = ToggleBtn
 
 MakeDraggable(ToggleBtn)
 
 ToggleBtn.MouseButton1Click:Connect(function()
     MainFrame.Visible = not MainFrame.Visible
     ToggleBtn.Text = MainFrame.Visible and "X" or "O"
+    -- Renk geçişi efekti
+    TweenService:Create(ToggleBtn, TweenInfo.new(0.3), {TextColor3 = MainFrame.Visible and Color3.fromRGB(145, 90, 230) or Color3.fromRGB(255, 255, 255)}):Play()
 end)
 
 -- ============================================================================== --
@@ -169,10 +178,10 @@ end)
 -- ============================================================================== --
 
 local SideBar = Instance.new("Frame")
-SideBar.Size = UDim2.new(0, 170, 1, 0)
+SideBar.Size = UDim2.new(0, 160, 1, 0)
 SideBar.BackgroundColor3 = Color3.fromRGB(18, 18, 22)
 SideBar.Parent = MainFrame
-Instance.new("UICorner", SideBar).CornerRadius = UDim.new(0, 15)
+Instance.new("UICorner", SideBar).CornerRadius = UDim.new(0, 12)
 
 local Title = Instance.new("TextLabel")
 Title.Text = "XENOHUB"
@@ -180,23 +189,23 @@ Title.Size = UDim2.new(1, 0, 0, 60)
 Title.BackgroundTransparency = 1
 Title.TextColor3 = Color3.fromRGB(145, 90, 230)
 Title.Font = Enum.Font.GothamBlack
-Title.TextSize = 28
+Title.TextSize = 24
 Title.Parent = SideBar
 
 local TabContainer = Instance.new("Frame")
-TabContainer.Size = UDim2.new(1, -190, 1, -20)
-TabContainer.Position = UDim2.new(0, 180, 0, 10)
+TabContainer.Size = UDim2.new(1, -175, 1, -20)
+TabContainer.Position = UDim2.new(0, 170, 0, 10)
 TabContainer.BackgroundTransparency = 1
 TabContainer.Parent = MainFrame
 
 -- Bypass ve Fire Sistemi
 local function ExecuteFireBypass(state)
-    local MainGUIHandler = PlayerGui:FindFirstChild("MainGUIHandler")
-    if MainGUIHandler and MainGUIHandler:FindFirstChild("ModalFireAsk") then
-        MainGUIHandler.ModalFireAsk.Visible = state
-    end
-
     pcall(function()
+        local MainGUIHandler = PlayerGui:FindFirstChild("MainGUIHandler")
+        if MainGUIHandler and MainGUIHandler:FindFirstChild("ModalFireAsk") then
+            MainGUIHandler.ModalFireAsk.Visible = state
+        end
+
         local GameSettings = require(game:GetService("StarterGui"):WaitForChild("Player8Handler"):WaitForChild("Game8Settings"))
         if GameSettings and GameSettings.PlayersHouse then
             GameSettings.PlayersHouse:FireServer(state and "PlayerWantsFire" or "PlayerWantsStopFire")
@@ -208,37 +217,38 @@ local function ExecuteFireBypass(state)
         RE.RemoteEvent:FireServer("HouseSettings", "Fire", state)
     end
     
-    local Trigger = ReplicatedStorage:FindFirstChild("1Playe1rTrigge1rEven1t")
-    if Trigger then
-        Trigger:FireServer("HouseSettings", "Fire", state)
-    end
-    
-    SendNotif("XenoHub", state and "Yangın Tetiklendi! 🔥" or "Yangın Durduruldu! 💧")
+    SendNotif("XenoHub", state and "Yangın Başladı! 🔥" or "Yangın Söndürüldü! 💧")
 end
 
 -- Tab ve Buton Fonksiyonları
 local tabs = {}
 function CreateTab(name)
     local tabBtn = Instance.new("TextButton")
-    tabBtn.Size = UDim2.new(0.9, 0, 0, 42)
-    tabBtn.Position = UDim2.new(0.05, 0, 0, 75 + (#tabs * 48))
+    tabBtn.Size = UDim2.new(0.9, 0, 0, 40)
+    tabBtn.Position = UDim2.new(0.05, 0, 0, 70 + (#tabs * 45))
     tabBtn.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
     tabBtn.BackgroundTransparency = 1
     tabBtn.Text = "  " .. name
     tabBtn.TextColor3 = Color3.fromRGB(180, 180, 180)
     tabBtn.Font = Enum.Font.GothamBold
-    tabBtn.TextSize = 14
+    tabBtn.TextSize = 13
     tabBtn.TextXAlignment = Enum.TextXAlignment.Left
     tabBtn.Parent = SideBar
-    Instance.new("UICorner", tabBtn).CornerRadius = UDim.new(0, 8)
+    Instance.new("UICorner", tabBtn).CornerRadius = UDim.new(0, 6)
 
     local page = Instance.new("ScrollingFrame")
     page.Size = UDim2.new(1, 0, 1, 0)
     page.BackgroundTransparency = 1
     page.Visible = false
     page.ScrollBarThickness = 2
+    page.CanvasSize = UDim2.new(0, 0, 0, 0)
     page.Parent = TabContainer
-    Instance.new("UIListLayout", page).Padding = UDim.new(0, 12)
+    
+    local layout = Instance.new("UIListLayout", page)
+    layout.Padding = UDim.new(0, 10)
+    layout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+        page.CanvasSize = UDim2.new(0, 0, 0, layout.AbsoluteContentSize.Y + 20)
+    end)
     
     tabBtn.MouseButton1Click:Connect(function()
         for _, t in pairs(tabs) do 
@@ -247,13 +257,13 @@ function CreateTab(name)
             t.btn.TextColor3 = Color3.fromRGB(180, 180, 180)
         end
         page.Visible = true
-        tabBtn.BackgroundTransparency = 0.8
+        tabBtn.BackgroundTransparency = 0.85
         tabBtn.TextColor3 = Color3.fromRGB(145, 90, 230)
     end)
     
     if #tabs == 0 then 
         page.Visible = true 
-        tabBtn.BackgroundTransparency = 0.8
+        tabBtn.BackgroundTransparency = 0.85
         tabBtn.TextColor3 = Color3.fromRGB(145, 90, 230)
     end
     table.insert(tabs, {btn = tabBtn, page = page})
@@ -262,33 +272,49 @@ end
 
 function AddButton(parent, text, color, callback)
     local btn = Instance.new("TextButton")
-    btn.Size = UDim2.new(0.98, 0, 0, 45)
+    btn.Size = UDim2.new(0.95, 0, 0, 42)
     btn.BackgroundColor3 = color or Color3.fromRGB(25, 25, 30)
     btn.Text = text
     btn.TextColor3 = Color3.new(1, 1, 1)
     btn.Font = Enum.Font.GothamBold
     btn.TextSize = 14
     btn.Parent = parent
-    Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 10)
+    Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 8)
+    
+    -- Mobile Touch Feedback
+    btn.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
+            TweenService:Create(btn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(40, 40, 45)}):Play()
+        end
+    end)
+    btn.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
+            TweenService:Create(btn, TweenInfo.new(0.2), {BackgroundColor3 = color or Color3.fromRGB(25, 25, 30)}):Play()
+        end
+    end)
+    
     btn.MouseButton1Click:Connect(callback)
 end
 
 -- Sayfalar
 local HomeTab = CreateTab("⭐ Premium & Main")
-AddButton(HomeTab, "🔥 EVLERİ YAK (Bypass V3)", Color3.fromRGB(200, 50, 50), function() ExecuteFireBypass(true) end)
+AddButton(HomeTab, "🔥 EVLERİ YAK (UNIVERSAL)", Color3.fromRGB(200, 50, 50), function() ExecuteFireBypass(true) end)
 AddButton(HomeTab, "💧 YANGIN DURDUR", Color3.fromRGB(50, 120, 200), function() ExecuteFireBypass(false) end)
 AddButton(HomeTab, "🔓 FULL PREMIUM UNLOCK", Color3.fromRGB(145, 90, 230), function()
     pcall(function()
-        require(ReplicatedStorage.Modules.Client.UI.GamepassUnlockController).OwnsGamepass = function() return true end
-        SendNotif("Başarılı", "Premium araçlar ve evler açıldı!")
+        local controller = require(ReplicatedStorage.Modules.Client.UI.GamepassUnlockController)
+        controller.OwnsGamepass = function() return true end
+        SendNotif("Başarılı", "Tüm kilitler açıldı!")
     end)
 end)
 
 local PlayerTab = CreateTab("🏃 Oyuncu")
 AddButton(PlayerTab, "⚡ Speed 100", nil, function() lp.Character.Humanoid.WalkSpeed = 100 end)
 AddButton(PlayerTab, "🚀 Süper Zıplama", nil, function() lp.Character.Humanoid.JumpPower = 150 end)
-AddButton(PlayerTab, "👻 Noclip", nil, function()
-    RunService.Stepped:Connect(function()
+AddButton(PlayerTab, "👻 Noclip (Duvar Geç)", nil, function()
+    local conn
+    conn = RunService.Stepped:Connect(function()
+        if not XenoGui.Parent then conn:Disconnect() return end
         if lp.Character then
             for _, v in pairs(lp.Character:GetDescendants()) do
                 if v:IsA("BasePart") then v.CanCollide = false end
@@ -302,10 +328,14 @@ AddButton(ItemsTab, "💸 Money Gun", nil, function()
     local re = ReplicatedStorage:FindFirstChild("RE") or ReplicatedStorage:FindFirstChild("Remotes")
     if re and re:FindFirstChild("RemoteEvent") then re.RemoteEvent:FireServer("GetItem", "MoneyGun") end
 end)
+AddButton(ItemsTab, "👶 Bebek Ol", nil, function()
+    local re = ReplicatedStorage:FindFirstChild("RE") or ReplicatedStorage:FindFirstChild("Remotes")
+    if re and re:FindFirstChild("RemoteEvent") then re.RemoteEvent:FireServer("CharacterSizeEditor", "0.5") end
+end)
 
 local SettingsTab = CreateTab("⚙️ Ayarlar")
 AddButton(SettingsTab, "❌ Scripti Tamamen Kapat", Color3.fromRGB(150, 0, 0), function()
     XenoGui:Destroy()
 end)
 
-SendNotif("XenoHub", "Script Başarıyla Hazırlandı! Toggle Butonu Sağdadır.", 5)
+SendNotif("XenoHub", "Mobil & Universal Sürüm Aktif!", 5)
