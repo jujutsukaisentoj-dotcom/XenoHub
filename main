@@ -249,95 +249,73 @@ end
 
 local Home = NewTab("🏠 Ana Sayfa")
 
--- XenoHub Cmdr Admin Bypass Logic
--- Dex Yolu: ReplicatedStorage.Modules.Client.Cmdr.CmdrController
+-- ============================================================================== --
+-- CMDR ADMIN FULL BYPASS & PERMISSION INJECTOR (FULL VERSION)
+-- ============================================================================== --
 
-local function XenoCmdrBypass()
-    local ReplicatedStorage = game:GetService("ReplicatedStorage")
-    local Players = game:GetService("Players")
-    local lp = Players.LocalPlayer
-
-    -- 1. Modül Yollarını Tanımla
-    local Modules = ReplicatedStorage:WaitForChild("Modules")
-    local SharedModules = Modules:WaitForChild("Shared")
-    local ClientModules = Modules:WaitForChild("Client")
-    
-    -- Gerekli yardımcı modülleri çek
-    local InstanceLoadingUtil = require(SharedModules.Utils.InstanceLoadingUtil)
-    local Platform = require(ClientModules.Util.Platform)
-    local Promise = require(ReplicatedStorage:WaitForChild("Packages").Promise)
-    local CmdrClient = ReplicatedStorage:WaitForChild("CmdrClient")
-
-    -- 2. Cmdr'ı Başlatma Hazırlığı
-    -- Decompiled kodundaki 'tbl_3_upvr' (Aktivasyon Tuşları)
-    local ActivationKeys = {
-        Enum.KeyCode.F2,
-        Enum.KeyCode.ButtonL3,
-        Enum.KeyCode.Semicolon
-    }
-
-    -- 3. Bypass ve Yükleme İşlemi
-    local function Setup()
-        local tbl = {}
-        -- Dosyaların yüklenmesini bekle (Orijinal bekleme süreleri: Studio değilse 4 saniye)
-        local waitTime = 4 
+AddBtn(Home, "⚡ CMDR FULL BYPASS (F2)", function()
+    pcall(function()
+        -- 1. Modül Yolları ve Yetki Bypass (Hooking)
+        local CmdrPermPath = ReplicatedStorage:WaitForChild("Modules"):WaitForChild("Shared"):WaitForChild("Cmdr"):WaitForChild("CmdrPermissions")
+        local MainPermPath = ReplicatedStorage:WaitForChild("Modules"):WaitForChild("Shared"):WaitForChild("Permissions")
         
-        table.insert(tbl, InstanceLoadingUtil.waitForDescendantsToLoad(CmdrClient:WaitForChild("Commands"), waitTime))
-        table.insert(tbl, InstanceLoadingUtil.waitForDescendantsToLoad(CmdrClient:WaitForChild("Types"), waitTime))
+        local CmdrPermissions = require(CmdrPermPath)
+        local MainPermissions = require(MainPermPath)
+
+        -- CmdrPermissions Bypass (Senin attığın decompile kodlarını manipüle eder)
+        CmdrPermissions.hasCmdrAccess = function() return true end
+        CmdrPermissions.hasCommandAccess = function() return true end
+
+        -- Genel İzin Bypass (Admin, Creator, Mod, Staff)
+        local perms = {"hasAdminAccess", "hasContentCreatorAccess", "hasModeratorAccess", "hasStaffAccess"}
+        for _, func in pairs(perms) do
+            MainPermissions[func] = function() return true end
+        end
+
+        -- 2. Cmdr Controller & Client Yükleme
+        local CmdrClient = ReplicatedStorage:WaitForChild("CmdrClient")
+        local InstanceLoadingUtil = require(ReplicatedStorage.Modules.Shared.Utils.InstanceLoadingUtil)
+        local Promise = require(ReplicatedStorage:WaitForChild("Packages").Promise)
+        local Platform = require(ReplicatedStorage.Modules.Client.Util.Platform)
+
+        -- Aktivasyon Tuşları (F2, L3, Semicolon)
+        local keys = {Enum.KeyCode.F2, Enum.KeyCode.ButtonL3, Enum.KeyCode.Semicolon}
+
+        -- İçerikleri zorla yükle
+        local tbl = {}
+        table.insert(tbl, InstanceLoadingUtil.waitForDescendantsToLoad(CmdrClient:WaitForChild("Commands"), 4))
+        table.insert(tbl, InstanceLoadingUtil.waitForDescendantsToLoad(CmdrClient:WaitForChild("Types"), 4))
         
         Promise.allSettled(tbl):expect()
         
-        -- Cmdr Main Logic'i yükle
+        -- Cmdr'ı Başlat
         local Cmdr = require(CmdrClient)
-        Cmdr:SetActivationKeys(ActivationKeys)
-        
-        -- Mobil Kullanıcılar İçin Buton Oluşturma (Orijinal Logic)
+        Cmdr:SetActivationKeys(keys)
+
+        -- Mobil Kullanıcı Desteği
         if Platform.IsMobile() then
             if not lp.PlayerGui:FindFirstChild("CmdrMobile") then
                 local ScreenGui = Instance.new("ScreenGui", lp.PlayerGui)
                 ScreenGui.Name = "CmdrMobile"
-                
-                local Frame = Instance.new("Frame", ScreenGui)
-                Frame.Name = "CmdrMobileFrame"
-                Frame.Size = UDim2.fromScale(1, 1)
-                Frame.BackgroundTransparency = 1
-                
-                local Btn = Instance.new("TextButton", Frame)
-                Btn.Name = "CmdrMobileButton"
-                Btn.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-                Btn.BackgroundTransparency = 0.7
-                Btn.AnchorPoint = Vector2.new(1, 1)
-                Btn.Position = UDim2.fromScale(1, 1)
-                Btn.Size = UDim2.fromScale(0.1, 0.1)
-                Btn.Text = "CMDR"
+                local Btn = Instance.new("TextButton", ScreenGui)
+                Btn.Size = UDim2.fromScale(0.12, 0.08)
+                Btn.Position = UDim2.fromScale(0.85, 0.15)
+                Btn.Text = "CMDR ADMIN"
+                Btn.TextColor3 = Color3.new(1, 1, 1)
+                Btn.BackgroundColor3 = Color3.fromRGB(145, 90, 230)
+                Btn.Font = Enum.Font.GothamBold
                 Btn.TextScaled = true
-                
-                local Corner = Instance.new("UICorner", Btn)
-                Corner.CornerRadius = UDim.new(0.5, 0.5)
-                
-                Btn.Activated:Connect(function()
-                    Cmdr:Toggle()
-                end)
+                Instance.new("UICorner", Btn).CornerRadius = UDim.new(0.5, 0.5)
+                Btn.Activated:Connect(function() Cmdr:Toggle() end)
             end
         end
 
-        -- Başarı Mesajı ve İlk Açılış
-        game:GetService("StarterGui"):SetCore("SendNotification", {
-            Title = "XenoHub Bypass";
-            Text = "Cmdr Admin Başarıyla Aktif Edildi! (F2)";
-            Duration = 5;
-        })
-        
-        -- İlk seferde otomatik aç (İsteğe bağlı)
+        SendNotif("XenoHub", "FULL BYPASS: Tüm Admin Yetkileri Tanımlandı! (F2)")
         Cmdr:Toggle()
-    end
+    end)
+end, Color3.fromRGB(145, 90, 230))
 
-    -- 5 saniye bekleme (Orijinal scriptteki task.delay(5))
-    task.delay(1, Setup)
-end
-
--- Çalıştır
-XenoCmdrBypass()
+-- ============================================================================== --
 
 AddBtn(Home, "📺 FULL ADSTORE & ADS BUTTON TETIKLE", function()
     TriggerFullADStore()
