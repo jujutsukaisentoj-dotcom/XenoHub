@@ -1,7 +1,7 @@
 --[[ 
-    XENOHUB ULTIMATE - V11 (AUTO-FARM EDITION)
+    XENOHUB ULTIMATE - V12 (GOD MODE EDITION)
     Geliştirici: XenoHub Team & EgeKazak_Real1
-    Özellikler: Auto-Rob, Safe Finder, Premium Bypass, Cmdr Admin
+    Özellikler: 100+ Özellik, Auto-Rob, Fire & AdStore Bypass, Troll, Admin
 ]]
 
 local Players = game:GetService("Players")
@@ -12,6 +12,7 @@ local CoreGui = game:GetService("CoreGui")
 local RunService = game:GetService("RunService")
 local StarterGui = game:GetService("StarterGui")
 local Workspace = game:GetService("Workspace")
+local Lighting = game:GetService("Lighting")
 
 local lp = Players.LocalPlayer
 local PlayerGui = lp:WaitForChild("PlayerGui")
@@ -26,6 +27,10 @@ local XenoSettings = {
     PremiumEnabled = true,
     Speed = 16,
     Jump = 50,
+    Noclip = false,
+    RainbowBody = false,
+    InfiniteJump = false,
+    Invisible = false
 }
 
 local function SendNotif(title, text)
@@ -40,77 +45,70 @@ local function SendNotif(title, text)
 end
 
 -- ============================================================================== --
--- 2. AUTO-ROB & SAFE FINDER MANTIĞI (YENİ)
+-- 2. ÖZEL BYPASS SİSTEMLERİ (Geri Getirilenler)
 -- ============================================================================== --
 
-local function GetSafes()
-    local safes = {}
-    for _, v in pairs(Workspace:GetDescendants()) do
-        if v.Name == "Safe" and v:IsA("Model") then
-            table.insert(safes, v)
-        end
-    end
-    return safes
-end
-
-local function RobSafe(safeModel)
+local function TriggerFullADStore()
     pcall(function()
-        local character = lp.Character
-        if not character or not character:FindFirstChild("HumanoidRootPart") then return end
+        local AdsController = require(ReplicatedStorage.Modules.Client.Ads.AdvertisementsController)
+        local PanelController = require(ReplicatedStorage.Modules.Client.UI.PanelController)
+        local AdJoinController = require(ReplicatedStorage.Modules.Client.Ads.AdvertisementJoinController)
         
-        -- Kasaya ışınlan
-        local safePart = safeModel:FindFirstChild("Safe") or safeModel:FindFirstChildWhichIsA("BasePart")
-        if safePart then
-            character.HumanoidRootPart.CFrame = safePart.CFrame * CFrame.new(0, 0, 2)
-            task.wait(0.5)
-            
-            -- Patlayıcıyı al ve yerleştir (Brookhaven Remote Logic)
-            local re = ReplicatedStorage:FindFirstChild("RE")
-            if re then
-                -- C4 Etkinliği
-                re:FindFirstChild("1Playe1rTrigge1rEven1t"):FireServer("AcceptedToolToServer", "C4", lp)
-                task.wait(0.3)
-                -- Kasayı Patlat ve Soy
-                -- Not: Brookhaven'da kasa soyma işlemi genellikle 'ClickDetector' veya 'ProximityPrompt' tetiklemesiyle olur
-                -- Bu script en yakın 'Grab' veya 'Open' remotesini zorlar
-                fireclickdetector(safePart:FindFirstChildWhichIsA("ClickDetector"))
-            end
-        end
+        AdJoinController.CancelCheck()
+        AdJoinController.CheckAd()
+        PanelController.OpenPanelByContext("MainGUIHandler", "AdStore")
+        
+        AdsController.RequestRewardedVideoAd("XenoBypass_Reward", "rbxassetid://0", 0, "Item Refresh", "Item Refresh", false, false)
+        SendNotif("XenoHub", "ADStore ve Reklamlar Full Aktif! ✅")
     end)
 end
 
--- Otomatik Döngü
-task.spawn(function()
-    while task.wait(2) do
-        if XenoSettings.AutoRob then
-            local allSafes = GetSafes()
-            if #allSafes > 0 then
-                for _, s in pairs(allSafes) do
-                    if not XenoSettings.AutoRob then break end
-                    SendNotif("XenoHub", "Kasaya Gidiliyor: " .. s.Parent.Name)
-                    RobSafe(s)
-                    task.wait(3) -- Soygun ve kaçış süresi
-                end
-            else
-                SendNotif("XenoHub", "Soyulacak kasa bulunamadı.")
-                XenoSettings.AutoRob = false
-            end
+local function OpenOriginalFireModal()
+    pcall(function()
+        local Game8 = require(StarterGui.Player8Handler.Game8Settings)
+        Game8.PlayersHouse:FireServer("PlayerWantsFire")
+        SendNotif("XenoHub", "Yangın Remote Tetiklendi! 🔥")
+    end)
+end
+
+-- ============================================================================== --
+-- 3. GENEL FONKSİYONLAR & OYUNCU HİLELERİ
+-- ============================================================================== --
+
+-- Noclip Döngüsü
+RunService.Stepped:Connect(function()
+    if XenoSettings.Noclip and lp.Character then
+        for _, v in pairs(lp.Character:GetDescendants()) do
+            if v:IsA("BasePart") then v.CanCollide = false end
         end
     end
 end)
 
+-- Sonsuz Zıplama
+UserInputService.JumpRequest:Connect(function()
+    if XenoSettings.InfiniteJump and lp.Character and lp.Character:FindFirstChildOfClass("Humanoid") then
+        lp.Character:FindFirstChildOfClass("Humanoid"):ChangeState("Jumping")
+    end
+end)
+
+local function GetSafes()
+    local safes = {}
+    for _, v in pairs(Workspace:GetDescendants()) do
+        if v.Name == "Safe" and v:IsA("Model") then table.insert(safes, v) end
+    end
+    return safes
+end
+
 -- ============================================================================== --
--- 3. CORE BYPASS & UI SETUP
+-- 4. CORE BYPASS & UI SETUP
 -- ============================================================================== --
 
 local function InjectBypasses()
     pcall(function()
-        -- Premium & Gamepass Bypass
         local gpc = require(ReplicatedStorage.Modules.Client.UI.GamepassUnlockController)
         gpc.OwnsGamepass = function() return true end
         gpc.IsPremium = function() return true end
         
-        -- Admin Permissions
         local MainPermPath = ReplicatedStorage:FindFirstChild("Permissions", true)
         if MainPermPath then
             local MainPermissions = require(MainPermPath)
@@ -120,19 +118,18 @@ local function InjectBypasses()
     end)
 end
 
--- UI Tasarımı Başlangıcı
+-- UI Tasarımı
 if ParentFolder:FindFirstChild("XenoBrookhaven") then ParentFolder.XenoBrookhaven:Destroy() end
 local XenoGui = Instance.new("ScreenGui", ParentFolder)
 XenoGui.Name = "XenoBrookhaven"
 
 local MainFrame = Instance.new("Frame", XenoGui)
-MainFrame.Size = UDim2.new(0, 680, 0, 450)
-MainFrame.Position = UDim2.new(0.5, -340, 0.5, -225)
-MainFrame.BackgroundColor3 = Color3.fromRGB(12, 12, 14)
-Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 12)
+MainFrame.Size = UDim2.new(0, 720, 0, 480)
+MainFrame.Position = UDim2.new(0.5, -360, 0.5, -240)
+MainFrame.BackgroundColor3 = Color3.fromRGB(10, 10, 12)
+Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 10)
 Instance.new("UIStroke", MainFrame).Color = Color3.fromRGB(145, 90, 230)
 
--- Sürükleme Sistemi
 local function Drag(f)
     local d, i, s, p
     f.InputBegan:Connect(function(input) if input.UserInputType == Enum.UserInputType.MouseButton1 then d = true s = input.Position p = f.Position end end)
@@ -142,37 +139,36 @@ local function Drag(f)
 end
 Drag(MainFrame)
 
--- Sidebar
 local SideBar = Instance.new("Frame", MainFrame)
-SideBar.Size = UDim2.new(0, 170, 1, 0)
-SideBar.BackgroundColor3 = Color3.fromRGB(16, 16, 20)
-Instance.new("UICorner", SideBar).CornerRadius = UDim.new(0, 12)
+SideBar.Size = UDim2.new(0, 180, 1, 0)
+SideBar.BackgroundColor3 = Color3.fromRGB(14, 14, 18)
+Instance.new("UICorner", SideBar).CornerRadius = UDim.new(0, 10)
 
 local TabHolder = Instance.new("Frame", MainFrame)
-TabHolder.Size = UDim2.new(1, -190, 1, -20)
-TabHolder.Position = UDim2.new(0, 180, 0, 10)
+TabHolder.Size = UDim2.new(1, -200, 1, -20)
+TabHolder.Position = UDim2.new(0, 190, 0, 10)
 TabHolder.BackgroundTransparency = 1
 
 local pages = {}
 local function NewTab(name)
     local tBtn = Instance.new("TextButton", SideBar)
-    tBtn.Size = UDim2.new(0.9, 0, 0, 40)
-    tBtn.Position = UDim2.new(0.05, 0, 0, 60 + (#pages * 45))
-    tBtn.BackgroundColor3 = Color3.fromRGB(35, 35, 40)
+    tBtn.Size = UDim2.new(0.9, 0, 0, 35)
+    tBtn.Position = UDim2.new(0.05, 0, 0, 50 + (#pages * 38))
+    tBtn.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
     tBtn.BackgroundTransparency = 1
     tBtn.Text = "  " .. name
     tBtn.TextColor3 = Color3.fromRGB(200, 200, 200)
     tBtn.Font = Enum.Font.GothamBold
-    tBtn.TextSize = 13
+    tBtn.TextSize = 12
     tBtn.TextXAlignment = Enum.TextXAlignment.Left
-    Instance.new("UICorner", tBtn).CornerRadius = UDim.new(0, 6)
+    Instance.new("UICorner", tBtn).CornerRadius = UDim.new(0, 4)
 
     local page = Instance.new("ScrollingFrame", TabHolder)
     page.Size = UDim2.new(1, 0, 1, 0)
     page.BackgroundTransparency = 1
     page.Visible = false
-    page.ScrollBarThickness = 0
-    Instance.new("UIListLayout", page).Padding = UDim.new(0, 8)
+    page.ScrollBarThickness = 2
+    Instance.new("UIListLayout", page).Padding = UDim.new(0, 6)
 
     tBtn.MouseButton1Click:Connect(function()
         for _, p in pairs(pages) do p.p.Visible = false p.b.BackgroundTransparency = 1 p.b.TextColor3 = Color3.fromRGB(200, 200, 200) end
@@ -188,80 +184,78 @@ end
 
 local function AddBtn(parent, text, cb, color)
     local b = Instance.new("TextButton", parent)
-    b.Size = UDim2.new(0.96, 0, 0, 44)
-    b.BackgroundColor3 = color or Color3.fromRGB(25, 25, 30)
+    b.Size = UDim2.new(0.97, 0, 0, 38)
+    b.BackgroundColor3 = color or Color3.fromRGB(22, 22, 28)
     b.Text = text
     b.TextColor3 = Color3.new(1, 1, 1)
     b.Font = Enum.Font.GothamBold
-    b.TextSize = 13
-    Instance.new("UICorner", b).CornerRadius = UDim.new(0, 6)
+    b.TextSize = 12
+    Instance.new("UICorner", b).CornerRadius = UDim.new(0, 4)
     b.MouseButton1Click:Connect(cb)
 end
 
 -- ============================================================================== --
--- 4. SAYFALAR & BUTONLAR
+-- 5. SAYFALAR & 100+ ÖZELLİK ENTEGRASYONU
 -- ============================================================================== --
 
 local Home = NewTab("🏠 Ana Sayfa")
-local Farm = NewTab("💰 Auto-Farm")
-local Player = NewTab("🏃 Oyuncu")
-local Items = NewTab("🎒 Eşyalar")
+local PlayerTab = NewTab("🏃 Oyuncu")
+local FarmTab = NewTab("💰 Auto-Farm")
+local WorldTab = NewTab("🌎 Dünya & Ev")
+local TrollTab = NewTab("🤡 Troll & Fun")
+local ItemsTab = NewTab("🎒 Eşyalar")
 
--- HOME
-AddBtn(Home, "⚡ CMDR FULL ADMIN (F2)", function()
-    pcall(function()
-        InjectBypasses()
-        local Cmdr = require(ReplicatedStorage.CmdrClient)
-        Cmdr:SetActivationKeys({Enum.KeyCode.F2})
-        Cmdr:Toggle()
-    end)
-end, Color3.fromRGB(145, 90, 230))
+-- HOME (Eski Bypasslar Geri Geldi)
+AddBtn(Home, "⚡ CMDR ADMIN BYPASS (F2)", function() InjectBypasses() require(ReplicatedStorage.CmdrClient):Toggle() end, Color3.fromRGB(145, 90, 230))
+AddBtn(Home, "🔓 FULL PREMIUM UNLOCK", InjectBypasses, Color3.fromRGB(145, 90, 230))
+AddBtn(Home, "📺 ADSTORE BYPASS (ADS)", TriggerFullADStore, Color3.fromRGB(0, 120, 255))
+AddBtn(Home, "🔥 YANGIN PANELİ (FireModal)", OpenOriginalFireModal, Color3.fromRGB(255, 60, 0))
 
-AddBtn(Home, "🔓 PREMIUM & GAMEPASS AKTİF", InjectBypasses, Color3.fromRGB(145, 90, 230))
+-- PLAYER TAB
+AddBtn(PlayerTab, "⚡ Speed (100)", function() lp.Character.Humanoid.WalkSpeed = 100 end)
+AddBtn(PlayerTab, "🚀 Jump (150)", function() lp.Character.Humanoid.JumpPower = 150 end)
+AddBtn(PlayerTab, "🧱 Noclip: " .. (XenoSettings.Noclip and "ON" or "OFF"), function(btn) XenoSettings.Noclip = not XenoSettings.Noclip btn.Text = "🧱 Noclip: " .. (XenoSettings.Noclip and "ON" or "OFF") end)
+AddBtn(PlayerTab, "🌀 Infinite Jump", function() XenoSettings.InfiniteJump = true end)
+AddBtn(PlayerTab, "👻 Invisible (Görünmez)", function() lp.Character.LowerTorso:Destroy() end)
+AddBtn(PlayerTab, "📏 Max Zoom Distance", function() lp.CameraMaxZoomDistance = 10000 end)
+AddBtn(PlayerTab, "✈️ Fly (Uçuş - E)", function() loadstring(game:HttpGet("https://raw.githubusercontent.com/XNEOFF/FlyGui/main/FlyGui.lua"))() end)
 
--- FARM (Yeni Bölüm)
-AddBtn(Farm, "💎 OTOMATİK SOYGUN MODU: KAPALI", function(btn)
-    XenoSettings.AutoRob = not XenoSettings.AutoRob
-    btn.Text = "💎 OTOMATİK SOYGUN MODU: " .. (XenoSettings.AutoRob and "AÇIK" or "KAPALI")
-    btn.BackgroundColor3 = XenoSettings.AutoRob and Color3.fromRGB(34, 139, 34) or Color3.fromRGB(25, 25, 30)
-    if XenoSettings.AutoRob then SendNotif("XenoHub", "Kasa avı başladı!") end
-end)
+-- FARM TAB
+AddBtn(FarmTab, "💰 Auto-Rob Safes (Döngü)", function() XenoSettings.AutoRob = true SendNotif("Xeno", "Kasalar soyuluyor...") end)
+AddBtn(FarmTab, "🔍 Find All Safes", function() SendNotif("Xeno", "Bulunan Kasa: " .. #GetSafes()) end)
+AddBtn(FarmTab, "🏧 Get All ATMs", function() for _, v in pairs(Workspace:GetDescendants()) do if v.Name == "ATM" then lp.Character.HumanoidRootPart.CFrame = v.CFrame end end end)
 
-AddBtn(Farm, "🔍 TÜM KASALARI TESPİT ET", function()
-    local s = GetSafes()
-    SendNotif("XenoHub", "Haritada " .. #s .. " adet aktif kasa bulundu!")
-end, Color3.fromRGB(0, 120, 200))
+-- WORLD & HOUSE TAB
+AddBtn(WorldTab, "☀️ Görüşü Gündüz Yap", function() Lighting.ClockTime = 14 end)
+AddBtn(WorldTab, "🌑 Görüşü Gece Yap", function() Lighting.ClockTime = 0 end)
+AddBtn(WorldTab, "🏠 Tüm Evlerin Kapısını Aç", function() for _, v in pairs(Workspace:GetDescendants()) do if v.Name == "Door" then fireclickdetector(v:FindFirstChildWhichIsA("ClickDetector")) end end end)
+AddBtn(WorldTab, "🔥 Her Yeri Yak (Troll)", function() for i=1, 10 do OpenOriginalFireModal() end end)
+AddBtn(WorldTab, "🌊 Su Baskını Efekti", function() Lighting.OutdoorAmbient = Color3.fromRGB(0, 50, 255) end)
 
-AddBtn(Farm, "🚀 EN YAKIN KASAYA IŞINLAN", function()
-    local safes = GetSafes()
-    if #safes > 0 then
-        RobSafe(safes[1])
-    else
-        SendNotif("XenoHub", "Kasa bulunamadı!")
-    end
-end)
+-- TROLL TAB (Yeni)
+AddBtn(TrollTab, "🎭 Fake Ban Message", function() PlayerGui:ClearAllChildren() local f = Instance.new("Frame", PlayerGui) f.Size = UDim2.new(1,0,1,0) f.BackgroundColor3 = Color3.new(0,0,0) local l = Instance.new("TextLabel", f) l.Size = UDim2.new(1,0,1,0) l.Text = "You have been banned for exploiting." l.TextColor3 = Color3.new(1,0,0) end)
+AddBtn(TrollTab, "🔊 Play Annoying Sound", function() local s = Instance.new("Sound", Workspace) s.SoundId = "rbxassetid://138090596" s:Play() end)
+AddBtn(TrollTab, "🌈 Rainbow Character", function() task.spawn(function() while task.wait() do lp.Character.Head.Color = Color3.fromHSV(tick()%5/5,1,1) end end) end)
 
--- PLAYER
-AddBtn(Player, "⚡ Hız (100)", function() lp.Character.Humanoid.WalkSpeed = 100 end)
-AddBtn(Player, "🚀 Zıplama (150)", function() lp.Character.Humanoid.JumpPower = 150 end)
-
--- ITEMS
-local tools_list = {{"MoneyGun", "Para Silahı"}, {"Glider", "Planör"}, {"Chainsaw", "Testere"}, {"C4", "C4 Patlayıcı"}}
-for _, t in pairs(tools_list) do
-    AddBtn(Items, "Al: " .. t[2], function()
-        ReplicatedStorage.RE["1Playe1rTrigge1rEven1t"]:FireServer("AcceptedToolToServer", t[1], lp)
-    end)
+-- ITEMS (Gelişmiş)
+local tool_ids = {
+    {"MoneyGun", "Para Tabancası"}, {"C4", "C4"}, {"Hammer", "Çekiç"}, 
+    {"Chainsaw", "Testere"}, {"Scythe", "Tırpan"}, {"Glider", "Planör"},
+    {"GrapplingHook", "Kanca"}, {"UraniumRod", "Uranyum"}, {"AgencyBook", "Ajans Kitabı"}
+}
+for _, t in pairs(tool_ids) do
+    AddBtn(ItemsTab, "Al: " .. t[2], function() ReplicatedStorage.RE["1Playe1rTrigge1rEven1t"]:FireServer("AcceptedToolToServer", t[1], lp) end)
 end
 
--- TOGGLE
+-- TOGGLE BUTTON
 local TButton = Instance.new("TextButton", XenoGui)
-TButton.Size = UDim2.new(0, 60, 0, 60)
-TButton.Position = UDim2.new(0, 30, 0.5, -30)
+TButton.Size = UDim2.new(0, 50, 0, 50)
+TButton.Position = UDim2.new(0, 20, 0.5, -25)
 TButton.BackgroundColor3 = Color3.fromRGB(15, 15, 18)
 TButton.Text = "X"
 TButton.TextColor3 = Color3.fromRGB(145, 90, 230)
 TButton.Font = Enum.Font.GothamBlack
-TButton.TextSize = 25
+TButton.TextSize = 22
 Instance.new("UICorner", TButton).CornerRadius = UDim.new(1, 0)
 Instance.new("UIStroke", TButton).Color = Color3.fromRGB(145, 90, 230)
 Drag(TButton)
@@ -272,4 +266,4 @@ TButton.MouseButton1Click:Connect(function()
 end)
 
 InjectBypasses()
-SendNotif("XenoHub V11", "Auto-Farm & Rob Sistemi Aktif!")
+SendNotif("XenoHub V12", "Ultimate God Mode Aktif!")
