@@ -1,8 +1,8 @@
 --[[ 
-    XENOHUB ULTIMATE - V13.1 (CUSTOM SPEED EDITION)
+    XENOHUB ULTIMATE - V14 (COMPACT & ENHANCED)
     Geliştirici: XenoHub Team & EgeKazak_Real1
-    Sürüm: V13.1 (Speed Update)
-    Özellikler: Özel Hız Ayarı (0-1000), Custom Fly, 100+ Fonksiyon
+    Sürüm: V14 (Compact UI Update)
+    Özellikler: Küçük Menü, Click TP, Player TP, Spectate, 120+ Özellik
 ]]
 
 local Players = game:GetService("Players")
@@ -18,6 +18,7 @@ local VirtualUser = game:GetService("VirtualUser")
 
 local lp = Players.LocalPlayer
 local PlayerGui = lp:WaitForChild("PlayerGui")
+local Mouse = lp:GetMouse()
 local ParentFolder = (gethui and gethui()) or CoreGui
 
 -- ============================================================================== --
@@ -33,7 +34,9 @@ local XenoSettings = {
     SpinBot = false,
     Flying = false,
     FlySpeed = 50,
-    CarSpeed = 50
+    CarSpeed = 50,
+    ClickTP = false,
+    Spectating = nil
 }
 
 local function SendNotif(title, text)
@@ -53,9 +56,29 @@ lp.Idled:Connect(function()
     VirtualUser:ClickButton2(Vector2.new())
 end)
 
+-- Click TP (Ctrl + Click)
+Mouse.Button1Down:Connect(function()
+    if XenoSettings.ClickTP and UserInputService:IsKeyDown(Enum.KeyCode.LeftControl) then
+        if Mouse.Target then
+            lp.Character:MoveTo(Mouse.Hit.Position)
+        end
+    end
+end)
+
 -- ============================================================================== --
 -- 2. FONKSİYONLAR (CORE)
 -- ============================================================================== --
+
+-- Oyuncu Bulma (Kısaltma destekli)
+local function GetPlayer(name)
+    name = name:lower()
+    for _, p in pairs(Players:GetPlayers()) do
+        if p.Name:lower():find(name) or p.DisplayName:lower():find(name) then
+            return p
+        end
+    end
+    return nil
+end
 
 -- AdStore Tetikleyici
 local function TriggerFullADStore()
@@ -92,14 +115,13 @@ local function FireControl(state)
     end)
 end
 
--- Özel Fly Fonksiyonu (Hız Ayarlı)
+-- Özel Fly Fonksiyonu
 local function ToggleFly()
     XenoSettings.Flying = not XenoSettings.Flying
     local root = lp.Character and lp.Character:FindFirstChild("HumanoidRootPart")
     
     if XenoSettings.Flying then
         if not root then return end
-        
         local bv = Instance.new("BodyVelocity", root)
         bv.Name = "XenoFlyVelocity"
         bv.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
@@ -117,19 +139,16 @@ local function ToggleFly()
             while XenoSettings.Flying and lp.Character and lp.Character:FindFirstChild("HumanoidRootPart") do
                 local cam = Workspace.CurrentCamera
                 local move = Vector3.new()
-                
                 if UserInputService:IsKeyDown(Enum.KeyCode.W) then move = move + cam.CFrame.LookVector end
                 if UserInputService:IsKeyDown(Enum.KeyCode.S) then move = move - cam.CFrame.LookVector end
                 if UserInputService:IsKeyDown(Enum.KeyCode.D) then move = move + cam.CFrame.RightVector end
                 if UserInputService:IsKeyDown(Enum.KeyCode.A) then move = move - cam.CFrame.RightVector end
                 if UserInputService:IsKeyDown(Enum.KeyCode.Space) then move = move + Vector3.new(0,1,0) end
                 if UserInputService:IsKeyDown(Enum.KeyCode.LeftControl) then move = move - Vector3.new(0,1,0) end
-                
                 bv.Velocity = move * XenoSettings.FlySpeed
                 bg.CFrame = cam.CFrame
                 RunService.RenderStepped:Wait()
             end
-            -- Döngü biterse temizle
             if root:FindFirstChild("XenoFlyVelocity") then root.XenoFlyVelocity:Destroy() end
             if root:FindFirstChild("XenoFlyGyro") then root.XenoFlyGyro:Destroy() end
         end)
@@ -158,24 +177,27 @@ RunService.RenderStepped:Connect(function()
     end
 end)
 
--- ESP Fonksiyonu
+-- ESP & Spectate
 local function UpdateESP()
     for _, v in pairs(Players:GetPlayers()) do
         if v ~= lp and v.Character and v.Character:FindFirstChild("HumanoidRootPart") then
             if XenoSettings.EspEnabled then
                 if not v.Character.HumanoidRootPart:FindFirstChild("XenoESP") then
-                    local hl = Instance.new("Highlight")
+                    local hl = Instance.new("Highlight", v.Character)
                     hl.Name = "XenoESP"
                     hl.FillColor = Color3.fromRGB(145, 90, 230)
                     hl.OutlineColor = Color3.new(1,1,1)
-                    hl.Parent = v.Character
                 end
             else
-                if v.Character.HumanoidRootPart:FindFirstChild("XenoESP") then
-                    v.Character.HumanoidRootPart.XenoESP:Destroy()
-                end
+                if v.Character:FindFirstChild("XenoESP") then v.Character.XenoESP:Destroy() end
             end
         end
+    end
+    -- Spectate Logic
+    if XenoSettings.Spectating then
+        Workspace.CurrentCamera.CameraSubject = XenoSettings.Spectating.Character and XenoSettings.Spectating.Character:FindFirstChild("Humanoid")
+    else
+        Workspace.CurrentCamera.CameraSubject = lp.Character and lp.Character:FindFirstChild("Humanoid")
     end
 end
 RunService.RenderStepped:Connect(UpdateESP)
@@ -190,7 +212,7 @@ local function GetSafes()
 end
 
 -- ============================================================================== --
--- 3. UI KURULUMU (MODERN & GENİŞ)
+-- 3. UI KURULUMU (KOMPAKT)
 -- ============================================================================== --
 
 local function InjectBypasses()
@@ -198,7 +220,6 @@ local function InjectBypasses()
         local gpc = require(ReplicatedStorage.Modules.Client.UI.GamepassUnlockController)
         gpc.OwnsGamepass = function() return true end
         gpc.IsPremium = function() return true end
-        
         local MainPermPath = ReplicatedStorage:FindFirstChild("Permissions", true)
         if MainPermPath then
             local MainPermissions = require(MainPermPath)
@@ -213,14 +234,13 @@ local XenoGui = Instance.new("ScreenGui", ParentFolder)
 XenoGui.Name = "XenoBrookhaven"
 
 local MainFrame = Instance.new("Frame", XenoGui)
-MainFrame.Size = UDim2.new(0, 750, 0, 500)
-MainFrame.Position = UDim2.new(0.5, -375, 0.5, -250)
+MainFrame.Size = UDim2.new(0, 520, 0, 330) -- DAHA KÜÇÜK BOYUT
+MainFrame.Position = UDim2.new(0.5, -260, 0.5, -165)
 MainFrame.BackgroundColor3 = Color3.fromRGB(10, 10, 12)
-Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 12)
+Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 8)
 Instance.new("UIStroke", MainFrame).Color = Color3.fromRGB(145, 90, 230)
 Instance.new("UIStroke", MainFrame).Thickness = 2
 
--- Sürükleme
 local function Drag(f)
     local d, i, s, p
     f.InputBegan:Connect(function(input) if input.UserInputType == Enum.UserInputType.MouseButton1 then d = true s = input.Position p = f.Position end end)
@@ -230,45 +250,45 @@ local function Drag(f)
 end
 Drag(MainFrame)
 
--- Sidebar
+-- Sidebar (Daha Dar)
 local SideBar = Instance.new("Frame", MainFrame)
-SideBar.Size = UDim2.new(0, 190, 1, 0)
+SideBar.Size = UDim2.new(0, 140, 1, 0)
 SideBar.BackgroundColor3 = Color3.fromRGB(14, 14, 18)
-Instance.new("UICorner", SideBar).CornerRadius = UDim.new(0, 12)
+Instance.new("UICorner", SideBar).CornerRadius = UDim.new(0, 8)
 
 local Title = Instance.new("TextLabel", SideBar)
-Title.Size = UDim2.new(1, 0, 0, 50)
+Title.Size = UDim2.new(1, 0, 0, 40)
 Title.BackgroundTransparency = 1
-Title.Text = "XENOHUB v13.1"
+Title.Text = "XENOHUB v14"
 Title.TextColor3 = Color3.fromRGB(145, 90, 230)
 Title.Font = Enum.Font.GothamBlack
-Title.TextSize = 22
+Title.TextSize = 18
 
 local TabHolder = Instance.new("Frame", MainFrame)
-TabHolder.Size = UDim2.new(1, -210, 1, -20)
-TabHolder.Position = UDim2.new(0, 200, 0, 10)
+TabHolder.Size = UDim2.new(1, -150, 1, -10)
+TabHolder.Position = UDim2.new(0, 150, 0, 5)
 TabHolder.BackgroundTransparency = 1
 
 local pages = {}
 local function NewTab(name)
     local tBtn = Instance.new("TextButton", SideBar)
-    tBtn.Size = UDim2.new(0.9, 0, 0, 32)
-    tBtn.Position = UDim2.new(0.05, 0, 0, 60 + (#pages * 36))
+    tBtn.Size = UDim2.new(0.9, 0, 0, 28)
+    tBtn.Position = UDim2.new(0.05, 0, 0, 45 + (#pages * 32))
     tBtn.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
     tBtn.BackgroundTransparency = 1
     tBtn.Text = "  " .. name
     tBtn.TextColor3 = Color3.fromRGB(180, 180, 180)
     tBtn.Font = Enum.Font.GothamBold
-    tBtn.TextSize = 12
+    tBtn.TextSize = 11
     tBtn.TextXAlignment = Enum.TextXAlignment.Left
-    Instance.new("UICorner", tBtn).CornerRadius = UDim.new(0, 6)
+    Instance.new("UICorner", tBtn).CornerRadius = UDim.new(0, 4)
 
     local page = Instance.new("ScrollingFrame", TabHolder)
     page.Size = UDim2.new(1, 0, 1, 0)
     page.BackgroundTransparency = 1
     page.Visible = false
     page.ScrollBarThickness = 2
-    Instance.new("UIListLayout", page).Padding = UDim.new(0, 6)
+    Instance.new("UIListLayout", page).Padding = UDim.new(0, 4)
 
     tBtn.MouseButton1Click:Connect(function()
         for _, p in pairs(pages) do p.p.Visible = false p.b.BackgroundTransparency = 1 p.b.TextColor3 = Color3.fromRGB(180, 180, 180) end
@@ -276,7 +296,6 @@ local function NewTab(name)
         tBtn.BackgroundTransparency = 0.8
         tBtn.TextColor3 = Color3.fromRGB(145, 90, 230)
     end)
-
     if #pages == 0 then page.Visible = true tBtn.BackgroundTransparency = 0.8 tBtn.TextColor3 = Color3.fromRGB(145, 90, 230) end
     table.insert(pages, {b = tBtn, p = page})
     return page
@@ -284,13 +303,13 @@ end
 
 local function AddBtn(parent, text, cb, color)
     local b = Instance.new("TextButton", parent)
-    b.Size = UDim2.new(0.98, 0, 0, 36)
+    b.Size = UDim2.new(0.98, 0, 0, 30)
     b.BackgroundColor3 = color or Color3.fromRGB(22, 22, 28)
     b.Text = text
     b.TextColor3 = Color3.new(1, 1, 1)
     b.Font = Enum.Font.GothamSemibold
-    b.TextSize = 12
-    Instance.new("UICorner", b).CornerRadius = UDim.new(0, 6)
+    b.TextSize = 11
+    Instance.new("UICorner", b).CornerRadius = UDim.new(0, 4)
     b.MouseButton1Click:Connect(function()
         local s, e = pcall(cb, b)
         if not s then warn(e) end
@@ -300,47 +319,41 @@ local function AddBtn(parent, text, cb, color)
     end)
 end
 
--- Yeni Input Kutusu Fonksiyonu (Max 1000 Limitli)
 local function AddBox(parent, placeholder, callback)
     local container = Instance.new("Frame", parent)
-    container.Size = UDim2.new(0.98, 0, 0, 36)
+    container.Size = UDim2.new(0.98, 0, 0, 30)
     container.BackgroundColor3 = Color3.fromRGB(22, 22, 28)
-    Instance.new("UICorner", container).CornerRadius = UDim.new(0, 6)
+    Instance.new("UICorner", container).CornerRadius = UDim.new(0, 4)
     
     local box = Instance.new("TextBox", container)
     box.Size = UDim2.new(0.7, 0, 1, 0)
-    box.Position = UDim2.new(0, 10, 0, 0)
+    box.Position = UDim2.new(0, 8, 0, 0)
     box.BackgroundTransparency = 1
     box.TextColor3 = Color3.new(1, 1, 1)
     box.PlaceholderText = placeholder
     box.Text = ""
     box.Font = Enum.Font.GothamSemibold
-    box.TextSize = 12
+    box.TextSize = 11
     box.TextXAlignment = Enum.TextXAlignment.Left
     
     local setBtn = Instance.new("TextButton", container)
     setBtn.Size = UDim2.new(0.25, 0, 0.8, 0)
     setBtn.Position = UDim2.new(0.73, 0, 0.1, 0)
     setBtn.BackgroundColor3 = Color3.fromRGB(35, 35, 45)
-    setBtn.Text = "Ayarla"
+    setBtn.Text = "Uygula"
     setBtn.TextColor3 = Color3.fromRGB(145, 90, 230)
     setBtn.Font = Enum.Font.GothamBold
-    setBtn.TextSize = 11
+    setBtn.TextSize = 10
     Instance.new("UICorner", setBtn).CornerRadius = UDim.new(0, 4)
     
     setBtn.MouseButton1Click:Connect(function()
-        local num = tonumber(box.Text)
-        if num then
-            if num > 1000 then num = 1000 end -- Max Limit 1000
-            if num < 0 then num = 0 end
-            callback(num)
-            box.Text = tostring(num)
-            SendNotif("Ayarlandı", placeholder .. ": " .. num)
+        local txt = box.Text
+        if tonumber(txt) then
+            callback(tonumber(txt))
         else
-             box.Text = "Hata"
-             task.wait(1)
-             box.Text = ""
+            callback(txt)
         end
+        SendNotif("Ayare", placeholder .. ": " .. txt)
     end)
 end
 
@@ -350,56 +363,61 @@ end
 
 local Home = NewTab("🏠 Ana Sayfa")
 local PlayerTab = NewTab("🏃 Oyuncu")
-local VehTab = NewTab("🚗 Araç")
-local VisTab = NewTab("👁️ Görsel & ESP")
+local VisTab = NewTab("👁️ Görsel")
 local FarmTab = NewTab("💰 Auto-Farm")
-local MorphTab = NewTab("🎭 Morphs")
-local TrollTab = NewTab("🤡 Troll & Fun")
-local WorldTab = NewTab("🌎 Dünya")
+local TrollTab = NewTab("🤡 Troll")
 local ServerTab = NewTab("🖥️ Sunucu")
 local ItemsTab = NewTab("🎒 Eşyalar")
 
 -- HOME
 AddBtn(Home, "⚡ CMDR ADMIN BYPASS (F2)", function() InjectBypasses() require(ReplicatedStorage.CmdrClient):Toggle() end, Color3.fromRGB(145, 90, 230))
 AddBtn(Home, "🔓 PREMIUM UNLOCK (FULL)", InjectBypasses, Color3.fromRGB(145, 90, 230))
-AddBtn(Home, "📺 ADSTORE BUTTON (Reklam)", TriggerFullADStore, Color3.fromRGB(0, 160, 255))
+AddBtn(Home, "📺 ADSTORE REKLAM TETİKLE", TriggerFullADStore, Color3.fromRGB(0, 140, 255))
 AddBtn(Home, "🔥 YANGIN BAŞLAT", function() FireControl("start") end, Color3.fromRGB(220, 60, 0))
 AddBtn(Home, "🧯 YANGIN SÖNDÜR", function() FireControl("stop") end, Color3.fromRGB(34, 139, 34))
-AddBtn(Home, "🛡️ Anti-AFK (Otomatik)", function() SendNotif("Xeno", "Zaten Aktif") end)
 
--- PLAYER (GÜNCELLENEN KISIM: CUSTOM SPEED INPUTS)
-AddBox(PlayerTab, "Hız Ayarı (Max 1000)", function(val) lp.Character.Humanoid.WalkSpeed = val end)
-AddBox(PlayerTab, "Zıplama Ayarı (Max 1000)", function(val) lp.Character.Humanoid.JumpPower = val end)
-AddBox(PlayerTab, "Uçuş Hızı (Max 1000)", function(val) XenoSettings.FlySpeed = val end)
+-- PLAYER (GELİŞMİŞ)
+AddBox(PlayerTab, "Hız Ayarı (0-1000)", function(val) lp.Character.Humanoid.WalkSpeed = val end)
+AddBox(PlayerTab, "Zıplama Gücü (0-1000)", function(val) lp.Character.Humanoid.JumpPower = val end)
+AddBox(PlayerTab, "Uçuş Hızı (0-1000)", function(val) XenoSettings.FlySpeed = val end)
 
-AddBtn(PlayerTab, "✈️ Uçuş Modu Aç/Kapat (X)", function(b) 
+AddBox(PlayerTab, "Oyuncuya Işınlan (İsim)", function(name)
+    local target = GetPlayer(name)
+    if target and target.Character and target.Character:FindFirstChild("HumanoidRootPart") then
+        lp.Character.HumanoidRootPart.CFrame = target.Character.HumanoidRootPart.CFrame * CFrame.new(0,0,3)
+        SendNotif("Xeno", target.Name .. "'e Işınlandın!")
+    else
+        SendNotif("Hata", "Oyuncu bulunamadı.")
+    end
+end)
+
+AddBtn(PlayerTab, "🖱️ Click TP (Ctrl+Tık): " .. (XenoSettings.ClickTP and "ON" or "OFF"), function(b) 
+    XenoSettings.ClickTP = not XenoSettings.ClickTP 
+    b.Text = "🖱️ Click TP (Ctrl+Tık): " .. (XenoSettings.ClickTP and "ON" or "OFF") 
+end)
+
+AddBtn(PlayerTab, "✈️ Uçuş Modu (X): " .. (XenoSettings.Flying and "ON" or "OFF"), function(b) 
     ToggleFly() 
-    b.Text = "✈️ Uçuş Modu: " .. (XenoSettings.Flying and "AÇIK" or "KAPALI") 
-    b.BackgroundColor3 = XenoSettings.Flying and Color3.fromRGB(34, 139, 34) or Color3.fromRGB(22, 22, 28)
+    b.Text = "✈️ Uçuş Modu (X): " .. (XenoSettings.Flying and "ON" or "OFF") 
 end)
 
-AddBtn(PlayerTab, "🧱 Noclip Modu", function(b) XenoSettings.Noclip = not XenoSettings.Noclip b.Text = "🧱 Noclip: " .. (XenoSettings.Noclip and "ON" or "OFF") end)
-AddBtn(PlayerTab, "🌀 Infinite Jump", function(b) XenoSettings.InfiniteJump = not XenoSettings.InfiniteJump b.Text = "🌀 Infinite Jump: " .. (XenoSettings.InfiniteJump and "ON" or "OFF") end)
-AddBtn(PlayerTab, "👻 Görünmez Ol (Torso Delete)", function() if lp.Character:FindFirstChild("LowerTorso") then lp.Character.LowerTorso:Destroy() end end)
-AddBtn(PlayerTab, "🪑 Her Yere Otur (Sit)", function() lp.Character.Humanoid.Sit = true end)
-AddBtn(PlayerTab, "☠️ Karakteri Sıfırla", function() lp.Character:BreakJoints() end)
+AddBtn(PlayerTab, "🧱 Noclip", function(b) XenoSettings.Noclip = not XenoSettings.Noclip end)
+AddBtn(PlayerTab, "👻 Görünmez Ol", function() if lp.Character:FindFirstChild("LowerTorso") then lp.Character.LowerTorso:Destroy() end end)
+AddBtn(PlayerTab, "☠️ Reset", function() lp.Character:BreakJoints() end)
 
--- VEHICLE
-AddBtn(VehTab, "🚗 Araç Hızı Arttır (+50)", function() 
-    for _, v in pairs(Workspace.Vehicles:GetChildren()) do 
-        if v:FindFirstChild("Seat") and v.Seat.Occupant == lp.Character.Humanoid then 
-            SendNotif("Xeno", "Hızlandırma deneniyor...") 
-        end 
-    end 
+-- VISUALS (GELİŞMİŞ)
+AddBox(VisTab, "İzle (Spectate İsim)", function(name)
+    local target = GetPlayer(name)
+    if target then
+        XenoSettings.Spectating = target
+        SendNotif("İzleniyor", target.Name)
+    else
+        XenoSettings.Spectating = nil
+        SendNotif("Mod", "İzleme Kapandı (Kendin)")
+    end
 end)
-AddBtn(VehTab, "✈️ Arabayı Uçur (Geliştiriliyor)", function() SendNotif("Xeno", "Yakında...") end)
-AddBtn(VehTab, "🔊 Korna Spamla", function() 
-    task.spawn(function() for i=1, 20 do game:GetService("VirtualInputManager"):SendKeyEvent(true, Enum.KeyCode.H, false, game) task.wait(0.1) end end) 
-end)
-
--- VISUALS
-AddBtn(VisTab, "👁️ Oyuncu ESP (Duvar Arkası)", function(b) XenoSettings.EspEnabled = not XenoSettings.EspEnabled b.Text = "👁️ Oyuncu ESP: " .. (XenoSettings.EspEnabled and "ON" or "OFF") end)
-AddBtn(VisTab, "📦 Kasa ESP (Highlight)", function(b) 
+AddBtn(VisTab, "👁️ Oyuncu ESP", function(b) XenoSettings.EspEnabled = not XenoSettings.EspEnabled end)
+AddBtn(VisTab, "📦 Kasa ESP", function(b) 
     XenoSettings.SafeEsp = not XenoSettings.SafeEsp 
     for _, s in pairs(GetSafes()) do
         if XenoSettings.SafeEsp then
@@ -409,107 +427,58 @@ AddBtn(VisTab, "📦 Kasa ESP (Highlight)", function(b)
         end
     end
 end)
-AddBtn(VisTab, "💡 Fullbright (Gece Görüşü)", function() Lighting.Brightness = 2 Lighting.ClockTime = 14 Lighting.FogEnd = 100000 Lighting.GlobalShadows = false end)
+AddBtn(VisTab, "💡 Fullbright", function() Lighting.Brightness = 2 Lighting.ClockTime = 14 Lighting.GlobalShadows = false end)
 
 -- FARM
-AddBtn(FarmTab, "💰 Auto-Rob Safes (Döngü)", function() 
+AddBtn(FarmTab, "💰 Auto-Rob Safes (Start)", function() 
     XenoSettings.AutoRob = true 
-    SendNotif("Xeno", "Kasalar otomatik soyuluyor...") 
+    SendNotif("Xeno", "Kasa Avı Başladı!") 
     task.spawn(function()
         while XenoSettings.AutoRob do
-            for _, s in pairs(GetSafes()) do
+            local safes = GetSafes()
+            if #safes == 0 then SendNotif("Xeno", "Kasa Yok!") break end
+            for _, s in pairs(safes) do
                 if not XenoSettings.AutoRob then break end
                 if s:FindFirstChild("Safe") then
                     lp.Character.HumanoidRootPart.CFrame = s.Safe.CFrame * CFrame.new(0,0,3)
                     task.wait(0.5)
                     ReplicatedStorage.RE["1Playe1rTrigge1rEven1t"]:FireServer("AcceptedToolToServer", "C4", lp)
-                    task.wait(3)
+                    task.wait(2.5)
                 end
             end
-            task.wait(5)
+            task.wait(3)
         end
     end)
 end)
-AddBtn(FarmTab, "🛑 Soygunu Durdur", function() XenoSettings.AutoRob = false SendNotif("Xeno", "Durdu.") end)
-AddBtn(FarmTab, "📍 Karakola Işınlan", function() lp.Character.HumanoidRootPart.CFrame = CFrame.new(100, 20, 100) end)
-AddBtn(FarmTab, "📍 Bankaya Işınlan", function() lp.Character.HumanoidRootPart.CFrame = CFrame.new(20, 20, 50) end)
-
--- MORPHS
-AddBtn(MorphTab, "🎃 Headless (Kafasız)", function() if lp.Character:FindFirstChild("Head") then lp.Character.Head.Transparency = 1 lp.Character.Head.face.Transparency = 1 end end)
-AddBtn(MorphTab, "🦵 Korblox (Sağ Bacak)", function() if lp.Character:FindFirstChild("RightLowerLeg") then lp.Character.RightLowerLeg:Destroy() lp.Character.RightFoot:Destroy() end end)
-AddBtn(MorphTab, "👶 Bebek Ol", function() 
-    local hum = lp.Character.Humanoid
-    if hum.RigType == Enum.HumanoidRigType.R15 then
-        hum.BodyDepthScale.Value = 0.5 hum.BodyHeightScale.Value = 0.5 hum.BodyWidthScale.Value = 0.5 hum.HeadScale.Value = 0.5
-    end
-end)
-AddBtn(MorphTab, "🧟 Zombi Yürüyüşü", function() lp.Character.Animate.walk.WalkAnim.AnimationId = "http://www.roblox.com/asset/?id=616168032" end)
+AddBtn(FarmTab, "🛑 Stop Farm", function() XenoSettings.AutoRob = false end)
 
 -- TROLL
-AddBtn(TrollTab, "🌪️ Fling (Fırlatıcı)", function() 
-    local bambam = Instance.new("BodyAngularVelocity", lp.Character.HumanoidRootPart)
-    bambam.AngularVelocity = Vector3.new(0,99999,0)
-    bambam.MaxTorque = Vector3.new(0,math.huge,0)
-    bambam.P = math.huge
-    SendNotif("Xeno", "Yakındakilere değ ve uçur!")
+AddBtn(TrollTab, "🌪️ Fling (Döndür)", function() 
+    local b = Instance.new("BodyAngularVelocity", lp.Character.HumanoidRootPart)
+    b.AngularVelocity = Vector3.new(0,99999,0) b.MaxTorque = Vector3.new(0,math.huge,0) b.P = math.huge
 end)
-AddBtn(TrollTab, "🛑 Fling Durdur", function() for _, v in pairs(lp.Character.HumanoidRootPart:GetChildren()) do if v:IsA("BodyAngularVelocity") then v:Destroy() end end end)
-AddBtn(TrollTab, "🎭 Fake Ban Ekranı", function() 
-    PlayerGui:ClearAllChildren() 
-    local f = Instance.new("Frame", PlayerGui) f.Size = UDim2.new(1,0,1,0) f.BackgroundColor3 = Color3.new(0,0,0) 
-    local l = Instance.new("TextLabel", f) l.Size = UDim2.new(1,0,1,0) l.Text = "Disconnected: You have been banned from this experience." l.TextColor3 = Color3.new(1,1,1) l.TextSize = 20 
-end)
-AddBtn(TrollTab, "🌈 Gökkuşağı Karakter", function() task.spawn(function() while task.wait() do if lp.Character then lp.Character.Head.Color = Color3.fromHSV(tick()%5/5,1,1) end end end) end)
-
--- WORLD
-AddBtn(WorldTab, "☀️ Gündüz", function() Lighting.ClockTime = 14 end)
-AddBtn(WorldTab, "🌑 Gece", function() Lighting.ClockTime = 0 end)
-AddBtn(WorldTab, "🚪 Tüm Kapıları Aç", function() for _, v in pairs(Workspace:GetDescendants()) do if v.Name == "Door" then fireclickdetector(v:FindFirstChildWhichIsA("ClickDetector")) end end end)
-
--- SERVER
-AddBtn(ServerTab, "🔄 Rejoin (Tekrar Gir)", function() game:GetService("TeleportService"):Teleport(game.PlaceId, lp) end)
-AddBtn(ServerTab, "🦘 Server Hop (Başka Server)", function() 
-    local Http = game:GetService("HttpService")
-    local TPS = game:GetService("TeleportService")
-    local Api = "https://games.roblox.com/v1/games/"
-    local _place = game.PlaceId
-    local _servers = Api.._place.."/servers/Public?sortOrder=Asc&limit=100"
-    local function ListServers(cursor)
-        local Raw = game:HttpGet(_servers .. ((cursor and "&cursor="..cursor) or ""))
-        return Http:JSONDecode(Raw)
-    end
-    local Server, Next; repeat
-        local Servers = ListServers(Next)
-        Server = Servers.data[1]
-        Next = Servers.nextPageCursor
-    until Server
-    TPS:TeleportToPlaceInstance(_place, Server.id, lp)
-end)
+AddBtn(TrollTab, "🛑 Fling Stop", function() for _, v in pairs(lp.Character.HumanoidRootPart:GetChildren()) do if v:IsA("BodyAngularVelocity") then v:Destroy() end end end)
+AddBtn(TrollTab, "🎭 Fake Ban", function() lp.Kick(lp, "You have been banned.") end)
 
 -- ITEMS
-local tools_list = {
-    {"MoneyGun", "Para Silahı"}, {"C4", "C4"}, {"Hammer", "Çekiç"}, 
-    {"Chainsaw", "Testere"}, {"Scythe", "Tırpan"}, {"Glider", "Planör"},
-    {"GrapplingHook", "Kanca"}, {"UraniumRod", "Uranyum"}, {"AgencyBook", "Ajans Kitabı"},
-    {"Pizza", "Pizza"}, {"Apple", "Elma"}, {"Phone", "Telefon"}
-}
-for _, t in pairs(tools_list) do
+local tools = {{"MoneyGun", "Para Silahı"}, {"C4", "C4"}, {"Chainsaw", "Testere"}, {"Scythe", "Tırpan"}, {"Glider", "Planör"}, {"Phone", "Telefon"}}
+for _, t in pairs(tools) do
     AddBtn(ItemsTab, "Al: " .. t[2], function() ReplicatedStorage.RE["1Playe1rTrigge1rEven1t"]:FireServer("AcceptedToolToServer", t[1], lp) end)
 end
 
 -- TOGGLE
 local TButton = Instance.new("TextButton", XenoGui)
-TButton.Size = UDim2.new(0, 50, 0, 50)
-TButton.Position = UDim2.new(0, 20, 0.5, -25)
+TButton.Size = UDim2.new(0, 40, 0, 40)
+TButton.Position = UDim2.new(0, 10, 0.5, -20)
 TButton.BackgroundColor3 = Color3.fromRGB(15, 15, 18)
 TButton.Text = "X"
 TButton.TextColor3 = Color3.fromRGB(145, 90, 230)
 TButton.Font = Enum.Font.GothamBlack
-TButton.TextSize = 22
+TButton.TextSize = 18
 Instance.new("UICorner", TButton).CornerRadius = UDim.new(1, 0)
 Instance.new("UIStroke", TButton).Color = Color3.fromRGB(145, 90, 230)
 Drag(TButton)
 TButton.MouseButton1Click:Connect(function() MainFrame.Visible = not MainFrame.Visible TButton.Text = MainFrame.Visible and "X" or "O" end)
 
 InjectBypasses()
-SendNotif("XenoHub V13.1", "Hız Ayarları ve Fly Modu Güncellendi!")
+SendNotif("XenoHub V14", "Kompakt Mod Aktif!")
