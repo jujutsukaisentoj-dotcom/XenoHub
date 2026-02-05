@@ -1,8 +1,8 @@
 --[[ 
-    XENOHUB ULTIMATE - V14 (COMPACT & ENHANCED)
+    XENOHUB ULTIMATE - V14.1 (COMPACT & SERVER UPDATE)
     Geliştirici: XenoHub Team & EgeKazak_Real1
-    Sürüm: V14 (Compact UI Update)
-    Özellikler: Küçük Menü, Click TP, Player TP, Spectate, 120+ Özellik
+    Sürüm: V14.1 (Unview & Server Features Added)
+    Özellikler: Küçük Menü, Click TP, Unview, Server Hop, Rejoin, 120+ Özellik
 ]]
 
 local Players = game:GetService("Players")
@@ -15,6 +15,8 @@ local StarterGui = game:GetService("StarterGui")
 local Workspace = game:GetService("Workspace")
 local Lighting = game:GetService("Lighting")
 local VirtualUser = game:GetService("VirtualUser")
+local HttpService = game:GetService("HttpService")
+local TeleportService = game:GetService("TeleportService")
 
 local lp = Players.LocalPlayer
 local PlayerGui = lp:WaitForChild("PlayerGui")
@@ -416,6 +418,11 @@ AddBox(VisTab, "İzle (Spectate İsim)", function(name)
         SendNotif("Mod", "İzleme Kapandı (Kendin)")
     end
 end)
+AddBtn(VisTab, "🚫 İzlemeyi Bırak (Unview)", function() 
+    XenoSettings.Spectating = nil 
+    Workspace.CurrentCamera.CameraSubject = lp.Character.Humanoid 
+    SendNotif("Mod", "Kameraya Dönüldü.") 
+end)
 AddBtn(VisTab, "👁️ Oyuncu ESP", function(b) XenoSettings.EspEnabled = not XenoSettings.EspEnabled end)
 AddBtn(VisTab, "📦 Kasa ESP", function(b) 
     XenoSettings.SafeEsp = not XenoSettings.SafeEsp 
@@ -460,6 +467,25 @@ end)
 AddBtn(TrollTab, "🛑 Fling Stop", function() for _, v in pairs(lp.Character.HumanoidRootPart:GetChildren()) do if v:IsA("BodyAngularVelocity") then v:Destroy() end end end)
 AddBtn(TrollTab, "🎭 Fake Ban", function() lp.Kick(lp, "You have been banned.") end)
 
+-- SERVER TAB
+AddBtn(ServerTab, "🔄 Rejoin (Tekrar Gir)", function() TeleportService:Teleport(game.PlaceId, lp) end)
+AddBtn(ServerTab, "🦘 Server Hop (Sunucu Değiş)", function()
+    SendNotif("Xeno", "Sunucu aranıyor...")
+    local Api = "https://games.roblox.com/v1/games/"
+    local _place = game.PlaceId
+    local _servers = Api.._place.."/servers/Public?sortOrder=Asc&limit=100"
+    local function ListServers(cursor)
+        local Raw = game:HttpGet(_servers .. ((cursor and "&cursor="..cursor) or ""))
+        return HttpService:JSONDecode(Raw)
+    end
+    local Server, Next; repeat
+        local Servers = ListServers(Next)
+        Server = Servers.data[1]
+        Next = Servers.nextPageCursor
+    until Server
+    TeleportService:TeleportToPlaceInstance(_place, Server.id, lp)
+end)
+
 -- ITEMS
 local tools = {{"MoneyGun", "Para Silahı"}, {"C4", "C4"}, {"Chainsaw", "Testere"}, {"Scythe", "Tırpan"}, {"Glider", "Planör"}, {"Phone", "Telefon"}}
 for _, t in pairs(tools) do
@@ -481,4 +507,4 @@ Drag(TButton)
 TButton.MouseButton1Click:Connect(function() MainFrame.Visible = not MainFrame.Visible TButton.Text = MainFrame.Visible and "X" or "O" end)
 
 InjectBypasses()
-SendNotif("XenoHub V14", "Kompakt Mod Aktif!")
+SendNotif("XenoHub V14.1", "Server & Unview Özellikleri Eklendi!")
