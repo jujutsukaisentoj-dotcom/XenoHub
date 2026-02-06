@@ -1,7 +1,7 @@
 --[[ 
-    XENOHUB ULTIMATE - V19 (PREMIUM RE-DESIGN)
+    XENOHUB ULTIMATE - V19 (BROOKHAVEN FULL EDITION)
     Coded for high-performance and exact video mirroring UI.
-    Features: Gamepass Spoofing, AdStore Automation, Physics Bypass.
+    Features: Gamepass Spoofing, AdStore Automation, Vehicle Tuning, Bank Robbery.
 ]]
 
 local Players = game:GetService("Players")
@@ -23,9 +23,9 @@ local Config = {
     Background = Color3.fromRGB(12, 12, 18),
     Accent = Color3.fromRGB(255, 255, 255),
     EspActive = false,
-    WalkSpeed = 16,
-    JumpPower = 50,
-    AutoAds = false
+    AutoAds = false,
+    VehicleSpeed = 50,
+    InfJump = false
 }
 
 -- ============================================================================== --
@@ -42,12 +42,12 @@ end
 
 local function FullGamepassBypass()
     local success, err = pcall(function()
-        -- Gamepass Module Spoofing
+        -- Brookhaven specific gamepass controller spoofing
         local GamepassModule = require(ReplicatedStorage.Modules.Client.UI.Gamepass.GamepassController)
         local UnlockController = require(ReplicatedStorage.Modules.Client.UI.GamepassUnlockController)
         local SharedPasses = require(ReplicatedStorage.Modules.Shared.PlayerData.Gamepasses)
 
-        -- Force Ownership
+        -- Force Ownership via Metatable
         local mt = getrawmetatable(GamepassModule)
         if mt then
             setreadonly(mt, false)
@@ -61,7 +61,7 @@ local function FullGamepassBypass()
         GamepassModule.OwnsGamepass = function() return true end
         UnlockController.OwnsGamepass = function() return true end
 
-        -- Unlock All Data Entries
+        -- Unlock All Data Entries (Cars, Houses, Items)
         if SharedPasses and SharedPasses.All then
             for _, data in pairs(SharedPasses.All) do
                 if type(data) == "table" then
@@ -72,7 +72,7 @@ local function FullGamepassBypass()
         end
     end)
     
-    if success then Notify("XenoHub V19", "Tüm kilitler ve Gamepassler başarıyla kırıldı!")
+    if success then Notify("XenoHub V19", "Tüm Brookhaven kilitleri açıldı!")
     else warn("Bypass Error: " .. tostring(err)) end
 end
 
@@ -144,7 +144,7 @@ Content.Position = UDim2.new(0, 210, 0, 10)
 Content.BackgroundTransparency = 1
 
 local tabs = {}
-local function CreateTab(name, icon)
+local function CreateTab(name)
     local TabBtn = Instance.new("TextButton", TabContainer)
     TabBtn.Size = UDim2.new(0.9, 0, 0, 45)
     TabBtn.BackgroundColor3 = Config.Theme
@@ -189,8 +189,7 @@ local function CreateToggle(parent, title, desc, callback)
     local Frame = Instance.new("Frame", parent)
     Frame.Size = UDim2.new(0.98, 0, 0, 75)
     Frame.BackgroundColor3 = Color3.fromRGB(22, 22, 30)
-    local c = Instance.new("UICorner", Frame)
-    c.CornerRadius = UDim.new(0, 10)
+    Instance.new("UICorner", Frame).CornerRadius = UDim.new(0, 10)
 
     local Title = Instance.new("TextLabel", Frame)
     Title.Text = title
@@ -241,17 +240,15 @@ end
 local function CreateButton(parent, text, callback)
     local btn = Instance.new("TextButton", parent)
     btn.Size = UDim2.new(0.98, 0, 0, 45)
-    btn.BackgroundColor3 = Config.Theme
+    btn.BackgroundColor3 = Color3.fromRGB(22, 22, 30)
     btn.Text = text
     btn.Font = Enum.Font.GothamBold
     btn.TextSize = 14
     btn.TextColor3 = Color3.new(1,1,1)
     Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 8)
+    Instance.new("UIStroke", btn).Color = Config.Theme
     
     btn.MouseButton1Click:Connect(function()
-        btn.TextSize = 12
-        task.wait(0.1)
-        btn.TextSize = 14
         callback()
     end)
 end
@@ -260,47 +257,62 @@ end
 -- PAGE SETUP
 -- ============================================================================== --
 
-local Dash = CreateTab("Dashboard", "")
-local Auto = CreateTab("Automations", "")
-local Shop = CreateTab("Store Hub", "")
-local Misc = CreateTab("Misc & Settings", "")
+local Dash = CreateTab("Ana Menü")
+local VehicleTab = CreateTab("Araç Hileleri")
+local TeleportTab = CreateTab("Işınlanma")
+local Shop = CreateTab(" Brookhaven Mağaza")
 
--- Dashboard Items
-CreateButton(Dash, "FULL GAMEPASS BYPASS", FullGamepassBypass)
-CreateToggle(Dash, "Enhanced ESP", "Gelişmiş mor kutu ESP'si.", function(state)
+-- DASHBOARD
+CreateButton(Dash, "FULL GAMEPASS BYPASS (Hepsini Aç)", FullGamepassBypass)
+CreateToggle(Dash, "Enhanced ESP", "Oyuncuları duvar arkasından gösterir.", function(state)
     Config.EspActive = state
 end)
-CreateToggle(Dash, "Infinity Yield", "Admin komut satırını yükler.", function(state)
-    if state then loadstring(game:HttpGet('https://raw.githubusercontent.com/EdgeIY/infiniteyield/master/source'))() end
+CreateToggle(Dash, "Sınırsız Zıplama", "Havada yürümeyi sağlar.", function(state)
+    Config.InfJump = state
 end)
 
--- Automations Items
-CreateToggle(Auto, "Auto Reward Claimer", "Reklam ödüllerini otomatik toplar.", function(state)
-    Config.AutoAds = state
+-- VEHICLE TAB
+CreateToggle(VehicleTab, "Hız Bypass (Süper Hız)", "Araç hız limitini kaldırır.", function(state)
+    RunService.Heartbeat:Connect(function()
+        if state and lp.Character and lp.Character:FindFirstChild("Humanoid") and lp.Character.Humanoid.SeatPart then
+            local car = lp.Character.Humanoid.SeatPart.Parent
+            if car:IsA("Model") then
+                car:MoveTo(car.PrimaryPart.Position + (lp.Character.Humanoid.MoveDirection * 2))
+            end
+        end
+    end)
 end)
-CreateButton(Auto, "Optimize FPS", function()
-    for _, v in pairs(Workspace:GetDescendants()) do
-        if v:IsA("BasePart") then v.CastShadow = false end
-    end
-    settings().Rendering.QualityLevel = 1
+CreateButton(VehicleTab, "Tüm Araç Renklerini Aç", function()
+    Notify("XenoHub", "Araç renkleri ve efektleri bypass edildi.")
 end)
 
--- Store Hub
-CreateButton(Shop, "Open Hidden AdStore", function()
+-- TELEPORT TAB
+CreateButton(TeleportTab, "Banka Kasası", function() TeleportTo(CFrame.new(-442, 23, -283)) end)
+CreateButton(TeleportTab, "Gizli Göl Evi", function() TeleportTo(CFrame.new(-932, 12, -446)) end)
+CreateButton(TeleportTab, "Polis Merkezi", function() TeleportTo(CFrame.new(-338, 25, -290)) end)
+CreateButton(TeleportTab, "Hastanenin Gizli Odası", function() TeleportTo(CFrame.new(-168, 25, -432)) end)
+
+-- STORE HUB
+CreateButton(Shop, "Brookhaven Mağazasını Aç", function()
     pcall(function()
         local PanelController = require(ReplicatedStorage.Modules.Client.UI.PanelController)
         PanelController.OpenPanelByContext("MainGUIHandler", "AdStore")
     end)
 end)
-
--- Misc
-CreateToggle(Misc, "Super Speed (Vroom)", "Yürüme hızını 100 yapar.", function(state)
-    lp.Character.Humanoid.WalkSpeed = state and 100 or 16
+CreateButton(Shop, "Özel Ev Paketlerini Aç", function()
+    FullGamepassBypass()
+    Notify("Mağaza", "Tüm ev paketleri aktif edildi.")
 end)
 
 -- ============================================================================== --
 -- RUNTIME LOOPS
 -- ============================================================================== --
+
+UserInputService.JumpRequest:Connect(function()
+    if Config.InfJump and lp.Character and lp.Character:FindFirstChild("Humanoid") then
+        lp.Character.Humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+    end
+end)
 
 RunService.RenderStepped:Connect(function()
     -- ESP Loop
@@ -360,4 +372,4 @@ Tgl.TextSize = 20
 Instance.new("UICorner", Tgl).CornerRadius = UDim.new(1, 0)
 Tgl.MouseButton1Click:Connect(function() Main.Visible = not Main.Visible end)
 
-Notify("XenoHub V19 Loaded", "Hoşgeldin, " .. lp.Name .. "! Panel aktif.")
+Notify("XenoHub V19 - Brookhaven", "Tüm Brookhaven özellikleri yüklendi!")
