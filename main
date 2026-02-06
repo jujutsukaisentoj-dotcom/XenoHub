@@ -13,7 +13,9 @@ local Settings = {
     MaxStages = 10,
     ChestStage = 11,
     TeleportSpeed = 0.05,
-    AutoClaim = true
+    AutoClaim = true,
+    Invisibility = false,
+    WaterWalk = false
 }
 
 -- Servisler
@@ -97,7 +99,7 @@ local MainFrame = Instance.new("Frame")
 MainFrame.Name = "MainFrame"
 MainFrame.Parent = ScreenGui
 MainFrame.BackgroundColor3 = Color3.fromRGB(10, 10, 15)
-MainFrame.Size = UDim2.new(0, 250, 0, 420) -- Kod butonu için boyut artırıldı
+MainFrame.Size = UDim2.new(0, 260, 0, 480) -- Daha fazla özellik için büyütüldü
 MainFrame.Position = UDim2.new(0.05, 0, 0.2, 0)
 MainFrame.BorderSizePixel = 0
 MainFrame.Active = true
@@ -126,12 +128,12 @@ local function CreateButton(name, pos, text, callback)
     Btn.Name = name
     Btn.Parent = MainFrame
     Btn.Position = pos
-    Btn.Size = UDim2.new(0.9, 0, 0, 32)
+    Btn.Size = UDim2.new(0.9, 0, 0, 28)
     Btn.BackgroundColor3 = Color3.fromRGB(35, 35, 45)
     Btn.Text = text
     Btn.TextColor3 = Color3.fromRGB(200, 200, 200)
     Btn.Font = Enum.Font.GothamMedium
-    Btn.TextSize = 11
+    Btn.TextSize = 10
     Btn.BorderSizePixel = 0
     
     local Corner = Instance.new("UICorner")
@@ -145,42 +147,52 @@ local function CreateButton(name, pos, text, callback)
 end
 
 -- Özellik Butonları
-local FarmBtn = CreateButton("FarmBtn", UDim2.new(0.05, 0, 0.14, 0), "OTOMATİK FARM: KAPALI", function(self)
+CreateButton("FarmBtn", UDim2.new(0.05, 0, 0.12, 0), "OTOMATİK FARM: KAPALI", function(self)
     Settings.FarmEnabled = not Settings.FarmEnabled
     self.Text = Settings.FarmEnabled and "OTOMATİK FARM: AÇIK" or "OTOMATİK FARM: KAPALI"
     self.BackgroundColor3 = Settings.FarmEnabled and Color3.fromRGB(0, 180, 80) or Color3.fromRGB(35, 35, 45)
 end)
 
-local PassBtn = CreateButton("PassBtn", UDim2.new(0.05, 0, 0.23, 0), "TÜM GAMEPASS'LERİ VER: AKTİF", function(self)
+CreateButton("PassBtn", UDim2.new(0.05, 0, 0.20, 0), "TÜM GAMEPASS'LERİ VER (X2 GOLD)", function(self)
     TriggerAllGamepassBypass()
     self.Text = "GAMEPASS'LER VERİLDİ! ✅"
     self.BackgroundColor3 = Color3.fromRGB(200, 150, 0)
 end)
-PassBtn.BackgroundColor3 = Color3.fromRGB(200, 150, 0)
 
--- YENİ: TÜM KODLAR BUTONU
-local CodeBtn = CreateButton("CodeBtn", UDim2.new(0.05, 0, 0.32, 0), "TÜM KODLARI KULLAN (FULL)", function(self)
+CreateButton("CodeBtn", UDim2.new(0.05, 0, 0.28, 0), "TÜM KODLARI KULLAN (Hİ, SQUİD...)", function(self)
     RedeemAllCodes()
-    self.Text = "KODLAR KULLANILIYOR... ⏳"
-    task.wait(2)
-    self.Text = "TÜM KODLAR TAMAMLANDI! 🎁"
+    self.Text = "KODLAR KULLANILDI! 🎁"
     self.BackgroundColor3 = Color3.fromRGB(0, 120, 200)
 end)
-CodeBtn.BackgroundColor3 = Color3.fromRGB(0, 80, 150)
 
-CreateButton("WaterBtn", UDim2.new(0.05, 0, 0.41, 0), "ANTİ-SU HASARI: AÇIK", function(self)
+CreateButton("WaterBtn", UDim2.new(0.05, 0, 0.36, 0), "ANTİ-SU HASARI: AÇIK", function(self)
     Settings.AntiWater = not Settings.AntiWater
     self.Text = Settings.AntiWater and "ANTİ-SU HASARI: AÇIK" or "ANTİ-SU HASARI: KAPALI"
 end)
 
-CreateButton("GoldBlockBtn", UDim2.new(0.05, 0, 0.50, 0), "ALTIN BLOĞU FARMI: AKTİF", function(self)
+CreateButton("GoldBlockBtn", UDim2.new(0.05, 0, 0.44, 0), "ALTIN BLOĞU FARMI: AKTİF", function(self)
     Settings.AutoGoldBlock = not Settings.AutoGoldBlock
     self.Text = Settings.AutoGoldBlock and "ALTIN BLOĞU FARMI: AKTİF" or "ALTIN BLOĞU FARMI: PASİF"
 end)
 
-CreateButton("MorphBtn", UDim2.new(0.05, 0, 0.59, 0), "PENGUEN/FOX/CHICKEN AÇ", function(self)
-    TriggerAllGamepassBypass()
-    print("Dönüşüm özellikleri Dex üzerinde true yapıldı.")
+CreateButton("InvisibleBtn", UDim2.new(0.05, 0, 0.52, 0), "GÖRÜNMEZLİK: KAPALI", function(self)
+    Settings.Invisibility = not Settings.Invisibility
+    self.Text = Settings.Invisibility and "GÖRÜNMEZLİK: AÇIK" or "GÖRÜNMEZLİK: KAPALI"
+    if LocalPlayer.Character then
+        for _, v in pairs(LocalPlayer.Character:GetChildren()) do
+            if v:IsA("BasePart") and v.Name ~= "HumanoidRootPart" then
+                v.Transparency = Settings.Invisibility and 1 or 0
+            end
+            if v:IsA("Accessory") and v:FindFirstChild("Handle") then
+                v.Handle.Transparency = Settings.Invisibility and 1 or 0
+            end
+        end
+    end
+end)
+
+CreateButton("WaterWalkBtn", UDim2.new(0.05, 0, 0.60, 0), "SUDA YÜRÜME: KAPALI", function(self)
+    Settings.WaterWalk = not Settings.WaterWalk
+    self.Text = Settings.WaterWalk and "SUDA YÜRÜME: AÇIK" or "SUDA YÜRÜME: KAPALI"
 end)
 
 CreateButton("SpeedBtn", UDim2.new(0.05, 0, 0.68, 0), "HIZI ARTIR (100)", function()
@@ -188,7 +200,16 @@ CreateButton("SpeedBtn", UDim2.new(0.05, 0, 0.68, 0), "HIZI ARTIR (100)", functi
     if hum then hum.WalkSpeed = 100 end
 end)
 
-CreateButton("ResetBtn", UDim2.new(0.05, 0, 0.77, 0), "KARAKTERİ SIFIRLA", function()
+CreateButton("JumpBtn", UDim2.new(0.05, 0, 0.76, 0), "SÜPER ZIPLAMA (100)", function()
+    local hum = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid")
+    if hum then hum.JumpPower = 100 end
+end)
+
+CreateButton("MorphBtn", UDim2.new(0.05, 0, 0.84, 0), "DÖNÜŞÜMLERİ DEX'TE AÇ", function()
+    TriggerAllGamepassBypass()
+end)
+
+CreateButton("ResetBtn", UDim2.new(0.05, 0, 0.92, 0), "KARAKTERİ SIFIRLA", function()
     if LocalPlayer.Character then LocalPlayer.Character:BreakJoints() end
 end)
 
@@ -284,12 +305,25 @@ local function FarmLoop()
     end
 end
 
--- Su hasarını engelleme
+-- Su hasarını ve yürümesini kontrol etme
 RunService.Stepped:Connect(function()
-    if Settings.AntiWater and LocalPlayer.Character then
+    if LocalPlayer.Character then
         pcall(function()
             for _, v in pairs(LocalPlayer.Character:GetChildren()) do
-                if v:IsA("BasePart") then v.CanTouch = false end
+                if v:IsA("BasePart") then
+                    if Settings.AntiWater then
+                        v.CanTouch = false
+                    end
+                end
+            end
+            -- Suda yürüme mekaniği
+            if Settings.WaterWalk and LocalPlayer.Character:FindFirstChild("Humanoid") then
+                if Workspace:FindFirstChild("Water") then
+                    local water = Workspace.Water
+                    if (LocalPlayer.Character.HumanoidRootPart.Position.Y - water.Position.Y) < 2 then
+                        LocalPlayer.Character.HumanoidRootPart.Velocity = Vector3.new(LocalPlayer.Character.HumanoidRootPart.Velocity.X, 0, LocalPlayer.Character.HumanoidRootPart.Velocity.Z)
+                    end
+                end
             end
         end)
     end
@@ -298,4 +332,4 @@ end)
 -- İlk Çalıştırma
 TriggerAllGamepassBypass()
 task.spawn(FarmLoop)
-print("🚀 Gemini HUB V12 - All Pass & Code Bypass Aktif!")
+print("🚀 Gemini HUB V12 - Ultimate Edition Aktif!")
