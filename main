@@ -1,15 +1,15 @@
 -- ===============================================================
 -- 👑 GEMINI HUB V8 - ULTIMATE BUILD A BOAT FARM
--- 🚀 10 STAGE + 11. SANDIK + 2X GOLD MAX BYPASS
+-- 🚀 10 BÖLGE SIRALI GEÇİŞ + 11. SANDIK SONU + 2X GOLD BYPASS
 -- ===============================================================
 
 local Settings = {
     FarmEnabled = false,
     DoubleGold = true,
     AntiWater = true,
-    MaxStages = 10, -- 10 bölge geçilecek
-    ChestStage = 11, -- 11. sandık alınacak
-    TeleportSpeed = 0.01,
+    MaxStages = 10, -- 10 bölge sırayla geçilecek
+    ChestStage = 11, -- En son sandık alınacak
+    TeleportSpeed = 0.05, -- Daha stabil geçiş için hafif bekleme
     AutoClaim = true
 }
 
@@ -25,15 +25,12 @@ local Claim = Workspace:WaitForChild("ClaimRiverResultsGold")
 local Stages = Workspace:WaitForChild("BoatStages"):WaitForChild("NormalStages")
 
 -- [ 2X GOLD & DATA BYPASS ]
--- Oyunun çarpan sistemini ve Dex üzerinden görünen değerleri manipüle eder
 local function EnableDoubleGold()
     if Settings.DoubleGold then
         pcall(function()
-            -- Veri klasöründeki çarpanı zorla aktif et
             if Data:FindFirstChild("DoubleGold") then
                 Data.DoubleGold.Value = true
             end
-            -- ReplicatedStorage üzerinden 2x tetikleyici sinyallerini gönder
             if ReplicatedStorage:FindFirstChild("DoubleGoldGamepass") then
                 ReplicatedStorage.DoubleGoldGamepass:FireServer(true)
             end
@@ -148,31 +145,31 @@ local function FarmLoop()
             if Root then
                 EnableDoubleGold()
                 
-                -- Karakteri sabitle
+                -- Karakteri sabitle (Uçarken titremeyi önler)
                 local BV = Instance.new("BodyVelocity", Root)
                 BV.Velocity = Vector3.new(0,0,0)
                 
-                -- 10 Bölgeyi Hızla Geç
+                -- 10 Bölgeyi SIRAYLA Geç (Önce buraları geçecek)
                 for i = 1, Settings.MaxStages do
                     if not Settings.FarmEnabled then break end
                     
                     local Stage = Stages:FindFirstChild(`CaveStage{i}`)
                     if Stage and Stage:FindFirstChild("DarknessPart") then
                         Root.CFrame = Stage.DarknessPart.CFrame
-                        -- Her stage'de altın alımını tetikle
                         Claim:FireServer()
+                        -- Her bölgede sunucunun algılaması için kısa bekleme
                         task.wait(Settings.TeleportSpeed)
                     end
                 end
                 
-                -- 11. Stage: Sandık Sonu
+                -- 11. Aşama: En Son Sandığı Alacak
                 if Settings.FarmEnabled then
                     local EndStage = Stages:FindFirstChild("TheEnd")
                     if EndStage and EndStage:FindFirstChild("GoldenChest") then
                         local Chest = EndStage.GoldenChest.Trigger
                         Root.CFrame = Chest.CFrame
                         
-                        -- Sandık dokunma bypass (Firetouch veya CFrame)
+                        -- Sandık dokunma işlemi
                         if firetouchinterest then
                             firetouchinterest(Root, Chest, 0)
                             task.wait(0.1)
@@ -182,10 +179,9 @@ local function FarmLoop()
                             task.wait(0.2)
                         end
                         
-                        -- Ekstra kazanç tetikleyici
                         Claim:FireServer()
-                        task.wait(1.2)
-                        Char:BreakJoints()
+                        task.wait(1.5)
+                        Char:BreakJoints() -- Yeni tur için sıfırla
                     end
                 end
                 if BV then BV:Destroy() end
@@ -195,7 +191,7 @@ local function FarmLoop()
     end
 end
 
--- Anti Water (Su Hasarını Kapatma)
+-- Su hasarını engelleme
 RunService.Stepped:Connect(function()
     if Settings.AntiWater and LocalPlayer.Character then
         pcall(function()
@@ -206,6 +202,5 @@ RunService.Stepped:Connect(function()
     end
 end)
 
--- Başlatma Sinyali
 task.spawn(FarmLoop)
-print("🚀 Gemini Hub V8 - 2X Gold Simulator & Auto Farm Aktif!")
+print("🚀 Gemini Hub V8 - Sıralı Geçiş ve Sandık Sonu Aktif!")
