@@ -1,6 +1,6 @@
 -- ===============================================================
 -- 👑 GEMINI HUB V12 - GOD MODE & INFINITE FARM
--- 🚀 ALL GAMEPASS BYPASS + 999+ SIMULATOR + ALL MORPHS
+-- 🚀 ALL GAMEPASS BYPASS + 999+ SIMULATOR + ALL MORPHS + ALL CODES
 -- ===============================================================
 
 local Settings = {
@@ -27,22 +27,44 @@ local Data = LocalPlayer:WaitForChild("OtherData")
 local Claim = Workspace:WaitForChild("ClaimRiverResultsGold")
 local Stages = Workspace:WaitForChild("BoatStages"):WaitForChild("NormalStages")
 
+-- [ TÜM KODLAR LİSTESİ ]
+local PromoCodes = {
+    "hi",
+    "Squid Army",
+    "=D",
+    "=P",
+    "chillthrill709 was here",
+    "fuzzy friend?",
+    "Lurking Legend",
+    "GGGOOOAAALLL"
+}
+
+-- [ KOD KULLANMA FONKSİYONU ]
+local function RedeemAllCodes()
+    pcall(function()
+        local RedeemRemote = ReplicatedStorage:FindFirstChild("RedeemCode", true)
+        if RedeemRemote and RedeemRemote:IsA("RemoteFunction") then
+            for _, code in pairs(PromoCodes) do
+                RedeemRemote:InvokeServer(code)
+                task.wait(0.1)
+            end
+        end
+    end)
+end
+
 -- [ TÜM GAMEPASS & MORPH BYPASS SİSTEMİ ]
--- Ekran görüntülerindeki tüm ürünleri (2x Gold, Penguin, Fox, Chicken vb.) kapsar
 local function TriggerAllGamepassBypass()
     pcall(function()
         -- 1. Double Gold Bypass (%100 Tetikleyici)
-        -- Dex'te true yapar ve sunucuya sahiplik sinyali gönderir
         if Data:FindFirstChild("DoubleGold") then
             Data.DoubleGold.Value = true
         end
         
-        -- Kritik çarpan tetikleyici (Sunucu tarafı x2 onayı için)
         if ReplicatedStorage:FindFirstChild("DoubleGoldGamepass") then
             ReplicatedStorage.DoubleGoldGamepass:FireServer(true)
         end
 
-        -- 2. Morph & Transformation Bypass (Ekran görüntüsündeki Penguin, Fox, Chicken)
+        -- 2. Morph & Transformation Bypass
         local MorphList = {"Penguin", "Fox", "Chicken", "PenguinMorph", "FoxMorph", "ChickenMorph"}
         for _, morph in pairs(MorphList) do
             if Data:FindFirstChild(morph) then
@@ -75,7 +97,7 @@ local MainFrame = Instance.new("Frame")
 MainFrame.Name = "MainFrame"
 MainFrame.Parent = ScreenGui
 MainFrame.BackgroundColor3 = Color3.fromRGB(10, 10, 15)
-MainFrame.Size = UDim2.new(0, 250, 0, 380) -- Boyut biraz artırıldı
+MainFrame.Size = UDim2.new(0, 250, 0, 420) -- Kod butonu için boyut artırıldı
 MainFrame.Position = UDim2.new(0.05, 0, 0.2, 0)
 MainFrame.BorderSizePixel = 0
 MainFrame.Active = true
@@ -123,40 +145,50 @@ local function CreateButton(name, pos, text, callback)
 end
 
 -- Özellik Butonları
-local FarmBtn = CreateButton("FarmBtn", UDim2.new(0.05, 0, 0.15, 0), "OTOMATİK FARM: KAPALI", function(self)
+local FarmBtn = CreateButton("FarmBtn", UDim2.new(0.05, 0, 0.14, 0), "OTOMATİK FARM: KAPALI", function(self)
     Settings.FarmEnabled = not Settings.FarmEnabled
     self.Text = Settings.FarmEnabled and "OTOMATİK FARM: AÇIK" or "OTOMATİK FARM: KAPALI"
     self.BackgroundColor3 = Settings.FarmEnabled and Color3.fromRGB(0, 180, 80) or Color3.fromRGB(35, 35, 45)
 end)
 
-local PassBtn = CreateButton("PassBtn", UDim2.new(0.05, 0, 0.25, 0), "TÜM GAMEPASS'LERİ VER: AKTİF", function(self)
+local PassBtn = CreateButton("PassBtn", UDim2.new(0.05, 0, 0.23, 0), "TÜM GAMEPASS'LERİ VER: AKTİF", function(self)
     TriggerAllGamepassBypass()
     self.Text = "GAMEPASS'LER VERİLDİ! ✅"
     self.BackgroundColor3 = Color3.fromRGB(200, 150, 0)
 end)
 PassBtn.BackgroundColor3 = Color3.fromRGB(200, 150, 0)
 
-CreateButton("WaterBtn", UDim2.new(0.05, 0, 0.35, 0), "ANTİ-SU HASARI: AÇIK", function(self)
+-- YENİ: TÜM KODLAR BUTONU
+local CodeBtn = CreateButton("CodeBtn", UDim2.new(0.05, 0, 0.32, 0), "TÜM KODLARI KULLAN (FULL)", function(self)
+    RedeemAllCodes()
+    self.Text = "KODLAR KULLANILIYOR... ⏳"
+    task.wait(2)
+    self.Text = "TÜM KODLAR TAMAMLANDI! 🎁"
+    self.BackgroundColor3 = Color3.fromRGB(0, 120, 200)
+end)
+CodeBtn.BackgroundColor3 = Color3.fromRGB(0, 80, 150)
+
+CreateButton("WaterBtn", UDim2.new(0.05, 0, 0.41, 0), "ANTİ-SU HASARI: AÇIK", function(self)
     Settings.AntiWater = not Settings.AntiWater
     self.Text = Settings.AntiWater and "ANTİ-SU HASARI: AÇIK" or "ANTİ-SU HASARI: KAPALI"
 end)
 
-CreateButton("GoldBlockBtn", UDim2.new(0.05, 0, 0.45, 0), "ALTIN BLOĞU FARMI: AKTİF", function(self)
+CreateButton("GoldBlockBtn", UDim2.new(0.05, 0, 0.50, 0), "ALTIN BLOĞU FARMI: AKTİF", function(self)
     Settings.AutoGoldBlock = not Settings.AutoGoldBlock
     self.Text = Settings.AutoGoldBlock and "ALTIN BLOĞU FARMI: AKTİF" or "ALTIN BLOĞU FARMI: PASİF"
 end)
 
-CreateButton("MorphBtn", UDim2.new(0.05, 0, 0.55, 0), "PENGUEN/FOX/CHICKEN AÇ", function(self)
+CreateButton("MorphBtn", UDim2.new(0.05, 0, 0.59, 0), "PENGUEN/FOX/CHICKEN AÇ", function(self)
     TriggerAllGamepassBypass()
     print("Dönüşüm özellikleri Dex üzerinde true yapıldı.")
 end)
 
-CreateButton("SpeedBtn", UDim2.new(0.05, 0, 0.65, 0), "HIZI ARTIR (100)", function()
+CreateButton("SpeedBtn", UDim2.new(0.05, 0, 0.68, 0), "HIZI ARTIR (100)", function()
     local hum = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid")
     if hum then hum.WalkSpeed = 100 end
 end)
 
-CreateButton("ResetBtn", UDim2.new(0.05, 0, 0.75, 0), "KARAKTERİ SIFIRLA", function()
+CreateButton("ResetBtn", UDim2.new(0.05, 0, 0.77, 0), "KARAKTERİ SIFIRLA", function()
     if LocalPlayer.Character then LocalPlayer.Character:BreakJoints() end
 end)
 
@@ -266,4 +298,4 @@ end)
 -- İlk Çalıştırma
 TriggerAllGamepassBypass()
 task.spawn(FarmLoop)
-print("🚀 Gemini HUB V12 - All Pass Bypass Aktif!")
+print("🚀 Gemini HUB V12 - All Pass & Code Bypass Aktif!")
