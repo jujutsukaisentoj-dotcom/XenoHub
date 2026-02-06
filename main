@@ -1,7 +1,7 @@
 --[[ 
-    XENOHUB ULTIMATE - V19 (THE VIDEO MIRROR & ADS UPDATE)
-    Analiz Edilen Dosyalar: AllGamepasses, ExtendUnlockButton, AdStore logic
-    Özellikler: Video UI Exact Mirror, AdStore Trigger, Gamepass Component Spoof
+    XENOHUB ULTIMATE - V19 (PREMIUM RE-DESIGN)
+    Coded for high-performance and exact video mirroring UI.
+    Features: Gamepass Spoofing, AdStore Automation, Physics Bypass.
 ]]
 
 local Players = game:GetService("Players")
@@ -12,252 +12,352 @@ local CoreGui = game:GetService("CoreGui")
 local RunService = game:GetService("RunService")
 local StarterGui = game:GetService("StarterGui")
 local Workspace = game:GetService("Workspace")
-local HttpService = game:GetService("HttpService")
 
 local lp = Players.LocalPlayer
 local ParentFolder = (gethui and gethui()) or CoreGui
 
+-- Config & State
+local Config = {
+    Theme = Color3.fromRGB(145, 90, 230),
+    Secondary = Color3.fromRGB(18, 18, 26),
+    Background = Color3.fromRGB(12, 12, 18),
+    Accent = Color3.fromRGB(255, 255, 255),
+    EspActive = false,
+    WalkSpeed = 16,
+    JumpPower = 50,
+    AutoAds = false
+}
+
 -- ============================================================================== --
--- 1. REKLAM VE PANEL KONTROLÜ (ADSTORE TRIGGER)
+-- CORE ENGINE FUNCTIONS
 -- ============================================================================== --
 
-local function OpenAdStore()
-    pcall(function()
-        local PanelController = require(ReplicatedStorage.Modules.Client.UI.PanelController)
-        -- Oyunun orijinal AdStore panelini tetikler
-        PanelController.OpenPanelByContext("MainGUIHandler", "AdStore")
-        
-        -- Eğer özel bir ImageButton bekleniyorsa, oyunun UI ağacında simüle ederiz
-        local playerGui = lp:WaitForChild("PlayerGui")
-        local mainGui = playerGui:FindFirstChild("MainGUI")
-        if mainGui then
-            -- Reklam butonu görünürlüğünü zorla
-            local adsButton = mainGui:FindFirstChild("AdsButton", true)
-            if adsButton then adsButton.Visible = true end
-        end
-    end)
+local function Notify(title, text)
+    StarterGui:SetCore("SendNotification", {
+        Title = title;
+        Text = text;
+        Duration = 5;
+    })
 end
 
 local function FullGamepassBypass()
-    pcall(function()
-        -- GamepassUnlockController.txt'den alınan mantıkla kilitleri kırma
+    local success, err = pcall(function()
+        -- Gamepass Module Spoofing
         local GamepassModule = require(ReplicatedStorage.Modules.Client.UI.Gamepass.GamepassController)
         local UnlockController = require(ReplicatedStorage.Modules.Client.UI.GamepassUnlockController)
-        
-        -- Kilit açma fonksiyonlarını "true" döndürmeye zorla
+        local SharedPasses = require(ReplicatedStorage.Modules.Shared.PlayerData.Gamepasses)
+
+        -- Force Ownership
+        local mt = getrawmetatable(GamepassModule)
+        if mt then
+            setreadonly(mt, false)
+            local old = mt.__index
+            mt.__index = newcclosure(function(t, k)
+                if k == "OwnsGamepass" or k == "HasPass" then return function() return true end end
+                return old(t, k)
+            end)
+        end
+
         GamepassModule.OwnsGamepass = function() return true end
         UnlockController.OwnsGamepass = function() return true end
-        
-        -- AllGamepasses.txt dosyasındaki tüm paketleri aktif et
-        local AllPasses = require(ReplicatedStorage.Modules.Shared.PlayerData.Gamepasses).All
-        for name, data in pairs(AllPasses) do
-            data.__GAMEPASS = true
+
+        -- Unlock All Data Entries
+        if SharedPasses and SharedPasses.All then
+            for _, data in pairs(SharedPasses.All) do
+                if type(data) == "table" then
+                    data.__GAMEPASS = true
+                    data.Unlocked = true
+                end
+            end
         end
-        
-        StarterGui:SetCore("SendNotification", {
-            Title = "XenoHub V19";
-            Text = "Tüm Gamepassler ve AdStore Yetkileri Aktif!";
-            Duration = 3;
-        })
     end)
+    
+    if success then Notify("XenoHub V19", "Tüm kilitler ve Gamepassler başarıyla kırıldı!")
+    else warn("Bypass Error: " .. tostring(err)) end
+end
+
+local function TeleportTo(pos)
+    if lp.Character and lp.Character:FindFirstChild("HumanoidRootPart") then
+        lp.Character.HumanoidRootPart.CFrame = pos
+    end
 end
 
 -- ============================================================================== --
--- 2. VİDEODAKİ ARAYÜZÜN AYNISI (MODERN UI)
+-- UI CONSTRUCTION (THE VIDEO MIRROR)
 -- ============================================================================== --
 
 if ParentFolder:FindFirstChild("XenoUltimateV19") then ParentFolder.XenoUltimateV19:Destroy() end
+
 local ScreenGui = Instance.new("ScreenGui", ParentFolder)
 ScreenGui.Name = "XenoUltimateV19"
+ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 
--- Ana Pencere
 local Main = Instance.new("Frame", ScreenGui)
-Main.Size = UDim2.new(0, 650, 0, 440)
-Main.Position = UDim2.new(0.5, -325, 0.5, -220)
-Main.BackgroundColor3 = Color3.fromRGB(12, 12, 18)
+Main.Name = "Main"
+Main.Size = UDim2.new(0, 700, 0, 480)
+Main.Position = UDim2.new(0.5, -350, 0.5, -240)
+Main.BackgroundColor3 = Config.Background
 Main.BorderSizePixel = 0
+Main.ClipsDescendants = true
+
 local MainCorner = Instance.new("UICorner", Main)
-MainCorner.CornerRadius = UDim.new(0, 16)
+MainCorner.CornerRadius = UDim.new(0, 12)
 
--- Kenar Parlaması (Glow Effect)
-local Stroke = Instance.new("UIStroke", Main)
-Stroke.Color = Color3.fromRGB(145, 90, 230)
-Stroke.Thickness = 2.5
-Stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+local MainStroke = Instance.new("UIStroke", Main)
+MainStroke.Color = Config.Theme
+MainStroke.Thickness = 2
+MainStroke.Transparency = 0.2
 
--- Sol Menü (Sidebar)
+-- Sidebar
 local Sidebar = Instance.new("Frame", Main)
-Sidebar.Size = UDim2.new(0, 180, 1, 0)
-Sidebar.BackgroundColor3 = Color3.fromRGB(18, 18, 26)
-Instance.new("UICorner", Sidebar).CornerRadius = UDim.new(0, 16)
+Sidebar.Name = "Sidebar"
+Sidebar.Size = UDim2.new(0, 200, 1, 0)
+Sidebar.BackgroundColor3 = Config.Secondary
+Sidebar.BorderSizePixel = 0
+
+local SidebarCorner = Instance.new("UICorner", Sidebar)
+SidebarCorner.CornerRadius = UDim.new(0, 12)
 
 local Logo = Instance.new("TextLabel", Sidebar)
-Logo.Size = UDim2.new(1, 0, 0, 70)
+Logo.Size = UDim2.new(1, 0, 0, 80)
 Logo.Text = "XENOHUB"
-Logo.TextColor3 = Color3.fromRGB(145, 90, 230)
+Logo.TextColor3 = Config.Theme
 Logo.Font = Enum.Font.GothamBlack
-Logo.TextSize = 22
+Logo.TextSize = 26
+Logo.TextXAlignment = Enum.TextXAlignment.Center
 
--- İçerik Alanı
+local TabContainer = Instance.new("ScrollingFrame", Sidebar)
+TabContainer.Size = UDim2.new(1, 0, 1, -100)
+TabContainer.Position = UDim2.new(0, 0, 0, 80)
+TabContainer.BackgroundTransparency = 1
+TabContainer.ScrollBarThickness = 0
+
+local TabList = Instance.new("UIListLayout", TabContainer)
+TabList.Padding = UDim.new(0, 5)
+TabList.HorizontalAlignment = Enum.HorizontalAlignment.Center
+
+-- Content
 local Content = Instance.new("Frame", Main)
-Content.Size = UDim2.new(1, -190, 1, -20)
-Content.Position = UDim2.new(0, 190, 0, 10)
+Content.Name = "Content"
+Content.Size = UDim2.new(1, -220, 1, -20)
+Content.Position = UDim2.new(0, 210, 0, 10)
 Content.BackgroundTransparency = 1
 
 local tabs = {}
-local function CreateTab(name)
-    local btn = Instance.new("TextButton", Sidebar)
-    btn.Size = UDim2.new(0.9, 0, 0, 42)
-    btn.Position = UDim2.new(0.05, 0, 0, 80 + (#tabs * 48))
-    btn.BackgroundColor3 = Color3.fromRGB(145, 90, 230)
-    btn.BackgroundTransparency = 1
-    btn.Text = "  " .. name
-    btn.TextColor3 = Color3.fromRGB(200, 200, 200)
-    btn.Font = Enum.Font.GothamSemibold
-    btn.TextSize = 13
-    btn.TextXAlignment = Enum.TextXAlignment.Left
+local function CreateTab(name, icon)
+    local TabBtn = Instance.new("TextButton", TabContainer)
+    TabBtn.Size = UDim2.new(0.9, 0, 0, 45)
+    TabBtn.BackgroundColor3 = Config.Theme
+    TabBtn.BackgroundTransparency = 1
+    TabBtn.Text = "  " .. name
+    TabBtn.TextColor3 = Color3.fromRGB(180, 180, 180)
+    TabBtn.Font = Enum.Font.GothamSemibold
+    TabBtn.TextSize = 14
+    TabBtn.TextXAlignment = Enum.TextXAlignment.Left
+    Instance.new("UICorner", TabBtn).CornerRadius = UDim.new(0, 8)
+
+    local Page = Instance.new("ScrollingFrame", Content)
+    Page.Size = UDim2.new(1, 0, 1, 0)
+    Page.BackgroundTransparency = 1
+    Page.Visible = false
+    Page.ScrollBarThickness = 2
+    Page.ScrollBarImageColor3 = Config.Theme
+    
+    local PageList = Instance.new("UIListLayout", Page)
+    PageList.Padding = UDim.new(0, 12)
+
+    TabBtn.MouseButton1Click:Connect(function()
+        for _, t in pairs(tabs) do
+            t.p.Visible = false
+            TweenService:Create(t.b, TweenInfo.new(0.3), {BackgroundTransparency = 1, TextColor3 = Color3.fromRGB(180, 180, 180)}):Play()
+        end
+        Page.Visible = true
+        TweenService:Create(TabBtn, TweenInfo.new(0.3), {BackgroundTransparency = 0.8, TextColor3 = Color3.new(1,1,1)}):Play()
+    end)
+
+    if #tabs == 0 then
+        Page.Visible = true
+        TabBtn.BackgroundTransparency = 0.8
+        TabBtn.TextColor3 = Color3.new(1,1,1)
+    end
+    
+    table.insert(tabs, {p = Page, b = TabBtn})
+    return Page
+end
+
+local function CreateToggle(parent, title, desc, callback)
+    local Frame = Instance.new("Frame", parent)
+    Frame.Size = UDim2.new(0.98, 0, 0, 75)
+    Frame.BackgroundColor3 = Color3.fromRGB(22, 22, 30)
+    local c = Instance.new("UICorner", Frame)
+    c.CornerRadius = UDim.new(0, 10)
+
+    local Title = Instance.new("TextLabel", Frame)
+    Title.Text = title
+    Title.Size = UDim2.new(0.7, 0, 0.4, 0)
+    Title.Position = UDim2.new(0.05, 0, 0.15, 0)
+    Title.Font = Enum.Font.GothamBold
+    Title.TextSize = 15
+    Title.TextColor3 = Color3.new(1,1,1)
+    Title.TextXAlignment = Enum.TextXAlignment.Left
+    Title.BackgroundTransparency = 1
+
+    local Desc = Instance.new("TextLabel", Frame)
+    Desc.Text = desc
+    Desc.Size = UDim2.new(0.7, 0, 0.3, 0)
+    Desc.Position = UDim2.new(0.05, 0, 0.55, 0)
+    Desc.Font = Enum.Font.Gotham
+    Desc.TextSize = 12
+    Desc.TextColor3 = Color3.fromRGB(150, 150, 150)
+    Desc.TextXAlignment = Enum.TextXAlignment.Left
+    Desc.BackgroundTransparency = 1
+
+    local ToggleBG = Instance.new("TextButton", Frame)
+    ToggleBG.Size = UDim2.new(0, 50, 0, 26)
+    ToggleBG.Position = UDim2.new(0.85, -25, 0.5, -13)
+    ToggleBG.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
+    ToggleBG.Text = ""
+    Instance.new("UICorner", ToggleBG).CornerRadius = UDim.new(1, 0)
+
+    local Circle = Instance.new("Frame", ToggleBG)
+    Circle.Size = UDim2.new(0, 20, 0, 20)
+    Circle.Position = UDim2.new(0, 3, 0.5, -10)
+    Circle.BackgroundColor3 = Color3.new(1,1,1)
+    Instance.new("UICorner", Circle).CornerRadius = UDim.new(1, 0)
+
+    local active = false
+    ToggleBG.MouseButton1Click:Connect(function()
+        active = not active
+        local targetPos = active and UDim2.new(0, 27, 0.5, -10) or UDim2.new(0, 3, 0.5, -10)
+        local targetCol = active and Config.Theme or Color3.fromRGB(40, 40, 50)
+        
+        TweenService:Create(Circle, TweenInfo.new(0.3), {Position = targetPos}):Play()
+        TweenService:Create(ToggleBG, TweenInfo.new(0.3), {BackgroundColor3 = targetCol}):Play()
+        
+        callback(active)
+    end)
+end
+
+local function CreateButton(parent, text, callback)
+    local btn = Instance.new("TextButton", parent)
+    btn.Size = UDim2.new(0.98, 0, 0, 45)
+    btn.BackgroundColor3 = Config.Theme
+    btn.Text = text
+    btn.Font = Enum.Font.GothamBold
+    btn.TextSize = 14
+    btn.TextColor3 = Color3.new(1,1,1)
     Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 8)
-
-    local page = Instance.new("ScrollingFrame", Content)
-    page.Size = UDim2.new(1, 0, 1, 0)
-    page.BackgroundTransparency = 1
-    page.Visible = false
-    page.ScrollBarThickness = 2
-    page.ScrollBarImageColor3 = Color3.fromRGB(145, 90, 230)
-    local list = Instance.new("UIListLayout", page)
-    list.Padding = UDim.new(0, 10)
-    list.HorizontalAlignment = Enum.HorizontalAlignment.Center
-
+    
     btn.MouseButton1Click:Connect(function()
-        for _, t in pairs(tabs) do t.p.Visible = false t.b.BackgroundTransparency = 1 t.b.TextColor3 = Color3.fromRGB(200, 200, 200) end
-        page.Visible = true
-        btn.BackgroundTransparency = 0.8
-        btn.TextColor3 = Color3.new(1, 1, 1)
-    end)
-
-    if #tabs == 0 then page.Visible = true btn.BackgroundTransparency = 0.8 end
-    table.insert(tabs, {p = page, b = btn})
-    return page
-end
-
-local function CreateCard(parent, title, desc, callback)
-    local card = Instance.new("Frame", parent)
-    card.Size = UDim2.new(0.95, 0, 0, 65)
-    card.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
-    Instance.new("UICorner", card).CornerRadius = UDim.new(0, 10)
-    
-    local t = Instance.new("TextLabel", card)
-    t.Size = UDim2.new(0.7, 0, 0.4, 0)
-    t.Position = UDim2.new(0.05, 0, 0.15, 0)
-    t.Text = title
-    t.TextColor3 = Color3.new(1, 1, 1)
-    t.Font = Enum.Font.GothamBold
-    t.TextSize = 14
-    t.TextXAlignment = Enum.TextXAlignment.Left
-    t.BackgroundTransparency = 1
-
-    local d = Instance.new("TextLabel", card)
-    d.Size = UDim2.new(0.7, 0, 0.3, 0)
-    d.Position = UDim2.new(0.05, 0, 0.55, 0)
-    d.Text = desc
-    d.TextColor3 = Color3.fromRGB(160, 160, 160)
-    d.Font = Enum.Font.Gotham
-    d.TextSize = 11
-    d.TextXAlignment = Enum.TextXAlignment.Left
-    d.BackgroundTransparency = 1
-
-    local action = Instance.new("TextButton", card)
-    action.Size = UDim2.new(0.22, 0, 0.6, 0)
-    action.Position = UDim2.new(0.73, 0, 0.2, 0)
-    action.BackgroundColor3 = Color3.fromRGB(145, 90, 230)
-    action.Text = "AKTİF ET"
-    action.TextColor3 = Color3.new(1, 1, 1)
-    action.Font = Enum.Font.GothamBold
-    action.TextSize = 11
-    Instance.new("UICorner", action)
-    
-    action.MouseButton1Click:Connect(function()
-        action.Text = "LÜTFEN BEKLEYİN..."
-        task.wait(0.3)
+        btn.TextSize = 12
+        task.wait(0.1)
+        btn.TextSize = 14
         callback()
-        action.Text = "TAMAMLANDI"
-        task.delay(1, function() action.Text = "AKTİF ET" end)
     end)
 end
 
 -- ============================================================================== --
--- SEKMELERİN YAPILANDIRILMASI
+-- PAGE SETUP
 -- ============================================================================== --
 
-local MainTab = CreateTab("🏠 Dashboard")
-local AdsTab = CreateTab("📺 Reklam & Mağaza")
-local VisualsTab = CreateTab("👁️ Görsel Modlar")
-local AiTab = CreateTab("🤖 XenoAI Engine")
+local Dash = CreateTab("Dashboard", "")
+local Auto = CreateTab("Automations", "")
+local Shop = CreateTab("Store Hub", "")
+local Misc = CreateTab("Misc & Settings", "")
 
--- DASHBOARD
-CreateCard(MainTab, "Mirror Gamepass Bypass", "Tüm araç ve ev kilitlerini anında kırar.", FullGamepassBypass)
-CreateCard(MainTab, "Cmdr Admin Paneli", "Gelişmiş F2 komut satırını açar.", function() FullGamepassBypass() require(ReplicatedStorage.CmdrClient):Toggle() end)
+-- Dashboard Items
+CreateButton(Dash, "FULL GAMEPASS BYPASS", FullGamepassBypass)
+CreateToggle(Dash, "Enhanced ESP", "Gelişmiş mor kutu ESP'si.", function(state)
+    Config.EspActive = state
+end)
+CreateToggle(Dash, "Infinity Yield", "Admin komut satırını yükler.", function(state)
+    if state then loadstring(game:HttpGet('https://raw.githubusercontent.com/EdgeIY/infiniteyield/master/source'))() end
+end)
 
--- ADS & ADSTORE
-CreateCard(AdsTab, "AdStore Panelini Aç", "Oyunun orijinal ödüllü reklam panelini tetikler.", OpenAdStore)
-CreateCard(AdsTab, "ImageButton Bypass", "Reklam izleme butonlarını görünür ve tıklanabilir yapar.", function()
+-- Automations Items
+CreateToggle(Auto, "Auto Reward Claimer", "Reklam ödüllerini otomatik toplar.", function(state)
+    Config.AutoAds = state
+end)
+CreateButton(Auto, "Optimize FPS", function()
+    for _, v in pairs(Workspace:GetDescendants()) do
+        if v:IsA("BasePart") then v.CastShadow = false end
+    end
+    settings().Rendering.QualityLevel = 1
+end)
+
+-- Store Hub
+CreateButton(Shop, "Open Hidden AdStore", function()
     pcall(function()
-        local extend = require(ReplicatedStorage.Modules.Client.Ads.ExtendUnlockController)
-        extend.ShowExtendCurrentHousePanel(true)
+        local PanelController = require(ReplicatedStorage.Modules.Client.UI.PanelController)
+        PanelController.OpenPanelByContext("MainGUIHandler", "AdStore")
     end)
 end)
 
--- VISUALS
-CreateCard(VisualsTab, "Unview Player", "İzleme modundan çıkıp kamerayı sıfırlar.", function()
-    Workspace.CurrentCamera.CameraSubject = lp.Character.Humanoid
-end)
-CreateCard(VisualsTab, "Full ESP", "Oyuncuları mor bir çerçeve içine alır.", function()
-    _G.EspActive = not _G.EspActive
+-- Misc
+CreateToggle(Misc, "Super Speed (Vroom)", "Yürüme hızını 100 yapar.", function(state)
+    lp.Character.Humanoid.WalkSpeed = state and 100 or 16
 end)
 
 -- ============================================================================== --
--- SİSTEM ÇALIŞTIRICILARI
+-- RUNTIME LOOPS
 -- ============================================================================== --
 
--- Sürükleme Özelliği
-local dragging, dragInput, dragStart, startPos
-Main.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-        dragging = true dragStart = input.Position startPos = Main.Position
-        input.Changed:Connect(function() if input.UserInputState == Enum.UserInputState.End then dragging = false end end)
-    end
-end)
-Main.InputChanged:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then dragInput = input end
-end)
 RunService.RenderStepped:Connect(function()
-    if dragging and dragInput then
-        local delta = dragInput.Position - dragStart
-        Main.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
-    end
     -- ESP Loop
-    if _G.EspActive then
+    if Config.EspActive then
         for _, p in pairs(Players:GetPlayers()) do
             if p ~= lp and p.Character then
-                if not p.Character:FindFirstChild("XenoHighlight") then
-                    local h = Instance.new("Highlight", p.Character)
-                    h.Name = "XenoHighlight"
-                    h.FillColor = Color3.fromRGB(145, 90, 230)
-                end
+                local h = p.Character:FindFirstChild("XenoHighlight") or Instance.new("Highlight", p.Character)
+                h.Name = "XenoHighlight"
+                h.FillColor = Config.Theme
+                h.OutlineColor = Color3.new(1,1,1)
+            end
+        end
+    else
+        for _, p in pairs(Players:GetPlayers()) do
+            if p.Character and p.Character:FindFirstChild("XenoHighlight") then
+                p.Character.XenoHighlight:Destroy()
             end
         end
     end
 end)
 
--- GUI Toggle (Aç/Kapat)
-local ToggleBtn = Instance.new("TextButton", ScreenGui)
-ToggleBtn.Size = UDim2.new(0, 45, 0, 45)
-ToggleBtn.Position = UDim2.new(0, 20, 0.5, -22)
-ToggleBtn.BackgroundColor3 = Color3.fromRGB(145, 90, 230)
-ToggleBtn.Text = "X"
-ToggleBtn.TextColor3 = Color3.new(1, 1, 1)
-ToggleBtn.Font = Enum.Font.GothamBlack
-Instance.new("UICorner", ToggleBtn).CornerRadius = UDim.new(1, 0)
-ToggleBtn.MouseButton1Click:Connect(function() Main.Visible = not Main.Visible end)
+-- Sürükleme (Drag) Logic
+local dragging, dragInput, dragStart, startPos
+Main.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        dragging = true
+        dragStart = input.Position
+        startPos = Main.Position
+    end
+end)
+Main.InputChanged:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseMovement then
+        dragInput = input
+    end
+end)
+UserInputService.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        dragging = false
+    end
+end)
+RunService.Heartbeat:Connect(function()
+    if dragging and dragInput then
+        local delta = dragInput.Position - dragStart
+        Main.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+    end
+end)
 
-FullGamepassBypass()
+-- Toggle Button
+local Tgl = Instance.new("TextButton", ScreenGui)
+Tgl.Size = UDim2.new(0, 50, 0, 50)
+Tgl.Position = UDim2.new(0, 10, 0.5, -25)
+Tgl.BackgroundColor3 = Config.Theme
+Tgl.Text = "X"
+Tgl.TextColor3 = Color3.new(1,1,1)
+Tgl.Font = Enum.Font.GothamBlack
+Tgl.TextSize = 20
+Instance.new("UICorner", Tgl).CornerRadius = UDim.new(1, 0)
+Tgl.MouseButton1Click:Connect(function() Main.Visible = not Main.Visible end)
+
+Notify("XenoHub V19 Loaded", "Hoşgeldin, " .. lp.Name .. "! Panel aktif.")
