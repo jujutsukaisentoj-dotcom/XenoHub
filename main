@@ -1,13 +1,14 @@
 -- ===============================================================
--- 👑 GEMINI HUB V7 - ULTIMATE BUILD A BOAT FARM
--- 🚀 11 STAGE + 2X GOLD BYPASS + MULTI-FEATURE GUI
+-- 👑 GEMINI HUB V8 - ULTIMATE BUILD A BOAT FARM
+-- 🚀 10 STAGE + 11. SANDIK + 2X GOLD MAX BYPASS
 -- ===============================================================
 
 local Settings = {
     FarmEnabled = false,
     DoubleGold = true,
     AntiWater = true,
-    ChestStage = 11,
+    MaxStages = 10, -- 10 bölge geçilecek
+    ChestStage = 11, -- 11. sandık alınacak
     TeleportSpeed = 0.01,
     AutoClaim = true
 }
@@ -24,14 +25,15 @@ local Claim = Workspace:WaitForChild("ClaimRiverResultsGold")
 local Stages = Workspace:WaitForChild("BoatStages"):WaitForChild("NormalStages")
 
 -- [ 2X GOLD & DATA BYPASS ]
--- Dex Explorer üzerinden bakıldığında görünen "DoubleGold" değerini zorlar
+-- Oyunun çarpan sistemini ve Dex üzerinden görünen değerleri manipüle eder
 local function EnableDoubleGold()
     if Settings.DoubleGold then
         pcall(function()
+            -- Veri klasöründeki çarpanı zorla aktif et
             if Data:FindFirstChild("DoubleGold") then
                 Data.DoubleGold.Value = true
             end
-            -- Bazı sürümlerde ReplicatedStorage üzerinden tetikleme gerekebilir
+            -- ReplicatedStorage üzerinden 2x tetikleyici sinyallerini gönder
             if ReplicatedStorage:FindFirstChild("DoubleGoldGamepass") then
                 ReplicatedStorage.DoubleGoldGamepass:FireServer(true)
             end
@@ -41,35 +43,35 @@ end
 
 -- [ GUI OLUŞTURMA ]
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "Gemini_V7"
+ScreenGui.Name = "Gemini_V8"
 ScreenGui.Parent = (gethui and gethui()) or (game:GetService("CoreGui")) or LocalPlayer:WaitForChild("PlayerGui")
 ScreenGui.ResetOnSpawn = false
 
 local MainFrame = Instance.new("Frame")
 MainFrame.Name = "MainFrame"
 MainFrame.Parent = ScreenGui
-MainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
-MainFrame.Size = UDim2.new(0, 220, 0, 240)
+MainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 20)
+MainFrame.Size = UDim2.new(0, 220, 0, 260)
 MainFrame.Position = UDim2.new(0.05, 0, 0.3, 0)
 MainFrame.BorderSizePixel = 0
 MainFrame.Active = true
 MainFrame.Draggable = true
 
 local UICorner = Instance.new("UICorner")
-UICorner.CornerRadius = UDim.new(0, 10)
+UICorner.CornerRadius = UDim.new(0, 12)
 UICorner.Parent = MainFrame
 
 local Title = Instance.new("TextLabel")
 Title.Parent = MainFrame
-Title.Size = UDim2.new(1, 0, 0, 40)
-Title.Text = "GEMINI HUB V7 👑"
+Title.Size = UDim2.new(1, 0, 0, 45)
+Title.Text = "GEMINI HUB V8 👑"
 Title.TextColor3 = Color3.fromRGB(255, 255, 255)
 Title.Font = Enum.Font.GothamBold
 Title.TextSize = 16
-Title.BackgroundColor3 = Color3.fromRGB(35, 35, 45)
+Title.BackgroundColor3 = Color3.fromRGB(30, 0, 100)
 
 local Corner2 = Instance.new("UICorner")
-Corner2.CornerRadius = UDim.new(0, 10)
+Corner2.CornerRadius = UDim.new(0, 12)
 Corner2.Parent = Title
 
 -- [ BUTONLAR ]
@@ -78,16 +80,16 @@ local function CreateButton(name, pos, text, callback)
     Btn.Name = name
     Btn.Parent = MainFrame
     Btn.Position = pos
-    Btn.Size = UDim2.new(0.9, 0, 0, 35)
-    Btn.BackgroundColor3 = Color3.fromRGB(45, 45, 55)
+    Btn.Size = UDim2.new(0.9, 0, 0, 38)
+    Btn.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
     Btn.Text = text
-    Btn.TextColor3 = Color3.fromRGB(200, 200, 200)
+    Btn.TextColor3 = Color3.fromRGB(220, 220, 220)
     Btn.Font = Enum.Font.GothamMedium
     Btn.TextSize = 13
     Btn.BorderSizePixel = 0
     
     local Corner = Instance.new("UICorner")
-    Corner.CornerRadius = UDim.new(0, 6)
+    Corner.CornerRadius = UDim.new(0, 8)
     Corner.Parent = Btn
     
     Btn.Activated:Connect(function()
@@ -101,33 +103,33 @@ local FarmBtn = CreateButton("FarmBtn", UDim2.new(0.05, 0, 0.22, 0), "AUTO FARM:
     Settings.FarmEnabled = not Settings.FarmEnabled
     if Settings.FarmEnabled then
         self.Text = "AUTO FARM: AÇIK"
-        self.BackgroundColor3 = Color3.fromRGB(50, 180, 50)
+        self.BackgroundColor3 = Color3.fromRGB(0, 180, 80)
         self.TextColor3 = Color3.fromRGB(255, 255, 255)
     else
         self.Text = "AUTO FARM: KAPALI"
-        self.BackgroundColor3 = Color3.fromRGB(45, 45, 55)
-        self.TextColor3 = Color3.fromRGB(200, 200, 200)
+        self.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
+        self.TextColor3 = Color3.fromRGB(220, 220, 220)
     end
 end)
 
 -- Double Gold Butonu
-local GoldBtn = CreateButton("GoldBtn", UDim2.new(0.05, 0, 0.40, 0), "DOUBLE GOLD: AKTİF", function(self)
+local GoldBtn = CreateButton("GoldBtn", UDim2.new(0.05, 0, 0.40, 0), "2X GOLD: AKTİF (BYPASS)", function(self)
     Settings.DoubleGold = not Settings.DoubleGold
     if Settings.DoubleGold then
-        self.Text = "DOUBLE GOLD: AKTİF"
-        self.BackgroundColor3 = Color3.fromRGB(200, 160, 0)
+        self.Text = "2X GOLD: AKTİF (BYPASS)"
+        self.BackgroundColor3 = Color3.fromRGB(220, 160, 0)
         EnableDoubleGold()
     else
-        self.Text = "DOUBLE GOLD: PASİF"
-        self.BackgroundColor3 = Color3.fromRGB(45, 45, 55)
+        self.Text = "2X GOLD: PASİF"
+        self.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
     end
 end)
-GoldBtn.BackgroundColor3 = Color3.fromRGB(200, 160, 0)
+GoldBtn.BackgroundColor3 = Color3.fromRGB(220, 160, 0)
 
 -- Anti Water Butonu
-CreateButton("WaterBtn", UDim2.new(0.05, 0, 0.58, 0), "ANTİ-SU: AKTİF", function(self)
+CreateButton("WaterBtn", UDim2.new(0.05, 0, 0.58, 0), "ANTİ-SU HASARI: AÇIK", function(self)
     Settings.AntiWater = not Settings.AntiWater
-    self.Text = Settings.AntiWater and "ANTİ-SU: AKTİF" or "ANTİ-SU: PASİF"
+    self.Text = Settings.AntiWater and "ANTİ-SU HASARI: AÇIK" or "ANTİ-SU HASARI: KAPALI"
 end)
 
 -- [ FONKSİYONLAR ]
@@ -146,45 +148,54 @@ local function FarmLoop()
             if Root then
                 EnableDoubleGold()
                 
-                -- Anti-Gravity & Velocity Fix
+                -- Karakteri sabitle
                 local BV = Instance.new("BodyVelocity", Root)
                 BV.Velocity = Vector3.new(0,0,0)
                 
-                for i = 1, Settings.ChestStage do
+                -- 10 Bölgeyi Hızla Geç
+                for i = 1, Settings.MaxStages do
                     if not Settings.FarmEnabled then break end
                     
                     local Stage = Stages:FindFirstChild(`CaveStage{i}`)
                     if Stage and Stage:FindFirstChild("DarknessPart") then
                         Root.CFrame = Stage.DarknessPart.CFrame
+                        -- Her stage'de altın alımını tetikle
                         Claim:FireServer()
                         task.wait(Settings.TeleportSpeed)
                     end
                 end
                 
-                -- Sandık Sonu
+                -- 11. Stage: Sandık Sonu
                 if Settings.FarmEnabled then
-                    local Chest = Stages.TheEnd.GoldenChest.Trigger
-                    Root.CFrame = Chest.CFrame
-                    if firetouchinterest then
-                        firetouchinterest(Root, Chest, 0)
-                        task.wait(0.1)
-                        firetouchinterest(Root, Chest, 1)
-                    else
-                        -- Backup CFrame Touch
-                        Chest.CFrame = Root.CFrame
-                        task.wait(0.2)
+                    local EndStage = Stages:FindFirstChild("TheEnd")
+                    if EndStage and EndStage:FindFirstChild("GoldenChest") then
+                        local Chest = EndStage.GoldenChest.Trigger
+                        Root.CFrame = Chest.CFrame
+                        
+                        -- Sandık dokunma bypass (Firetouch veya CFrame)
+                        if firetouchinterest then
+                            firetouchinterest(Root, Chest, 0)
+                            task.wait(0.1)
+                            firetouchinterest(Root, Chest, 1)
+                        else
+                            Chest.CFrame = Root.CFrame
+                            task.wait(0.2)
+                        end
+                        
+                        -- Ekstra kazanç tetikleyici
+                        Claim:FireServer()
+                        task.wait(1.2)
+                        Char:BreakJoints()
                     end
-                    task.wait(1)
-                    Char:BreakJoints()
                 end
-                BV:Destroy()
+                if BV then BV:Destroy() end
             end
         end
         task.wait(1)
     end
 end
 
--- Anti Water Logic
+-- Anti Water (Su Hasarını Kapatma)
 RunService.Stepped:Connect(function()
     if Settings.AntiWater and LocalPlayer.Character then
         pcall(function()
@@ -195,6 +206,6 @@ RunService.Stepped:Connect(function()
     end
 end)
 
--- Başlat
+-- Başlatma Sinyali
 task.spawn(FarmLoop)
-print("🚀 Gemini Hub V7 Loaded!")
+print("🚀 Gemini Hub V8 - 2X Gold Simulator & Auto Farm Aktif!")
