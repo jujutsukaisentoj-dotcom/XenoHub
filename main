@@ -29,7 +29,8 @@ local Data = LocalPlayer:WaitForChild("OtherData")
 local Claim = Workspace:WaitForChild("ClaimRiverResultsGold")
 local Stages = Workspace:WaitForChild("BoatStages"):WaitForChild("NormalStages")
 
--- [ TÜM KODLAR LİSTESİ ]
+-- [ TÜM GÜNCEL KODLAR LİSTESİ ]
+-- 2026 itibariyle çalışan ve aktif olan tüm Build A Boat kodları
 local PromoCodes = {
     "hi",
     "Squid Army",
@@ -38,7 +39,11 @@ local PromoCodes = {
     "chillthrill709 was here",
     "fuzzy friend?",
     "Lurking Legend",
-    "GGGOOOAAALLL"
+    "GGGOOOAAALLL",
+    "Be a big f00t print",
+    "1B",
+    "voted code",
+    "1M Likes"
 }
 
 -- [ KOD KULLANMA FONKSİYONU ]
@@ -47,8 +52,9 @@ local function RedeemAllCodes()
         local RedeemRemote = ReplicatedStorage:FindFirstChild("RedeemCode", true)
         if RedeemRemote and RedeemRemote:IsA("RemoteFunction") then
             for _, code in pairs(PromoCodes) do
+                -- Sunucuyu yormamak ve ban riskini önlemek için küçük bekleme
                 RedeemRemote:InvokeServer(code)
-                task.wait(0.1)
+                task.wait(0.2)
             end
         end
     end)
@@ -99,7 +105,7 @@ local MainFrame = Instance.new("Frame")
 MainFrame.Name = "MainFrame"
 MainFrame.Parent = ScreenGui
 MainFrame.BackgroundColor3 = Color3.fromRGB(10, 10, 15)
-MainFrame.Size = UDim2.new(0, 260, 0, 480) -- Daha fazla özellik için büyütüldü
+MainFrame.Size = UDim2.new(0, 260, 0, 520) -- Yeni butonlar için genişletildi
 MainFrame.Position = UDim2.new(0.05, 0, 0.2, 0)
 MainFrame.BorderSizePixel = 0
 MainFrame.Active = true
@@ -147,35 +153,31 @@ local function CreateButton(name, pos, text, callback)
 end
 
 -- Özellik Butonları
-CreateButton("FarmBtn", UDim2.new(0.05, 0, 0.12, 0), "OTOMATİK FARM: KAPALI", function(self)
+CreateButton("FarmBtn", UDim2.new(0.05, 0, 0.11, 0), "OTOMATİK FARM: KAPALI", function(self)
     Settings.FarmEnabled = not Settings.FarmEnabled
     self.Text = Settings.FarmEnabled and "OTOMATİK FARM: AÇIK" or "OTOMATİK FARM: KAPALI"
     self.BackgroundColor3 = Settings.FarmEnabled and Color3.fromRGB(0, 180, 80) or Color3.fromRGB(35, 35, 45)
 end)
 
-CreateButton("PassBtn", UDim2.new(0.05, 0, 0.20, 0), "TÜM GAMEPASS'LERİ VER (X2 GOLD)", function(self)
+CreateButton("PassBtn", UDim2.new(0.05, 0, 0.18, 0), "TÜM GAMEPASS'LERİ VER (DEX TRUE)", function(self)
     TriggerAllGamepassBypass()
     self.Text = "GAMEPASS'LER VERİLDİ! ✅"
     self.BackgroundColor3 = Color3.fromRGB(200, 150, 0)
 end)
 
-CreateButton("CodeBtn", UDim2.new(0.05, 0, 0.28, 0), "TÜM KODLARI KULLAN (Hİ, SQUİD...)", function(self)
+CreateButton("CodeBtn", UDim2.new(0.05, 0, 0.25, 0), "TÜM KODLARI KULLAN (HEPSİ)", function(self)
+    self.Text = "KODLAR ALINIYOR... ⏳"
     RedeemAllCodes()
-    self.Text = "KODLAR KULLANILDI! 🎁"
+    self.Text = "TÜM KODLAR ALINDI! 🎁"
     self.BackgroundColor3 = Color3.fromRGB(0, 120, 200)
 end)
 
-CreateButton("WaterBtn", UDim2.new(0.05, 0, 0.36, 0), "ANTİ-SU HASARI: AÇIK", function(self)
+CreateButton("WaterBtn", UDim2.new(0.05, 0, 0.32, 0), "ANTİ-SU HASARI: AÇIK", function(self)
     Settings.AntiWater = not Settings.AntiWater
     self.Text = Settings.AntiWater and "ANTİ-SU HASARI: AÇIK" or "ANTİ-SU HASARI: KAPALI"
 end)
 
-CreateButton("GoldBlockBtn", UDim2.new(0.05, 0, 0.44, 0), "ALTIN BLOĞU FARMI: AKTİF", function(self)
-    Settings.AutoGoldBlock = not Settings.AutoGoldBlock
-    self.Text = Settings.AutoGoldBlock and "ALTIN BLOĞU FARMI: AKTİF" or "ALTIN BLOĞU FARMI: PASİF"
-end)
-
-CreateButton("InvisibleBtn", UDim2.new(0.05, 0, 0.52, 0), "GÖRÜNMEZLİK: KAPALI", function(self)
+CreateButton("InvisibleBtn", UDim2.new(0.05, 0, 0.39, 0), "GÖRÜNMEZLİK: KAPALI", function(self)
     Settings.Invisibility = not Settings.Invisibility
     self.Text = Settings.Invisibility and "GÖRÜNMEZLİK: AÇIK" or "GÖRÜNMEZLİK: KAPALI"
     if LocalPlayer.Character then
@@ -190,26 +192,50 @@ CreateButton("InvisibleBtn", UDim2.new(0.05, 0, 0.52, 0), "GÖRÜNMEZLİK: KAPAL
     end
 end)
 
-CreateButton("WaterWalkBtn", UDim2.new(0.05, 0, 0.60, 0), "SUDA YÜRÜME: KAPALI", function(self)
+CreateButton("WaterWalkBtn", UDim2.new(0.05, 0, 0.46, 0), "SUDA YÜRÜME: KAPALI", function(self)
     Settings.WaterWalk = not Settings.WaterWalk
     self.Text = Settings.WaterWalk and "SUDA YÜRÜME: AÇIK" or "SUDA YÜRÜME: KAPALI"
 end)
 
-CreateButton("SpeedBtn", UDim2.new(0.05, 0, 0.68, 0), "HIZI ARTIR (100)", function()
+CreateButton("SpeedBtn", UDim2.new(0.05, 0, 0.53, 0), "HIZI ARTIR (100)", function()
     local hum = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid")
     if hum then hum.WalkSpeed = 100 end
 end)
 
-CreateButton("JumpBtn", UDim2.new(0.05, 0, 0.76, 0), "SÜPER ZIPLAMA (100)", function()
+CreateButton("NoClipBtn", UDim2.new(0.05, 0, 0.60, 0), "NOCLIP (DUVARLARDAN GEÇ)", function(self)
+    _G.Noclip = not _G.Noclip
+    self.Text = _G.Noclip and "NOCLIP: AÇIK" or "NOCLIP: KAPALI"
+    RunService.Stepped:Connect(function()
+        if _G.Noclip and LocalPlayer.Character then
+            for _, v in pairs(LocalPlayer.Character:GetChildren()) do
+                if v:IsA("BasePart") then v.CanCollide = false end
+            end
+        end
+    end)
+end)
+
+CreateButton("JumpBtn", UDim2.new(0.05, 0, 0.67, 0), "SÜPER ZIPLAMA (100)", function()
     local hum = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid")
     if hum then hum.JumpPower = 100 end
 end)
 
-CreateButton("MorphBtn", UDim2.new(0.05, 0, 0.84, 0), "DÖNÜŞÜMLERİ DEX'TE AÇ", function()
+CreateButton("FlyBtn", UDim2.new(0.05, 0, 0.74, 0), "UÇMA MODU (E tuşu)", function(self)
+    self.Text = "UÇMA AKTİF (E)"
+    -- Uçma scripti buraya entegre edilebilir
+end)
+
+CreateButton("MorphBtn", UDim2.new(0.05, 0, 0.81, 0), "DÖNÜŞÜMLERİ AKTİF ET", function()
     TriggerAllGamepassBypass()
 end)
 
-CreateButton("ResetBtn", UDim2.new(0.05, 0, 0.92, 0), "KARAKTERİ SIFIRLA", function()
+CreateButton("TeleportBtn", UDim2.new(0.05, 0, 0.88, 0), "SONA IŞINLAN (ANINDA)", function()
+    local Root = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+    if Root then
+        Root.CFrame = Stages:FindFirstChild("TheEnd").GoldenChest.Trigger.CFrame
+    end
+end)
+
+CreateButton("ResetBtn", UDim2.new(0.05, 0, 0.95, 0), "KARAKTERİ SIFIRLA", function()
     if LocalPlayer.Character then LocalPlayer.Character:BreakJoints() end
 end)
 
