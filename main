@@ -1,12 +1,14 @@
 --[[
-	ULTIMATE BUILD A BOAT FOR TREASURE - FULL BYPASS & FARM (V3.5)
+	ULTIMATE BUILD A BOAT FOR TREASURE - FULL BYPASS & FARM (V4.0)
 	- Sol Alt Köşe Menü Tetikleyici (Toggle Button)
-	- Gelişmiş Meta-Table Bypass
-	- Hız, Zıplama ve Otomatik Farm
+	- Gelişmiş Meta-Table Bypass (Anti-Cheat Koruma)
+	- Hız, Zıplama, Yerçekimi ve Noclip
+	- Otomatik Farm & Otomatik Market
+	- Ekstra Görsel Özellikler
 ]]
 
 local OrionLib = loadstring(game:HttpGet(('https://raw.githubusercontent.com/shlexware/Orion/main/source')))()
-local Window = OrionLib:MakeWindow({Name = "BaBft Ultimate - Full Bypass", HidePremium = false, SaveConfig = true, ConfigFolder = "BaBftUltimate"})
+local Window = OrionLib:MakeWindow({Name = "BaBft Ultimate - Pro Edition", HidePremium = false, SaveConfig = true, ConfigFolder = "BaBftUltimate"})
 
 -- ================================
 -- Servisler ve Değişkenler
@@ -22,6 +24,8 @@ local farming = false
 local autoBuyType = "None"
 local walkSpeed = 16
 local jumpPower = 50
+local gravityValue = 196.2
+local noclipActive = false
 
 -- ================================
 -- SOL ALT MENÜ BUTONU (GUI)
@@ -29,6 +33,7 @@ local jumpPower = 50
 local ScreenGui = Instance.new("ScreenGui")
 local OpenBtn = Instance.new("TextButton")
 local UICorner = Instance.new("UICorner")
+local UIStroke = Instance.new("UIStroke")
 
 ScreenGui.Name = "MenuTrigger"
 ScreenGui.Parent = CoreGui
@@ -36,20 +41,24 @@ ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 
 OpenBtn.Name = "OpenBtn"
 OpenBtn.Parent = ScreenGui
-OpenBtn.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+OpenBtn.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
 OpenBtn.BorderSizePixel = 0
-OpenBtn.Position = UDim2.new(0, 10, 1, -60) -- Sol alt köşe
-OpenBtn.Size = UDim2.new(0, 50, 0, 50)
-OpenBtn.Font = Enum.Font.SourceSansBold
-OpenBtn.Text = "MENU"
-OpenBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+OpenBtn.Position = UDim2.new(0, 15, 1, -70)
+OpenBtn.Size = UDim2.new(0, 60, 0, 60)
+OpenBtn.Font = Enum.Font.GothamBold
+OpenBtn.Text = "HİLE"
+OpenBtn.TextColor3 = Color3.fromRGB(0, 255, 127)
 OpenBtn.TextSize = 14.000
 
-UICorner.CornerRadius = UDim.new(0, 10)
+UICorner.CornerRadius = UDim.new(0, 12)
 UICorner.Parent = OpenBtn
 
+UIStroke.Parent = OpenBtn
+UIStroke.Thickness = 2
+UIStroke.Color = Color3.fromRGB(0, 255, 127)
+UIStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+
 OpenBtn.MouseButton1Click:Connect(function()
-    -- Orion menüsünü aç/kapat (Tetikleme)
     local frame = CoreGui:FindFirstChild("Orion")
     if frame then
         frame.Enabled = not frame.Enabled
@@ -67,25 +76,35 @@ local function ApplyBypass()
     mt.__namecall = newcclosure(function(self, ...)
         local method = getnamecallmethod()
         
+        -- Ölüm veya atılma kontrollerini manipüle et
         if method == "Kick" or method == "kick" then
-            OrionLib:MakeNotification({Name = "Bypass", Content = "Atılma engellendi!", Time = 3})
             return nil
         end
         
-        if not checkcaller() and method == "FireServer" and (tostring(self) == "RemoteEvent" or tostring(self) == "Report") then
-            return nil
+        -- Gereksiz raporlama ve veri takibini engelle
+        if not checkcaller() and (method == "FireServer" or method == "InvokeServer") then
+            local name = tostring(self)
+            if name:find("Report") or name:find("Cheat") or name:find("Detection") then
+                return nil
+            end
         end
 
         return oldNamecall(self, ...)
     end)
 
     setreadonly(mt, true)
+    
+    -- Karakter resetlendiğinde bypass'ı koru
+    LocalPlayer.CharacterAdded:Connect(function()
+        task.wait(1)
+        if noclipActive then noclipActive = true end
+    end)
 end
 
 ApplyBypass()
 
 -- ================================
--- Yardımcı Fonksiyonlar
+-- Fonksiyonlar
 -- ================================
 local function ClearMap()
     pcall(function()
@@ -98,16 +117,15 @@ local function ClearMap()
     end)
 end
 
-local function GetFullNoclip()
-    local char = LocalPlayer.Character
-    if char then
-        for _, part in pairs(char:GetDescendants()) do
+RunService.Stepped:Connect(function()
+    if noclipActive and LocalPlayer.Character then
+        for _, part in pairs(LocalPlayer.Character:GetDescendants()) do
             if part:IsA("BasePart") then
                 part.CanCollide = false
             end
         end
     end
-end
+end)
 
 -- ================================
 -- Farm Mantığı
@@ -118,43 +136,42 @@ local function StartFarm()
             local char = LocalPlayer.Character
             if not char or not char:FindFirstChild("HumanoidRootPart") then
                 LocalPlayer.CharacterAdded:Wait()
-                task.wait(1)
+                task.wait(1.5)
                 char = LocalPlayer.Character
             end
 
             local root = char:WaitForChild("HumanoidRootPart")
             ClearMap()
             
-            local bv = root:FindFirstChild("FlyVelocity") or Instance.new("BodyVelocity")
-            bv.Name = "FlyVelocity"
+            local bv = Instance.new("BodyVelocity")
+            bv.Name = "FarmVelocity"
             bv.Velocity = Vector3.new(0, 0, 0)
             bv.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
             bv.Parent = root
 
-            local noclipLoop = RunService.Stepped:Connect(GetFullNoclip)
             local endZone = Workspace.BoatStages.NormalStages.TheEnd.GoldenChest.Trigger
             
+            -- Stage Checkpoints
             local path = {
-                CFrame.new(-55, 70, 1500),
-                CFrame.new(-55, 70, 3000),
-                CFrame.new(-55, 70, 6000),
-                CFrame.new(-55, 70, 9450),
+                CFrame.new(-55, 80, 1500),
+                CFrame.new(-55, 80, 4500),
+                CFrame.new(-55, 80, 7500),
+                CFrame.new(-55, 80, 9450),
                 endZone.CFrame
             }
 
             for _, targetCF in ipairs(path) do
                 if not farming then break end
                 local dist = (root.Position - targetCF.Position).Magnitude
-                local tweenInfo = TweenInfo.new(dist / 350, Enum.EasingStyle.Linear)
-                local tween = TweenService:Create(root, tweenInfo, {CFrame = targetCF})
+                local tween = TweenService:Create(root, TweenInfo.new(dist / 300, Enum.EasingStyle.Linear), {CFrame = targetCF})
                 tween:Play()
                 tween.Completed:Wait()
             end
 
             if farming then
                 root.CFrame = endZone.CFrame
-                task.wait(12)
-                noclipLoop:Disconnect()
+                task.wait(10)
+                bv:Destroy()
                 char:BreakJoints()
                 task.wait(5)
             end
@@ -163,14 +180,14 @@ local function StartFarm()
 end
 
 -- ================================
--- Arayüz Yapılandırması
+-- Arayüz Sayfaları
 -- ================================
-local MainTab = Window:MakeTab({Name = "Otomatik Farm", Icon = "rbxassetid://4483345998"})
-local PlayerTab = Window:MakeTab({Name = "Oyuncu", Icon = "rbxassetid://4483345998"})
+local MainTab = Window:MakeTab({Name = "Ana Menü", Icon = "rbxassetid://4483345998"})
+local PlayerTab = Window:MakeTab({Name = "Karakter", Icon = "rbxassetid://4483345998"})
 local ShopTab = Window:MakeTab({Name = "Market", Icon = "rbxassetid://4483345998"})
 
 MainTab:AddToggle({
-	Name = "Ultra Auto Farm",
+	Name = "Otomatik Altın Kas (Farm)",
 	Default = false,
 	Callback = function(Value)
 		farming = Value
@@ -178,20 +195,39 @@ MainTab:AddToggle({
 	end    
 })
 
+MainTab:AddButton({
+	Name = "Haritayı Temizle (Bypass)",
+	Callback = function() ClearMap() end
+})
+
 PlayerTab:AddSlider({
-	Name = "Hız",
+	Name = "Hız Ayarı",
 	Min = 16,
-	Max = 300,
+	Max = 400,
 	Default = 16,
 	Callback = function(v) walkSpeed = v end    
 })
 
 PlayerTab:AddSlider({
-	Name = "Zıplama",
+	Name = "Zıplama Ayarı",
 	Min = 50,
-	Max = 500,
+	Max = 800,
 	Default = 50,
 	Callback = function(v) jumpPower = v end    
+})
+
+PlayerTab:AddSlider({
+	Name = "Yerçekimi",
+	Min = 0,
+	Max = 500,
+	Default = 196,
+	Callback = function(v) workspace.Gravity = v end    
+})
+
+PlayerTab:AddToggle({
+	Name = "Noclip (Duvarlardan Geçme)",
+	Default = false,
+	Callback = function(v) noclipActive = v end    
 })
 
 RunService.RenderStepped:Connect(function()
@@ -202,7 +238,7 @@ RunService.RenderStepped:Connect(function()
 end)
 
 ShopTab:AddDropdown({
-	Name = "Otomatik Sandık",
+	Name = "Sandık Türü",
 	Default = "None",
 	Options = {"None", "Common Chest", "Uncommon Chest", "Rare Chest", "Epic Chest", "Legendary Chest"},
 	Callback = function(v) autoBuyType = v end    
@@ -213,7 +249,7 @@ task.spawn(function()
         if autoBuyType ~= "None" then
             workspace.ItemBoughtFromShop:FireServer(autoBuyType, 1)
         end
-        task.wait(2)
+        task.wait(1.5)
     end
 end)
 
