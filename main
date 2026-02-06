@@ -1,15 +1,15 @@
 -- ===============================================================
--- 👑 GEMINI HUB V8 - ULTIMATE BUILD A BOAT FARM
--- 🚀 10 BÖLGE SIRALI GEÇİŞ + 11. SANDIK SONU + 2X GOLD BYPASS
+-- 👑 GEMINI HUB V9 - ULTIMATE BUILD A BOAT FARM
+-- 🚀 SIRALI GEÇİŞ + GELİŞMİŞ DOĞRULAMA + SANDIK SONU
 -- ===============================================================
 
 local Settings = {
     FarmEnabled = false,
     DoubleGold = true,
     AntiWater = true,
-    MaxStages = 10, -- 10 bölge sırayla geçilecek
-    ChestStage = 11, -- En son sandık alınacak
-    TeleportSpeed = 0.05, -- Daha stabil geçiş için hafif bekleme
+    MaxStages = 10, -- 1-10 arası bölgeler
+    ChestStage = 11, -- 11. aşama sandık
+    TeleportSpeed = 0.05,
     AutoClaim = true
 }
 
@@ -40,7 +40,7 @@ end
 
 -- [ GUI OLUŞTURMA ]
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "Gemini_V8"
+ScreenGui.Name = "Gemini_V9"
 ScreenGui.Parent = (gethui and gethui()) or (game:GetService("CoreGui")) or LocalPlayer:WaitForChild("PlayerGui")
 ScreenGui.ResetOnSpawn = false
 
@@ -61,7 +61,7 @@ UICorner.Parent = MainFrame
 local Title = Instance.new("TextLabel")
 Title.Parent = MainFrame
 Title.Size = UDim2.new(1, 0, 0, 45)
-Title.Text = "GEMINI HUB V8 👑"
+Title.Text = "GEMINI HUB V9 👑"
 Title.TextColor3 = Color3.fromRGB(255, 255, 255)
 Title.Font = Enum.Font.GothamBold
 Title.TextSize = 16
@@ -136,6 +136,11 @@ local function HasStage(Num)
     return val and val.Value ~= "" and val.Value
 end
 
+local function ClaimStage()
+    if not Settings.AutoClaim then return end
+    Claim:FireServer()
+end
+
 local function FarmLoop()
     while true do
         if Settings.FarmEnabled then
@@ -145,46 +150,70 @@ local function FarmLoop()
             if Root then
                 EnableDoubleGold()
                 
-                -- Karakteri sabitle (Uçarken titremeyi önler)
+                local NewChar = false
+                local charConn
+                charConn = LocalPlayer.CharacterAdded:Once(function()
+                    NewChar = true
+                end)
+
+                -- Karakteri sabitle
                 local BV = Instance.new("BodyVelocity", Root)
                 BV.Velocity = Vector3.new(0,0,0)
                 
-                -- 10 Bölgeyi SIRAYLA Geç (Önce buraları geçecek)
+                -- SIRALI GEÇİŞ (1-10)
                 for i = 1, Settings.MaxStages do
-                    if not Settings.FarmEnabled then break end
+                    if not Settings.FarmEnabled or NewChar then break end
                     
                     local Stage = Stages:FindFirstChild(`CaveStage{i}`)
                     if Stage and Stage:FindFirstChild("DarknessPart") then
-                        Root.CFrame = Stage.DarknessPart.CFrame
-                        Claim:FireServer()
-                        -- Her bölgede sunucunun algılaması için kısa bekleme
-                        task.wait(Settings.TeleportSpeed)
+                        local TargetPart = Stage.DarknessPart
+                        local Teleporting = true
+                        
+                        -- Karakteri bölgeye kilitle
+                        task.spawn(function()
+                            while Teleporting and Settings.FarmEnabled and not NewChar do
+                                Root.CFrame = TargetPart.CFrame
+                                Root.Velocity = Vector3.zero
+                                task.wait()
+                            end
+                        end)
+                        
+                        ClaimStage()
+                        -- Bölge onaylanana kadar bekle (Örnekteki HasStage mantığı)
+                        local startWait = tick()
+                        repeat task.wait() until HasStage(i) or NewChar or not Settings.FarmEnabled or (tick() - startWait > 3)
+                        
+                        Teleporting = false
                     end
                 end
                 
-                -- 11. Aşama: En Son Sandığı Alacak
-                if Settings.FarmEnabled then
+                -- SANDIK ALMA (11. Aşama)
+                if Settings.FarmEnabled and not NewChar then
                     local EndStage = Stages:FindFirstChild("TheEnd")
                     if EndStage and EndStage:FindFirstChild("GoldenChest") then
                         local Chest = EndStage.GoldenChest.Trigger
-                        Root.CFrame = Chest.CFrame
                         
-                        -- Sandık dokunma işlemi
+                        -- Örnekteki gibi sandığı karakterin üzerine çekme bypass
+                        local OldCFrame = Chest.CFrame
+                        Chest.CFrame = Root.CFrame
+                        
                         if firetouchinterest then
                             firetouchinterest(Root, Chest, 0)
                             task.wait(0.1)
                             firetouchinterest(Root, Chest, 1)
-                        else
-                            Chest.CFrame = Root.CFrame
-                            task.wait(0.2)
                         end
                         
-                        Claim:FireServer()
+                        task.wait(0.2)
+                        Chest.CFrame = OldCFrame -- Sandığı yerine geri koy
+                        
+                        ClaimStage()
                         task.wait(1.5)
-                        Char:BreakJoints() -- Yeni tur için sıfırla
+                        Char:BreakJoints() -- Yeni tur için reset
                     end
                 end
+                
                 if BV then BV:Destroy() end
+                if charConn then charConn:Disconnect() end
             end
         end
         task.wait(1)
@@ -203,4 +232,4 @@ RunService.Stepped:Connect(function()
 end)
 
 task.spawn(FarmLoop)
-print("🚀 Gemini Hub V8 - Sıralı Geçiş ve Sandık Sonu Aktif!")
+print("🚀 Gemini Hub V9 - Sıralı Onaylı Farm Aktif!")
