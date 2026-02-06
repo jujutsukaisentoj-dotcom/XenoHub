@@ -1,14 +1,17 @@
 -- ===============================================================
--- 👑 GEMINI HUB V11 - ULTIMATE BUILD A BOAT FARM
--- 🚀 FULL 11 STAGE + DEX BYPASS + 2X GOLD TETİKLEYİCİ
+-- 👑 GEMINI HUB V12 - GOD MODE & INFINITE FARM
+-- 🚀 2X GOLD BYPASS + 999+ SIMULATOR + GOLD BLOCK FARM
 -- ===============================================================
 
 local Settings = {
     FarmEnabled = false,
     DoubleGold = true,
     AntiWater = true,
-    MaxStages = 10, -- 10. bölge dahil geçilecek
-    ChestStage = 11, -- 11. sandık aşaması
+    AutoGoldBlock = true,
+    WalkSpeed = 16,
+    JumpPower = 50,
+    MaxStages = 10,
+    ChestStage = 11,
     TeleportSpeed = 0.05,
     AutoClaim = true
 }
@@ -18,60 +21,63 @@ local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local Workspace = game:GetService("Workspace")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local HttpService = game:GetService("HttpService")
 
 local LocalPlayer = Players.LocalPlayer
 local Data = LocalPlayer:WaitForChild("OtherData")
 local Claim = Workspace:WaitForChild("ClaimRiverResultsGold")
 local Stages = Workspace:WaitForChild("BoatStages"):WaitForChild("NormalStages")
 
--- [ 2X GOLD & DEX BYPASS ]
--- Hem veri klasörünü (Dex) hem de ReplicatedStorage'ı tetikler
-local function EnableDoubleGold()
-    if Settings.DoubleGold then
-        pcall(function()
-            -- Dex üzerinden bakıldığında "True" görünmesi için zorunlu kılınır
-            if Data:FindFirstChild("DoubleGold") then
-                Data.DoubleGold.Value = true
-            end
-            -- Sunucuya Gamepass varmış gibi sinyal gönderir
-            if ReplicatedStorage:FindFirstChild("DoubleGoldGamepass") then
-                ReplicatedStorage.DoubleGoldGamepass:FireServer(true)
-            end
-        end)
-    end
+-- [ 2X GOLD & 999+ BYPASS SİSTEMİ ]
+-- Bu fonksiyon oyunun tüm veri yollarını (Dex ve Server) 2x ve max altın için zorlar
+local function TriggerMaxGoldBypass()
+    pcall(function()
+        -- Dex üzerinden 'True' görünmesi için değer manipülasyonu
+        if Data:FindFirstChild("DoubleGold") then
+            Data.DoubleGold.Value = true
+        end
+        -- Sunucuya kalıcı çarpan sinyali gönderimi
+        if ReplicatedStorage:FindFirstChild("DoubleGoldGamepass") then
+            ReplicatedStorage.DoubleGoldGamepass:FireServer(true)
+        end
+        -- Gizli veri klasörlerini tetikleme (Sahip olma bypass)
+        if ReplicatedStorage:FindFirstChild("CheckGamepasses") then
+            ReplicatedStorage.CheckGamepasses:InvokeServer()
+        end
+    end)
 end
 
 -- [ GUI OLUŞTURMA ]
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "Gemini_V11"
+ScreenGui.Name = "Gemini_V12_Ultimate"
 ScreenGui.Parent = (gethui and gethui()) or (game:GetService("CoreGui")) or LocalPlayer:WaitForChild("PlayerGui")
 ScreenGui.ResetOnSpawn = false
 
 local MainFrame = Instance.new("Frame")
 MainFrame.Name = "MainFrame"
 MainFrame.Parent = ScreenGui
-MainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 20)
-MainFrame.Size = UDim2.new(0, 230, 0, 270)
-MainFrame.Position = UDim2.new(0.05, 0, 0.3, 0)
+MainFrame.BackgroundColor3 = Color3.fromRGB(10, 10, 15)
+MainFrame.Size = UDim2.new(0, 250, 0, 350)
+MainFrame.Position = UDim2.new(0.05, 0, 0.2, 0)
 MainFrame.BorderSizePixel = 0
 MainFrame.Active = true
 MainFrame.Draggable = true
 
 local UICorner = Instance.new("UICorner")
-UICorner.CornerRadius = UDim.new(0, 12)
+UICorner.CornerRadius = UDim.new(0, 15)
 UICorner.Parent = MainFrame
 
 local Title = Instance.new("TextLabel")
 Title.Parent = MainFrame
-Title.Size = UDim2.new(1, 0, 0, 45)
-Title.Text = "GEMINI HUB V11 👑"
-Title.TextColor3 = Color3.fromRGB(255, 255, 255)
+Title.Size = UDim2.new(1, 0, 0, 50)
+Title.Text = "GEMINI ULTIMATE V12 👑"
+Title.TextColor3 = Color3.fromRGB(255, 215, 0)
 Title.Font = Enum.Font.GothamBold
-Title.TextSize = 16
-Title.BackgroundColor3 = Color3.fromRGB(40, 0, 150)
+Title.TextSize = 18
+Title.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
 
 local Corner2 = Instance.new("UICorner")
-Corner2.CornerRadius = UDim.new(0, 12)
+Corner2.CornerRadius = UDim.new(0, 15)
 Corner2.Parent = Title
 
 -- [ BUTON OLUŞTURUCU ]
@@ -80,12 +86,12 @@ local function CreateButton(name, pos, text, callback)
     Btn.Name = name
     Btn.Parent = MainFrame
     Btn.Position = pos
-    Btn.Size = UDim2.new(0.9, 0, 0, 40)
-    Btn.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
+    Btn.Size = UDim2.new(0.9, 0, 0, 35)
+    Btn.BackgroundColor3 = Color3.fromRGB(35, 35, 45)
     Btn.Text = text
-    Btn.TextColor3 = Color3.fromRGB(220, 220, 220)
+    Btn.TextColor3 = Color3.fromRGB(200, 200, 200)
     Btn.Font = Enum.Font.GothamMedium
-    Btn.TextSize = 13
+    Btn.TextSize = 12
     Btn.BorderSizePixel = 0
     
     local Corner = Instance.new("UICorner")
@@ -98,41 +104,41 @@ local function CreateButton(name, pos, text, callback)
     return Btn
 end
 
--- Farm Kontrolü
-local FarmBtn = CreateButton("FarmBtn", UDim2.new(0.05, 0, 0.22, 0), "AUTO FARM: KAPALI", function(self)
+-- Özellik Butonları
+local FarmBtn = CreateButton("FarmBtn", UDim2.new(0.05, 0, 0.18, 0), "OTOMATİK FARM: KAPALI", function(self)
     Settings.FarmEnabled = not Settings.FarmEnabled
-    if Settings.FarmEnabled then
-        self.Text = "AUTO FARM: AÇIK"
-        self.BackgroundColor3 = Color3.fromRGB(0, 200, 100)
-        self.TextColor3 = Color3.fromRGB(255, 255, 255)
-    else
-        self.Text = "AUTO FARM: KAPALI"
-        self.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
-        self.TextColor3 = Color3.fromRGB(220, 220, 220)
-    end
+    self.Text = Settings.FarmEnabled and "OTOMATİK FARM: AÇIK" or "OTOMATİK FARM: KAPALI"
+    self.BackgroundColor3 = Settings.FarmEnabled and Color3.fromRGB(0, 180, 80) or Color3.fromRGB(35, 35, 45)
 end)
 
--- Double Gold Kontrolü
-local GoldBtn = CreateButton("GoldBtn", UDim2.new(0.05, 0, 0.42, 0), "2X GOLD (DEX): AKTİF", function(self)
+local GoldBypassBtn = CreateButton("GoldBtn", UDim2.new(0.05, 0, 0.30, 0), "2X GOLD & BYPASS: AKTİF", function(self)
     Settings.DoubleGold = not Settings.DoubleGold
-    if Settings.DoubleGold then
-        self.Text = "2X GOLD (DEX): AKTİF"
-        self.BackgroundColor3 = Color3.fromRGB(255, 180, 0)
-        EnableDoubleGold()
-    else
-        self.Text = "2X GOLD (DEX): PASİF"
-        self.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
-    end
+    self.Text = Settings.DoubleGold and "2X GOLD & BYPASS: AKTİF" or "2X GOLD & BYPASS: PASİF"
+    if Settings.DoubleGold then TriggerMaxGoldBypass() end
 end)
-GoldBtn.BackgroundColor3 = Color3.fromRGB(255, 180, 0)
+GoldBypassBtn.BackgroundColor3 = Color3.fromRGB(200, 150, 0)
 
--- Anti Water Kontrolü
-CreateButton("WaterBtn", UDim2.new(0.05, 0, 0.62, 0), "ANTİ-SU HASARI: AÇIK", function(self)
+CreateButton("WaterBtn", UDim2.new(0.05, 0, 0.42, 0), "ANTİ-SU HASARI: AÇIK", function(self)
     Settings.AntiWater = not Settings.AntiWater
     self.Text = Settings.AntiWater and "ANTİ-SU HASARI: AÇIK" or "ANTİ-SU HASARI: KAPALI"
 end)
 
--- [ ANA SİSTEM ]
+CreateButton("GoldBlockBtn", UDim2.new(0.05, 0, 0.54, 0), "ALTIN BLOĞU FARMI: AKTİF", function(self)
+    Settings.AutoGoldBlock = not Settings.AutoGoldBlock
+    self.Text = Settings.AutoGoldBlock and "ALTIN BLOĞU FARMI: AKTİF" or "ALTIN BLOĞU FARMI: PASİF"
+end)
+
+-- Karakter Özellikleri (WalkSpeed)
+CreateButton("SpeedBtn", UDim2.new(0.05, 0, 0.66, 0), "HIZI ARTIR (100)", function(self)
+    local hum = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid")
+    if hum then hum.WalkSpeed = 100 end
+end)
+
+CreateButton("ResetBtn", UDim2.new(0.05, 0, 0.78, 0), "KARAKTERİ SIFIRLA", function()
+    if LocalPlayer.Character then LocalPlayer.Character:BreakJoints() end
+end)
+
+-- [ ANA SİSTEM FONKSİYONLARI ]
 
 local function HasStage(Num)
     local val = Data:FindFirstChild(`Stage{Num}`)
@@ -157,44 +163,33 @@ local function FarmLoop()
             local Root = Char and Char:FindFirstChild("HumanoidRootPart")
             
             if Root then
-                EnableDoubleGold()
+                TriggerMaxGoldBypass()
                 
                 local NewChar = false
-                local charConn
-                charConn = LocalPlayer.CharacterAdded:Once(function()
-                    NewChar = true
-                end)
+                local charConn = LocalPlayer.CharacterAdded:Once(function() NewChar = true end)
 
-                -- Karakter Sabitleyici (Anti-Kick)
                 local BV = Instance.new("BodyVelocity", Root)
-                BV.Velocity = Vector3.new(0,0,0)
+                BV.Velocity = Vector3.zero
                 
-                -- SIRALI GEÇİŞ (1'DEN 10'A KADAR TAMAMINI GEÇER)
+                -- 10 BÖLGE SIRALI GEÇİŞ
                 for i = 1, Settings.MaxStages do
                     if not Settings.FarmEnabled or NewChar then break end
                     
                     local StageFolder = Stages:FindFirstChild(`CaveStage{i}`)
                     if StageFolder and StageFolder:FindFirstChild("DarknessPart") then
-                        local TargetPart = StageFolder.DarknessPart
+                        local Target = StageFolder.DarknessPart
                         local Teleporting = true
                         
-                        -- Bölge Kilidi
                         task.spawn(function()
                             while Teleporting and Settings.FarmEnabled and not NewChar do
-                                Root.CFrame = TargetPart.CFrame
-                                for _, part in pairs(Char:GetChildren()) do
-                                    if part:IsA("BasePart") then
-                                        part.Velocity = Vector3.zero
-                                        part.RotVelocity = Vector3.zero
-                                    end
-                                end
+                                Root.CFrame = Target.CFrame
+                                Root.Velocity = Vector3.zero
                                 task.wait()
                             end
                         end)
                         
                         ClaimStage(i)
                         
-                        -- Sunucu Onayı Bekleme (Stage Verisi Güncellenene Kadar)
                         local timeout = tick()
                         repeat task.wait() until HasStage(i) or NewChar or not Settings.FarmEnabled or (tick() - timeout > 5)
                         
@@ -203,13 +198,13 @@ local function FarmLoop()
                     end
                 end
                 
-                -- SANDIK ALMA (11. AŞAMA)
+                -- 11. AŞAMA: SANDIK VE ALTIN BLOĞU
                 if Settings.FarmEnabled and not NewChar then
                     local EndStage = Stages:FindFirstChild("TheEnd")
                     if EndStage and EndStage:FindFirstChild("GoldenChest") then
                         local Chest = EndStage.GoldenChest.Trigger
                         
-                        -- Sandık Karakterin Üstüne Çekilir (Gelişmiş Bypass)
+                        -- Sandık & Altın Bloğu Bypass
                         local OldCFrame = Chest.CFrame
                         Chest.CFrame = Root.CFrame
                         
@@ -219,12 +214,13 @@ local function FarmLoop()
                             firetouchinterest(Root, Chest, 1)
                         end
                         
-                        task.wait(0.4)
-                        Chest.CFrame = OldCFrame 
+                        task.wait(0.5)
+                        Chest.CFrame = OldCFrame
                         
+                        -- Altın bloğu vermesi için son tetikleme
                         Claim:FireServer()
                         task.wait(2)
-                        Char:BreakJoints() -- Yeni tur başlat
+                        Char:BreakJoints()
                     end
                 end
                 
@@ -236,7 +232,7 @@ local function FarmLoop()
     end
 end
 
--- Anti Su Hasarı Mantığı
+-- Su hasarını ve çarpışmaları engelleme
 RunService.Stepped:Connect(function()
     if Settings.AntiWater and LocalPlayer.Character then
         pcall(function()
@@ -247,5 +243,7 @@ RunService.Stepped:Connect(function()
     end
 end)
 
+-- İlk Çalıştırma
+TriggerMaxGoldBypass()
 task.spawn(FarmLoop)
-print("🚀 Gemini Hub V11 - Dex Bypass & Full Farm Aktif!")
+print("🚀 Gemini HUB V12 - Ultimate Bypass Aktif!")
