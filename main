@@ -1,7 +1,7 @@
 --[[ 
-    XENOHUB ULTIMATE - V18 (EXACT MIRROR UPDATE)
-    Analiz Edilen Dosyalar: GamepassUnlockController, ExtendUnlockButton, LotController
-    Özellikler: XenoAI Pro Engine, Full Gamepass Mirror, Advanced Server Hop, ESP & Visuals
+    XENOHUB ULTIMATE - V19 (THE VIDEO MIRROR & ADS UPDATE)
+    Analiz Edilen Dosyalar: AllGamepasses, ExtendUnlockButton, AdStore logic
+    Özellikler: Video UI Exact Mirror, AdStore Trigger, Gamepass Component Spoof
 ]]
 
 local Players = game:GetService("Players")
@@ -12,293 +12,252 @@ local CoreGui = game:GetService("CoreGui")
 local RunService = game:GetService("RunService")
 local StarterGui = game:GetService("StarterGui")
 local Workspace = game:GetService("Workspace")
-local Lighting = game:GetService("Lighting")
 local HttpService = game:GetService("HttpService")
-local TeleportService = game:GetService("TeleportService")
 
 local lp = Players.LocalPlayer
 local ParentFolder = (gethui and gethui()) or CoreGui
 
 -- ============================================================================== --
--- 1. ANALİZ EDİLEN MODÜL SİMÜLASYONLARI (GAMEPASS & ADS)
+-- 1. REKLAM VE PANEL KONTROLÜ (ADSTORE TRIGGER)
 -- ============================================================================== --
 
-local XenoSettings = {
-    ApiKey = "", -- Gemini API Key (Otomatik atanır)
-    EspActive = false,
-    SpectateTarget = nil,
-    BypassReady = false
-}
-
-local function FullBypass()
+local function OpenAdStore()
     pcall(function()
-        -- GamepassUnlockController.txt içindeki mantığı bypass etme
-        local GamepassModule = require(ReplicatedStorage.Modules.Client.UI.Gamepass.GamepassController)
-        local UnlockModule = require(ReplicatedStorage.Modules.Client.UI.GamepassUnlockController)
+        local PanelController = require(ReplicatedStorage.Modules.Client.UI.PanelController)
+        -- Oyunun orijinal AdStore panelini tetikler
+        PanelController.OpenPanelByContext("MainGUIHandler", "AdStore")
         
-        -- Tüm gamepass'leri "True" yapma
-        GamepassModule.OwnsGamepass = function() return true end
-        UnlockModule.OwnsGamepass = function() return true end
-        
-        -- AllGamepasses.txt listesindeki tüm değerleri simüle etme
-        local GamepassData = require(ReplicatedStorage.Modules.Shared.PlayerData.Gamepasses)
-        if GamepassData and GamepassData.All then
-            for key, val in pairs(GamepassData.All) do
-                val.__GAMEPASS = true
-            end
+        -- Eğer özel bir ImageButton bekleniyorsa, oyunun UI ağacında simüle ederiz
+        local playerGui = lp:WaitForChild("PlayerGui")
+        local mainGui = playerGui:FindFirstChild("MainGUI")
+        if mainGui then
+            -- Reklam butonu görünürlüğünü zorla
+            local adsButton = mainGui:FindFirstChild("AdsButton", true)
+            if adsButton then adsButton.Visible = true end
         end
+    end)
+end
 
-        -- Yetki Kontrolleri (Staff/Admin)
-        local Perms = ReplicatedStorage:FindFirstChild("Permissions", true)
-        if Perms then
-            local PermModule = require(Perms)
-            PermModule.hasAdminAccess = function() return true end
-            PermModule.hasStaffAccess = function() return true end
+local function FullGamepassBypass()
+    pcall(function()
+        -- GamepassUnlockController.txt'den alınan mantıkla kilitleri kırma
+        local GamepassModule = require(ReplicatedStorage.Modules.Client.UI.Gamepass.GamepassController)
+        local UnlockController = require(ReplicatedStorage.Modules.Client.UI.GamepassUnlockController)
+        
+        -- Kilit açma fonksiyonlarını "true" döndürmeye zorla
+        GamepassModule.OwnsGamepass = function() return true end
+        UnlockController.OwnsGamepass = function() return true end
+        
+        -- AllGamepasses.txt dosyasındaki tüm paketleri aktif et
+        local AllPasses = require(ReplicatedStorage.Modules.Shared.PlayerData.Gamepasses).All
+        for name, data in pairs(AllPasses) do
+            data.__GAMEPASS = true
         end
         
-        XenoSettings.BypassReady = true
         StarterGui:SetCore("SendNotification", {
-            Title = "XenoHub";
-            Text = "Tüm Gamepass ve Reklam Kilitleri Kaldırıldı!";
-            Duration = 5;
+            Title = "XenoHub V19";
+            Text = "Tüm Gamepassler ve AdStore Yetkileri Aktif!";
+            Duration = 3;
         })
     end)
 end
 
 -- ============================================================================== --
--- 2. XENOAI PRO SCRIPTING ENGINE
+-- 2. VİDEODAKİ ARAYÜZÜN AYNISI (MODERN UI)
 -- ============================================================================== --
 
-local function AskAI(question, callback)
-    task.spawn(function()
-        local sysPrompt = "Sen Brookhaven uzmanı bir exploitsin. Luau dilini ve Brookhaven remote eventlerini (Ads, Lot, Gamepass) biliyorsun. Kullanıcıya kod yazarken Brookhaven dosyalarındaki gibi (Decompiled style) örnekler ver."
-        local payload = {
-            contents = {{ parts = {{ text = question }} }},
-            systemInstruction = { parts = {{ text = sysPrompt }} }
-        }
-        
-        local success, result
-        pcall(function()
-            result = HttpService:PostAsync(
-                "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=" .. XenoSettings.ApiKey,
-                HttpService:JSONEncode(payload)
-            )
-        end)
-
-        if result then
-            local data = HttpService:JSONDecode(result)
-            callback(data.candidates[1].content.parts[1].text)
-        else
-            callback("Hata: AI şu an bağlantı kuramıyor. API anahtarını kontrol et.")
-        end
-    end)
-end
-
--- ============================================================================== --
--- 3. ARAYÜZ TASARIMI (VİDEODAKİ GÖRÜNÜMÜN AYNISI)
--- ============================================================================== --
-
-if ParentFolder:FindFirstChild("XenoMirrorV18") then ParentFolder.XenoMirrorV18:Destroy() end
+if ParentFolder:FindFirstChild("XenoUltimateV19") then ParentFolder.XenoUltimateV19:Destroy() end
 local ScreenGui = Instance.new("ScreenGui", ParentFolder)
-ScreenGui.Name = "XenoMirrorV18"
+ScreenGui.Name = "XenoUltimateV19"
 
+-- Ana Pencere
 local Main = Instance.new("Frame", ScreenGui)
-Main.Size = UDim2.new(0, 620, 0, 420)
-Main.Position = UDim2.new(0.5, -310, 0.5, -210)
-Main.BackgroundColor3 = Color3.fromRGB(15, 15, 20)
+Main.Size = UDim2.new(0, 650, 0, 440)
+Main.Position = UDim2.new(0.5, -325, 0.5, -220)
+Main.BackgroundColor3 = Color3.fromRGB(12, 12, 18)
 Main.BorderSizePixel = 0
-Instance.new("UICorner", Main).CornerRadius = UDim.new(0, 15)
+local MainCorner = Instance.new("UICorner", Main)
+MainCorner.CornerRadius = UDim.new(0, 16)
 
--- Glow & Stroke
+-- Kenar Parlaması (Glow Effect)
 local Stroke = Instance.new("UIStroke", Main)
 Stroke.Color = Color3.fromRGB(145, 90, 230)
-Stroke.Thickness = 2
-Stroke.Transparency = 0.2
+Stroke.Thickness = 2.5
+Stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
 
--- Sidebar (Sol Menü)
-local Side = Instance.new("Frame", Main)
-Side.Size = UDim2.new(0, 170, 1, 0)
-Side.BackgroundColor3 = Color3.fromRGB(20, 20, 28)
-Instance.new("UICorner", Side).CornerRadius = UDim.new(0, 15)
+-- Sol Menü (Sidebar)
+local Sidebar = Instance.new("Frame", Main)
+Sidebar.Size = UDim2.new(0, 180, 1, 0)
+Sidebar.BackgroundColor3 = Color3.fromRGB(18, 18, 26)
+Instance.new("UICorner", Sidebar).CornerRadius = UDim.new(0, 16)
 
-local Title = Instance.new("TextLabel", Side)
-Title.Size = UDim2.new(1, 0, 0, 60)
-Title.Text = "XENOHUB V18"
-Title.TextColor3 = Color3.fromRGB(145, 90, 230)
-Title.Font = Enum.Font.GothamBlack
-Title.TextSize = 20
+local Logo = Instance.new("TextLabel", Sidebar)
+Logo.Size = UDim2.new(1, 0, 0, 70)
+Logo.Text = "XENOHUB"
+Logo.TextColor3 = Color3.fromRGB(145, 90, 230)
+Logo.Font = Enum.Font.GothamBlack
+Logo.TextSize = 22
 
-local Container = Instance.new("Frame", Main)
-Container.Size = UDim2.new(1, -180, 1, -20)
-Container.Position = UDim2.new(0, 180, 0, 10)
-Container.BackgroundTransparency = 1
+-- İçerik Alanı
+local Content = Instance.new("Frame", Main)
+Content.Size = UDim2.new(1, -190, 1, -20)
+Content.Position = UDim2.new(0, 190, 0, 10)
+Content.BackgroundTransparency = 1
 
-local pages = {}
-local function AddTab(name, icon)
-    local btn = Instance.new("TextButton", Side)
-    btn.Size = UDim2.new(0.9, 0, 0, 40)
-    btn.Position = UDim2.new(0.05, 0, 0, 70 + (#pages * 45))
+local tabs = {}
+local function CreateTab(name)
+    local btn = Instance.new("TextButton", Sidebar)
+    btn.Size = UDim2.new(0.9, 0, 0, 42)
+    btn.Position = UDim2.new(0.05, 0, 0, 80 + (#tabs * 48))
     btn.BackgroundColor3 = Color3.fromRGB(145, 90, 230)
     btn.BackgroundTransparency = 1
     btn.Text = "  " .. name
-    btn.TextColor3 = Color3.new(0.8, 0.8, 0.8)
-    btn.Font = Enum.Font.GothamBold
+    btn.TextColor3 = Color3.fromRGB(200, 200, 200)
+    btn.Font = Enum.Font.GothamSemibold
     btn.TextSize = 13
     btn.TextXAlignment = Enum.TextXAlignment.Left
     Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 8)
 
-    local page = Instance.new("ScrollingFrame", Container)
+    local page = Instance.new("ScrollingFrame", Content)
     page.Size = UDim2.new(1, 0, 1, 0)
     page.BackgroundTransparency = 1
     page.Visible = false
-    page.ScrollBarThickness = 0
-    Instance.new("UIListLayout", page).Padding = UDim.new(0, 10)
+    page.ScrollBarThickness = 2
+    page.ScrollBarImageColor3 = Color3.fromRGB(145, 90, 230)
+    local list = Instance.new("UIListLayout", page)
+    list.Padding = UDim.new(0, 10)
+    list.HorizontalAlignment = Enum.HorizontalAlignment.Center
 
     btn.MouseButton1Click:Connect(function()
-        for _, p in pairs(pages) do p.p.Visible = false p.b.BackgroundTransparency = 1 end
+        for _, t in pairs(tabs) do t.p.Visible = false t.b.BackgroundTransparency = 1 t.b.TextColor3 = Color3.fromRGB(200, 200, 200) end
         page.Visible = true
         btn.BackgroundTransparency = 0.8
+        btn.TextColor3 = Color3.new(1, 1, 1)
     end)
 
-    if #pages == 0 then page.Visible = true btn.BackgroundTransparency = 0.8 end
-    table.insert(pages, {p = page, b = btn})
+    if #tabs == 0 then page.Visible = true btn.BackgroundTransparency = 0.8 end
+    table.insert(tabs, {p = page, b = btn})
     return page
 end
 
-local function AddAction(parent, text, desc, callback)
-    local f = Instance.new("Frame", parent)
-    f.Size = UDim2.new(0.98, 0, 0, 55)
-    f.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
-    Instance.new("UICorner", f)
+local function CreateCard(parent, title, desc, callback)
+    local card = Instance.new("Frame", parent)
+    card.Size = UDim2.new(0.95, 0, 0, 65)
+    card.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
+    Instance.new("UICorner", card).CornerRadius = UDim.new(0, 10)
     
-    local t = Instance.new("TextLabel", f)
-    t.Size = UDim2.new(0.7, 0, 0.5, 0)
-    t.Position = UDim2.new(0.05, 0, 0.1, 0)
-    t.Text = text
-    t.TextColor3 = Color3.new(1,1,1)
+    local t = Instance.new("TextLabel", card)
+    t.Size = UDim2.new(0.7, 0, 0.4, 0)
+    t.Position = UDim2.new(0.05, 0, 0.15, 0)
+    t.Text = title
+    t.TextColor3 = Color3.new(1, 1, 1)
     t.Font = Enum.Font.GothamBold
     t.TextSize = 14
     t.TextXAlignment = Enum.TextXAlignment.Left
     t.BackgroundTransparency = 1
 
-    local d = Instance.new("TextLabel", f)
-    d.Size = UDim2.new(0.7, 0, 0.4, 0)
-    d.Position = UDim2.new(0.05, 0, 0.5, 0)
+    local d = Instance.new("TextLabel", card)
+    d.Size = UDim2.new(0.7, 0, 0.3, 0)
+    d.Position = UDim2.new(0.05, 0, 0.55, 0)
     d.Text = desc
-    d.TextColor3 = Color3.new(0.6,0.6,0.6)
+    d.TextColor3 = Color3.fromRGB(160, 160, 160)
     d.Font = Enum.Font.Gotham
     d.TextSize = 11
     d.TextXAlignment = Enum.TextXAlignment.Left
     d.BackgroundTransparency = 1
 
-    local b = Instance.new("TextButton", f)
-    b.Size = UDim2.new(0.25, 0, 0.6, 0)
-    b.Position = UDim2.new(0.72, 0, 0.2, 0)
-    b.BackgroundColor3 = Color3.fromRGB(145, 90, 230)
-    b.Text = "UYGULA"
-    b.TextColor3 = Color3.new(1,1,1)
-    b.Font = Enum.Font.GothamBold
-    b.TextSize = 12
-    Instance.new("UICorner", b)
-    b.MouseButton1Click:Connect(callback)
+    local action = Instance.new("TextButton", card)
+    action.Size = UDim2.new(0.22, 0, 0.6, 0)
+    action.Position = UDim2.new(0.73, 0, 0.2, 0)
+    action.BackgroundColor3 = Color3.fromRGB(145, 90, 230)
+    action.Text = "AKTİF ET"
+    action.TextColor3 = Color3.new(1, 1, 1)
+    action.Font = Enum.Font.GothamBold
+    action.TextSize = 11
+    Instance.new("UICorner", action)
+    
+    action.MouseButton1Click:Connect(function()
+        action.Text = "LÜTFEN BEKLEYİN..."
+        task.wait(0.3)
+        callback()
+        action.Text = "TAMAMLANDI"
+        task.delay(1, function() action.Text = "AKTİF ET" end)
+    end)
 end
 
 -- ============================================================================== --
--- SAYFALARIN DOLDURULMASI
+-- SEKMELERİN YAPILANDIRILMASI
 -- ============================================================================== --
 
-local Tab1 = AddTab("🏠 Dashboard")
-local Tab2 = AddTab("🤖 XenoAI Pro")
-local Tab3 = AddTab("👁️ Visuals & Cam")
-local Tab4 = AddTab("🖥️ Server Manager")
+local MainTab = CreateTab("🏠 Dashboard")
+local AdsTab = CreateTab("📺 Reklam & Mağaza")
+local VisualsTab = CreateTab("👁️ Görsel Modlar")
+local AiTab = CreateTab("🤖 XenoAI Engine")
 
 -- DASHBOARD
-AddAction(Tab1, "Mirror Bypass", "AllGamepasses.txt tabanlı tam kilit açma.", FullBypass)
-AddAction(Tab1, "Cmdr Admin", "F2 tuşu ile çalışan gizli admin paneli.", function() FullBypass() require(ReplicatedStorage.CmdrClient):Toggle() end)
-AddAction(Tab1, "AdStore Panel", "Video reklam ödül panelini zorla açar.", function() 
-    pcall(function() require(ReplicatedStorage.Modules.Client.UI.PanelController).OpenPanelByContext("MainGUIHandler", "AdStore") end)
+CreateCard(MainTab, "Mirror Gamepass Bypass", "Tüm araç ve ev kilitlerini anında kırar.", FullGamepassBypass)
+CreateCard(MainTab, "Cmdr Admin Paneli", "Gelişmiş F2 komut satırını açar.", function() FullGamepassBypass() require(ReplicatedStorage.CmdrClient):Toggle() end)
+
+-- ADS & ADSTORE
+CreateCard(AdsTab, "AdStore Panelini Aç", "Oyunun orijinal ödüllü reklam panelini tetikler.", OpenAdStore)
+CreateCard(AdsTab, "ImageButton Bypass", "Reklam izleme butonlarını görünür ve tıklanabilir yapar.", function()
+    pcall(function()
+        local extend = require(ReplicatedStorage.Modules.Client.Ads.ExtendUnlockController)
+        extend.ShowExtendCurrentHousePanel(true)
+    end)
 end)
 
--- XENOAI PRO (GELİŞMİŞ EKRAN)
-local AiLog = Instance.new("TextBox", Tab2)
-AiLog.Size = UDim2.new(0.98, 0, 0, 160)
-AiLog.BackgroundColor3 = Color3.fromRGB(15, 15, 20)
-AiLog.Text = "XenoAI Pro Hazır. Scripting veya Brookhaven hakkında soru sor..."
-AiLog.TextColor3 = Color3.fromRGB(145, 90, 230)
-AiLog.TextWrapped = true
-AiLog.ClearTextOnFocus = false
-AiLog.TextEditable = false
-AiLog.Font = Enum.Font.Code
-AiLog.TextSize = 12
-Instance.new("UICorner", AiLog)
-
-local AiInp = Instance.new("TextBox", Tab2)
-AiInp.Size = UDim2.new(0.98, 0, 0, 45)
-AiInp.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
-AiInp.PlaceholderText = "Soru veya script isteği yaz..."
-AiInp.TextColor3 = Color3.new(1,1,1)
-Instance.new("UICorner", AiInp)
-
-AddAction(Tab2, "AI'yı Sorgula", "Gemini 2.5 Engine ile analiz başlatır.", function()
-    if AiInp.Text ~= "" then
-        AiLog.Text = "Sorgulanıyor..."
-        AskAI(AiInp.Text, function(r) AiLog.Text = r end)
-    end
-end)
-
--- VISUALS (UNVIEW EKLEME)
-AddAction(Tab3, "Unview Player", "Kamerayı karakterine geri döndürür.", function()
-    XenoSettings.SpectateTarget = nil
+-- VISUALS
+CreateCard(VisualsTab, "Unview Player", "İzleme modundan çıkıp kamerayı sıfırlar.", function()
     Workspace.CurrentCamera.CameraSubject = lp.Character.Humanoid
 end)
-
-AddAction(Tab3, "Player ESP", "Oyuncuları duvar arkasından gösterir.", function()
-    XenoSettings.EspActive = not XenoSettings.EspActive
+CreateCard(VisualsTab, "Full ESP", "Oyuncuları mor bir çerçeve içine alır.", function()
+    _G.EspActive = not _G.EspActive
 end)
 
--- SERVER MANAGER
-AddAction(Tab4, "Advanced Server Hop", "En düşük pingli sunucuya geçer.", function()
-    local servers = HttpService:JSONDecode(game:HttpGet("https://games.roblox.com/v1/games/"..game.PlaceId.."/servers/Public?sortOrder=Asc&limit=100")).data
-    for _, s in pairs(servers) do
-        if s.playing < s.maxPlayers and s.id ~= game.JobId then
-            TeleportService:TeleportToPlaceInstance(game.PlaceId, s.id)
-            break
-        end
+-- ============================================================================== --
+-- SİSTEM ÇALIŞTIRICILARI
+-- ============================================================================== --
+
+-- Sürükleme Özelliği
+local dragging, dragInput, dragStart, startPos
+Main.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        dragging = true dragStart = input.Position startPos = Main.Position
+        input.Changed:Connect(function() if input.UserInputState == Enum.UserInputState.End then dragging = false end end)
     end
 end)
-
--- ============================================================================== --
--- DÖNGÜ VE SİSTEM ÇALIŞTIRMA
--- ============================================================================== --
-
+Main.InputChanged:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then dragInput = input end
+end)
 RunService.RenderStepped:Connect(function()
-    -- ESP
-    for _, p in pairs(Players:GetPlayers()) do
-        if p ~= lp and p.Character then
-            local h = p.Character:FindFirstChild("XenoHighlight")
-            if XenoSettings.EspActive then
-                if not h then
-                    h = Instance.new("Highlight", p.Character)
+    if dragging and dragInput then
+        local delta = dragInput.Position - dragStart
+        Main.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+    end
+    -- ESP Loop
+    if _G.EspActive then
+        for _, p in pairs(Players:GetPlayers()) do
+            if p ~= lp and p.Character then
+                if not p.Character:FindFirstChild("XenoHighlight") then
+                    local h = Instance.new("Highlight", p.Character)
                     h.Name = "XenoHighlight"
                     h.FillColor = Color3.fromRGB(145, 90, 230)
                 end
-            else
-                if h then h:Destroy() end
             end
         end
     end
 end)
 
--- Toggle Butonu
-local Tgl = Instance.new("TextButton", ScreenGui)
-Tgl.Size = UDim2.new(0, 40, 0, 40)
-Tgl.Position = UDim2.new(0, 20, 0.5, -20)
-Tgl.BackgroundColor3 = Color3.fromRGB(145, 90, 230)
-Tgl.Text = "X"
-Tgl.Font = Enum.Font.GothamBlack
-Tgl.TextColor3 = Color3.new(1,1,1)
-Instance.new("UICorner", Tgl).CornerRadius = UDim.new(1,0)
-Tgl.MouseButton1Click:Connect(function() Main.Visible = not Main.Visible end)
+-- GUI Toggle (Aç/Kapat)
+local ToggleBtn = Instance.new("TextButton", ScreenGui)
+ToggleBtn.Size = UDim2.new(0, 45, 0, 45)
+ToggleBtn.Position = UDim2.new(0, 20, 0.5, -22)
+ToggleBtn.BackgroundColor3 = Color3.fromRGB(145, 90, 230)
+ToggleBtn.Text = "X"
+ToggleBtn.TextColor3 = Color3.new(1, 1, 1)
+ToggleBtn.Font = Enum.Font.GothamBlack
+Instance.new("UICorner", ToggleBtn).CornerRadius = UDim.new(1, 0)
+ToggleBtn.MouseButton1Click:Connect(function() Main.Visible = not Main.Visible end)
 
--- Başlangıç
-FullBypass()
+FullGamepassBypass()
