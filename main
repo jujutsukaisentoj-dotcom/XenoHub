@@ -1,307 +1,238 @@
---[[ 
-    XENOHUB ULTIMATE - V19 (BROOKHAVEN FULL EDITION)
-    Özellikler: Gamepass Bypass, Reklam Sistemi (Ads) Bypass, CMDR Erişimi, Araç Modları, Işınlanma.
+--[[
+	ULTIMATE BUILD A BOAT AUTO FARM
+	Geliştirilmiş Sürüm: v2.0
+	Özellikler:
+	- Modern UI (Orion Library)
+	- Tween (Kayarak) Farm (Anti-Kick korumalı)
+	- Otomatik Engel ve Su Silici
+	- Anti-AFK
+	- Otomatik Sandık Açma
 ]]
 
+local OrionLib = loadstring(game:HttpGet(('https://raw.githubusercontent.com/shlexware/Orion/main/source')))()
+local Window = OrionLib:MakeWindow({Name = "BaBft Ultimate Farm - Gelişmiş", HidePremium = false, SaveConfig = true, ConfigFolder = "BaBftConfig"})
+
+-- ================================
+-- Değişkenler
+-- ================================
 local Players = game:GetService("Players")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local UserInputService = game:GetService("UserInputService")
-local TweenService = game:GetService("TweenService")
-local CoreGui = game:GetService("CoreGui")
-local RunService = game:GetService("RunService")
-local StarterGui = game:GetService("StarterGui")
+local LocalPlayer = Players.LocalPlayer
 local Workspace = game:GetService("Workspace")
+local TweenService = game:GetService("TweenService")
+local RunService = game:GetService("RunService")
 
-local lp = Players.LocalPlayer
-local ParentFolder = (gethui and gethui()) or CoreGui
+local farming = false
+local autoBuyCommon = false
+local autoBuyRare = false
 
--- Yapılandırma ve Durum
-local Config = {
-    Theme = Color3.fromRGB(145, 90, 230),
-    Secondary = Color3.fromRGB(18, 18, 26),
-    Background = Color3.fromRGB(12, 12, 18),
-    Accent = Color3.fromRGB(255, 255, 255),
-    EspActive = false,
-    InfJump = false,
-    AdBypass = true
-}
+-- ================================
+-- Yardımcı Fonksiyonlar
+-- ================================
 
--- ============================================================================== --
--- ÇEKİRDEK FONKSİYONLAR
--- ============================================================================== --
-
-local function Notify(title, text)
-    StarterGui:SetCore("SendNotification", {
-        Title = title;
-        Text = text;
-        Duration = 5;
-    })
-end
-
--- Reklam (Ads) ve Mağaza Sistemlerini Bypass Etme
-local function BypassAdsAndStore()
-    local success, err = pcall(function()
-        -- Reklam Kontrolcülerini Manipüle Et
-        local AdController = require(ReplicatedStorage.Modules.Client.Ads.AdvertisementsController)
-        local AdJoinController = require(ReplicatedStorage.Modules.Client.Ads.AdvertisementJoinController)
-        
-        -- Video izlemiş gibi davran
-        AdController.IsFakedVideo = function() return true end
-        if AdJoinController.CheckAd then
-            local oldCheckAd = AdJoinController.CheckAd
-            AdJoinController.CheckAd = function(...) return true end
-        end
-
-        -- Gamepass ve Kilitli İçerik Bypass
-        local GamepassModule = require(ReplicatedStorage.Modules.Client.UI.Gamepass.GamepassController)
-        local UnlockController = require(ReplicatedStorage.Modules.Client.UI.GamepassUnlockController)
-        
-        GamepassModule.OwnsGamepass = function() return true end
-        UnlockController.OwnsGamepass = function() return true end
-        
-        -- Tüm eşyaları "Unlocked" olarak işaretle
-        local SharedPasses = require(ReplicatedStorage.Modules.Shared.PlayerData.Gamepasses)
-        for _, pass in pairs(SharedPasses.All or {}) do
-            if type(pass) == "table" then
-                pass.Unlocked = true
-                pass.__GAMEPASS = true
+-- Engelleri ve Suyu Temizle (Ölmemek için)
+local function ClearObstacles()
+    pcall(function()
+        local stages = Workspace:WaitForChild("BoatStages"):WaitForChild("NormalStages")
+        for _, stage in pairs(stages:GetChildren()) do
+            if stage:FindFirstChild("DarknessPart") then
+                stage.DarknessPart:Destroy()
             end
         end
     end)
+    -- İsteğe bağlı su silme (görsel olarak kötü durabilir ama güvenlidir)
+    -- Workspace.Water:Destroy() 
+end
+
+-- Karakteri Hazırla (Yerçekimini kapatır, çarpışmayı kapatır)
+local function SetupCharacter()
+    local char = LocalPlayer.Character
+    if not char then return end
+    local root = char:WaitForChild("HumanoidRootPart")
     
-    if success then 
-        Notify("XenoHub", "Reklamlar ve Kilitli Mağaza özellikleri açıldı!")
-    else 
-        warn("Ads Bypass Hatası: " .. tostring(err)) 
-    end
-end
-
-local function TeleportTo(pos)
-    if lp.Character and lp.Character:FindFirstChild("HumanoidRootPart") then
-        lp.Character.HumanoidRootPart.CFrame = pos
-    end
-end
-
--- ============================================================================== --
--- UI İNŞA SÜRECİ
--- ============================================================================== --
-
-if ParentFolder:FindFirstChild("XenoUltimateV19") then ParentFolder.XenoUltimateV19:Destroy() end
-
-local ScreenGui = Instance.new("ScreenGui", ParentFolder)
-ScreenGui.Name = "XenoUltimateV19"
-
-local Main = Instance.new("Frame", ScreenGui)
-Main.Name = "Main"
-Main.Size = UDim2.new(0, 700, 0, 480)
-Main.Position = UDim2.new(0.5, -350, 0.5, -240)
-Main.BackgroundColor3 = Config.Background
-Main.BorderSizePixel = 0
-Main.ClipsDescendants = true
-Instance.new("UICorner", Main).CornerRadius = UDim.new(0, 12)
-local MainStroke = Instance.new("UIStroke", Main)
-MainStroke.Color = Config.Theme
-MainStroke.Thickness = 2
-
--- Yan Menü (Sidebar)
-local Sidebar = Instance.new("Frame", Main)
-Sidebar.Size = UDim2.new(0, 200, 1, 0)
-Sidebar.BackgroundColor3 = Config.Secondary
-Instance.new("UICorner", Sidebar).CornerRadius = UDim.new(0, 12)
-
-local Logo = Instance.new("TextLabel", Sidebar)
-Logo.Size = UDim2.new(1, 0, 0, 80)
-Logo.Text = "XENOHUB RP"
-Logo.TextColor3 = Config.Theme
-Logo.Font = Enum.Font.GothamBlack
-Logo.TextSize = 24
-Logo.BackgroundTransparency = 1
-
-local TabContainer = Instance.new("ScrollingFrame", Sidebar)
-TabContainer.Size = UDim2.new(1, 0, 1, -100)
-TabContainer.Position = UDim2.new(0, 0, 0, 80)
-TabContainer.BackgroundTransparency = 1
-TabContainer.ScrollBarThickness = 0
-local TabList = Instance.new("UIListLayout", TabContainer)
-TabList.Padding = UDim.new(0, 5)
-TabList.HorizontalAlignment = Enum.HorizontalAlignment.Center
-
--- İçerik Alanı
-local Content = Instance.new("Frame", Main)
-Content.Size = UDim2.new(1, -220, 1, -20)
-Content.Position = UDim2.new(0, 210, 0, 10)
-Content.BackgroundTransparency = 1
-
-local tabs = {}
-local function CreateTab(name)
-    local TabBtn = Instance.new("TextButton", TabContainer)
-    TabBtn.Size = UDim2.new(0.9, 0, 0, 45)
-    TabBtn.BackgroundColor3 = Config.Theme
-    TabBtn.BackgroundTransparency = 1
-    TabBtn.Text = name
-    TabBtn.TextColor3 = Color3.fromRGB(180, 180, 180)
-    TabBtn.Font = Enum.Font.GothamSemibold
-    TabBtn.TextSize = 14
-    Instance.new("UICorner", TabBtn).CornerRadius = UDim.new(0, 8)
-
-    local Page = Instance.new("ScrollingFrame", Content)
-    Page.Size = UDim2.new(1, 0, 1, 0)
-    Page.BackgroundTransparency = 1
-    Page.Visible = false
-    Page.ScrollBarThickness = 2
-    local PageList = Instance.new("UIListLayout", Page)
-    PageList.Padding = UDim.new(0, 12)
-
-    TabBtn.MouseButton1Click:Connect(function()
-        for _, t in pairs(tabs) do
-            t.p.Visible = false
-            TweenService:Create(t.b, TweenInfo.new(0.3), {BackgroundTransparency = 1, TextColor3 = Color3.fromRGB(180, 180, 180)}):Play()
+    -- Havada durmasını sağla
+    local bv = Instance.new("BodyVelocity")
+    bv.Name = "FlyVelocity"
+    bv.Velocity = Vector3.new(0,0,0)
+    bv.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
+    bv.Parent = root
+    
+    -- Çarpışmaları kapat (Noclip)
+    for _, part in pairs(char:GetDescendants()) do
+        if part:IsA("BasePart") then
+            part.CanCollide = false
         end
-        Page.Visible = true
-        TweenService:Create(TabBtn, TweenInfo.new(0.3), {BackgroundTransparency = 0.8, TextColor3 = Color3.new(1,1,1)}):Play()
-    end)
-
-    if #tabs == 0 then Page.Visible = true; TabBtn.BackgroundTransparency = 0.8; TabBtn.TextColor3 = Color3.new(1,1,1) end
-    table.insert(tabs, {p = Page, b = TabBtn})
-    return Page
-end
-
--- UI Eleman Yardımcıları
-local function CreateToggle(parent, title, desc, callback)
-    local Frame = Instance.new("Frame", parent)
-    Frame.Size = UDim2.new(0.98, 0, 0, 70)
-    Frame.BackgroundColor3 = Color3.fromRGB(22, 22, 30)
-    Instance.new("UICorner", Frame).CornerRadius = UDim.new(0, 10)
-
-    local T = Instance.new("TextLabel", Frame)
-    T.Text = title; T.Size = UDim2.new(0.7, 0, 0.4, 0); T.Position = UDim2.new(0.05, 0, 0.15, 0)
-    T.Font = Enum.Font.GothamBold; T.TextSize = 14; T.TextColor3 = Color3.new(1,1,1); T.TextXAlignment = 0; T.BackgroundTransparency = 1
-
-    local D = Instance.new("TextLabel", Frame)
-    D.Text = desc; D.Size = UDim2.new(0.7, 0, 0.3, 0); D.Position = UDim2.new(0.05, 0, 0.55, 0)
-    D.Font = Enum.Font.Gotham; D.TextSize = 11; D.TextColor3 = Color3.fromRGB(150, 150, 150); D.TextXAlignment = 0; D.BackgroundTransparency = 1
-
-    local Toggle = Instance.new("TextButton", Frame)
-    Toggle.Size = UDim2.new(0, 45, 0, 22); Toggle.Position = UDim2.new(0.85, -20, 0.5, -11)
-    Toggle.BackgroundColor3 = Color3.fromRGB(45, 45, 55); Toggle.Text = ""
-    Instance.new("UICorner", Toggle).CornerRadius = UDim.new(1, 0)
-    local Circle = Instance.new("Frame", Toggle)
-    Circle.Size = UDim2.new(0, 16, 0, 16); Circle.Position = UDim2.new(0, 3, 0.5, -8)
-    Circle.BackgroundColor3 = Color3.new(1,1,1); Instance.new("UICorner", Circle).CornerRadius = UDim.new(1, 0)
-
-    local active = false
-    Toggle.MouseButton1Click:Connect(function()
-        active = not active
-        TweenService:Create(Circle, TweenInfo.new(0.2), {Position = active and UDim2.new(0, 26, 0.5, -8) or UDim2.new(0, 3, 0.5, -8)}):Play()
-        TweenService:Create(Toggle, TweenInfo.new(0.2), {BackgroundColor3 = active and Config.Theme or Color3.fromRGB(45, 45, 55)}):Play()
-        callback(active)
-    end)
-end
-
-local function CreateButton(parent, text, callback)
-    local btn = Instance.new("TextButton", parent)
-    btn.Size = UDim2.new(0.98, 0, 0, 40)
-    btn.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
-    btn.Text = text; btn.Font = Enum.Font.GothamBold; btn.TextSize = 14; btn.TextColor3 = Color3.new(1,1,1)
-    Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 8)
-    local stroke = Instance.new("UIStroke", btn)
-    stroke.Color = Config.Theme; stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
-    btn.MouseButton1Click:Connect(callback)
-end
-
--- ============================================================================== --
--- SEKME KURULUMLARI
--- ============================================================================== --
-
-local Dash = CreateTab("Genel")
-local AdsTab = CreateTab("Ads & Mağaza")
-local TPTab = CreateTab("Işınlanma")
-local CmdrTab = CreateTab("CMDR / Komut")
-
--- GENEL SEKME
-CreateButton(Dash, "Tüm Gamepassleri Aktif Et", BypassAdsAndStore)
-CreateToggle(Dash, "Enhanced ESP", "Oyuncuları işaretler.", function(s) Config.EspActive = s end)
-CreateToggle(Dash, "Sınırsız Zıplama", "Havada yürümeyi sağlar.", function(s) Config.InfJump = s end)
-
--- ADS & MAĞAZA SEKME (FULL ADS ÖZELLİKLERİ)
-CreateToggle(AdsTab, "Otomatik Reklam Bypass", "Tüm video gereksinimlerini atlar.", function(s) Config.AdBypass = s end)
-CreateButton(AdsTab, "Brookhaven AdStore Panelini Aç", function()
-    pcall(function()
-        require(ReplicatedStorage.Modules.Client.UI.PanelController).OpenPanelByContext("MainGUIHandler", "AdStore")
-    end)
-end)
-CreateButton(AdsTab, "ExtendUnlock Panelini Zorla", function()
-    pcall(function()
-        require(ReplicatedStorage.Modules.Client.Ads.ExtendUnlockController).ShowExtendCurrentHousePanel(true)
-    end)
-end)
-
--- IŞINLANMA
-CreateButton(TPTab, "Banka Kasası", function() TeleportTo(CFrame.new(-442, 23, -283)) end)
-CreateButton(TPTab, "Göl Evi Gizli Giriş", function() TeleportTo(CFrame.new(-932, 12, -446)) end)
-CreateButton(TPTab, "Polis Karakolu Hücre", function() TeleportTo(CFrame.new(-338, 25, -290)) end)
-
--- CMDR SEKME
-CreateButton(CmdrTab, "Gizli CMDR Konsolunu Aç", function()
-    pcall(function()
-        -- Oyun içi CMDR sistemini tetikle (Eğer mevcutsa)
-        local CmdrClient = ReplicatedStorage:FindFirstChild("CmdrClient", true)
-        if CmdrClient then
-            require(CmdrClient):HandleEvent("OpenConsole")
-        else
-            Notify("Hata", "CMDR sistemi bu sunucuda bulunamadı.")
-        end
-    end)
-end)
-CreateButton(CmdrTab, "Yönetici Komutlarını Simüle Et", function()
-    Notify("Sistem", "Yönetici yetkileri simüle ediliyor... (Bypass Aktif)")
-end)
-
--- ============================================================================== --
--- DÖNGÜLER VE SÜRÜKLEME
--- ============================================================================== --
-
-UserInputService.JumpRequest:Connect(function()
-    if Config.InfJump and lp.Character and lp.Character:FindFirstChild("Humanoid") then
-        lp.Character.Humanoid:ChangeState(3)
     end
-end)
+end
 
-RunService.RenderStepped:Connect(function()
-    if Config.EspActive then
-        for _, p in pairs(Players:GetPlayers()) do
-            if p ~= lp and p.Character then
-                local h = p.Character:FindFirstChild("XHighlight") or Instance.new("Highlight", p.Character)
-                h.Name = "XHighlight"; h.FillColor = Config.Theme
+-- ================================
+-- Farm Mantığı
+-- ================================
+
+local function StartFarm()
+    task.spawn(function()
+        while farming do
+            local char = LocalPlayer.Character
+            if not char or not char:FindFirstChild("HumanoidRootPart") then
+                LocalPlayer.CharacterAdded:Wait()
+                task.wait(1)
+                char = LocalPlayer.Character
+            end
+
+            local root = char:WaitForChild("HumanoidRootPart")
+            
+            -- 1. Hazırlık
+            SetupCharacter()
+            ClearObstacles()
+
+            -- 2. Hedef Bölgeler (Stages)
+            -- Oyunun sonundaki sandığa kadar olan yol
+            local endZone = Workspace.BoatStages.NormalStages.TheEnd.GoldenChest.Trigger
+            local checkPoints = {
+                CFrame.new(-55, 65, 1365), -- Başlangıçtan çıkış
+                CFrame.new(-55, 65, 8605), -- Son etabın önü
+                endZone.CFrame             -- Hazine
+            }
+
+            -- 3. Hareket (Tween)
+            for i, targetCF in ipairs(checkPoints) do
+                if not farming or not char or not char.Parent then break end
+                
+                local distance = (root.Position - targetCF.Position).Magnitude
+                -- Hızı ayarla (Çok hızlı olursa oyun atar, 300 ideal bir hız çarpanıdır)
+                local speed = 300 
+                local duration = distance / speed
+
+                local info = TweenInfo.new(duration, Enum.EasingStyle.Linear)
+                local tween = TweenService:Create(root, info, {CFrame = targetCF})
+                
+                tween:Play()
+                tween.Completed:Wait()
+            end
+
+            -- 4. Sandığı Al
+            if farming and char and char:FindFirstChild("HumanoidRootPart") then
+                -- Sandığın tam üstüne in
+                root.CFrame = endZone.CFrame
+                task.wait(0.5)
+                -- Sandık alma animasyonu ve sunucu onayı için bekle
+                task.wait(10) 
+            end
+
+            -- 5. Reset ve Tekrar
+            if farming then
+                LocalPlayer.Character:BreakJoints() -- Öl ve başa dön
+                task.wait(4) -- Respawn süresi
             end
         end
+        
+        -- Farm bittiğinde BodyVelocity'i temizle
+        if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") and LocalPlayer.Character.HumanoidRootPart:FindFirstChild("FlyVelocity") then
+            LocalPlayer.Character.HumanoidRootPart.FlyVelocity:Destroy()
+        end
+    end)
+end
+
+-- ================================
+-- UI Sekmeleri ve Butonlar
+-- ================================
+
+local FarmTab = Window:MakeTab({
+	Name = "Auto Farm",
+	Icon = "rbxassetid://4483345998",
+	PremiumOnly = false
+})
+
+local MiscTab = Window:MakeTab({
+	Name = "Ekstra",
+	Icon = "rbxassetid://4483345998",
+	PremiumOnly = false
+})
+
+-- Farm Kontrolleri
+FarmTab:AddToggle({
+	Name = "Otomatik Farm Başlat",
+	Default = false,
+	Callback = function(Value)
+		farming = Value
+		if farming then
+			StartFarm()
+            OrionLib:MakeNotification({
+                Name = "Farm Başladı",
+                Content = "Engeller siliniyor ve yola çıkılıyor...",
+                Image = "rbxassetid://4483345998",
+                Time = 5
+            })
+		else
+            -- Durdurma işlemi
+            local char = LocalPlayer.Character
+            if char and char:FindFirstChild("HumanoidRootPart") then
+                 if char.HumanoidRootPart:FindFirstChild("FlyVelocity") then
+                    char.HumanoidRootPart.FlyVelocity:Destroy()
+                 end
+                 -- Hareketi durdur
+                 TweenService:Create(char.HumanoidRootPart, TweenInfo.new(0.1), {CFrame = char.HumanoidRootPart.CFrame}):Play()
+            end
+        end
+	end    
+})
+
+FarmTab:AddButton({
+	Name = "Siyah Duvarları Sil (Manuel)",
+	Callback = function()
+      	ClearObstacles()
+        OrionLib:MakeNotification({
+            Name = "Temizlendi",
+            Content = "Stage bariyerleri kaldırıldı.",
+            Image = "rbxassetid://4483345998",
+            Time = 3
+        })
+  	end    
+})
+
+-- Ekstra Kontroller
+MiscTab:AddToggle({
+	Name = "Anti-AFK",
+	Default = true,
+	Callback = function(Value)
+		if Value then
+            local vu = game:GetService("VirtualUser")
+            game:GetService("Players").LocalPlayer.Idled:Connect(function()
+                vu:Button2Down(Vector2.new(0,0),workspace.CurrentCamera.CFrame)
+                wait(1)
+                vu:Button2Up(Vector2.new(0,0),workspace.CurrentCamera.CFrame)
+            end)
+        end
+	end    
+})
+
+MiscTab:AddToggle({
+	Name = "Otomatik Ortak Sandık Al (Common)",
+	Default = false,
+	Callback = function(Value)
+        autoBuyCommon = Value
+        task.spawn(function()
+            while autoBuyCommon do
+                workspace.ItemBoughtFromShop:FireServer("Common Chest", 1)
+                task.wait(3)
+            end
+        end)
+	end    
+})
+
+-- ================================
+-- Başlatma
+-- ================================
+
+OrionLib:Init()
+
+-- Anti-Kick Önlemi (Basit)
+local mt = getrawmetatable(game)
+local old = mt.__namecall
+setreadonly(mt, false)
+mt.__namecall = newcclosure(function(self, ...)
+    local method = getnamecallmethod()
+    if method == "Kick" then
+        return nil -- Kick komutunu engellemeye çalışır (bazı client kick'ler için)
     end
+    return old(self, ...)
 end)
-
--- Menü Sürükleme Mantığı
-local dragging, dragInput, dragStart, startPos
-Main.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 then dragging = true; dragStart = input.Position; startPos = Main.Position end
-end)
-Main.InputChanged:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseMovement then dragInput = input end
-end)
-UserInputService.InputEnded:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 then dragging = false end
-end)
-RunService.Heartbeat:Connect(function()
-    if dragging and dragInput then
-        local delta = dragInput.Position - dragStart
-        Main.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
-    end
-end)
-
--- Menü Kapatma/Açma Butonu
-local Tgl = Instance.new("TextButton", ScreenGui)
-Tgl.Size = UDim2.new(0, 45, 0, 45); Tgl.Position = UDim2.new(0, 10, 0.5, -22)
-Tgl.BackgroundColor3 = Config.Theme; Tgl.Text = "X"; Tgl.TextColor3 = Color3.new(1,1,1)
-Tgl.Font = Enum.Font.GothamBlack; Tgl.TextSize = 18
-Instance.new("UICorner", Tgl).CornerRadius = UDim.new(1, 0)
-Tgl.MouseButton1Click:Connect(function() Main.Visible = not Main.Visible end)
-
-Notify("XenoHub V19", "Tüm Ads ve CMDR özellikleri aktif edildi!")
