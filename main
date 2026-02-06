@@ -1,6 +1,6 @@
 -- ===============================================================
--- 👑 GEMINI HUB V9 - ULTIMATE BUILD A BOAT FARM
--- 🚀 SIRALI GEÇİŞ + GELİŞMİŞ DOĞRULAMA + SANDIK SONU
+-- 👑 GEMINI HUB V10 - ULTIMATE BUILD A BOAT FARM
+-- 🚀 STABİL SIRALI GEÇİŞ + SUNUCU ONAYLI SİSTEM
 -- ===============================================================
 
 local Settings = {
@@ -9,7 +9,7 @@ local Settings = {
     AntiWater = true,
     MaxStages = 10, -- 1-10 arası bölgeler
     ChestStage = 11, -- 11. aşama sandık
-    TeleportSpeed = 0.05,
+    TeleportSpeed = 0.1, -- Güvenli bekleme süresi
     AutoClaim = true
 }
 
@@ -40,7 +40,7 @@ end
 
 -- [ GUI OLUŞTURMA ]
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "Gemini_V9"
+ScreenGui.Name = "Gemini_V10"
 ScreenGui.Parent = (gethui and gethui()) or (game:GetService("CoreGui")) or LocalPlayer:WaitForChild("PlayerGui")
 ScreenGui.ResetOnSpawn = false
 
@@ -61,7 +61,7 @@ UICorner.Parent = MainFrame
 local Title = Instance.new("TextLabel")
 Title.Parent = MainFrame
 Title.Size = UDim2.new(1, 0, 0, 45)
-Title.Text = "GEMINI HUB V9 👑"
+Title.Text = "GEMINI HUB V10 👑"
 Title.TextColor3 = Color3.fromRGB(255, 255, 255)
 Title.Font = Enum.Font.GothamBold
 Title.TextSize = 16
@@ -133,12 +133,20 @@ end)
 
 local function HasStage(Num)
     local val = Data:FindFirstChild(`Stage{Num}`)
+    -- Değerin boş olmaması sunucunun o bölgeyi onayladığı anlamına gelir
     return val and val.Value ~= "" and val.Value
 end
 
-local function ClaimStage()
+local function ClaimStage(Num)
     if not Settings.AutoClaim then return end
-    Claim:FireServer()
+    -- Belirli bir bölge için onay bekleme mantığı
+    task.spawn(function()
+        local Value = Data:FindFirstChild(`Stage{Num}`)
+        if Value and Value.Value == "" then
+            Value:GetPropertyChangedSignal("Value"):Wait()
+        end
+        Claim:FireServer()
+    end)
 end
 
 local function FarmLoop()
@@ -156,11 +164,11 @@ local function FarmLoop()
                     NewChar = true
                 end)
 
-                -- Karakteri sabitle
+                -- Karakteri sabitle (Titremeyi önler)
                 local BV = Instance.new("BodyVelocity", Root)
                 BV.Velocity = Vector3.new(0,0,0)
                 
-                -- SIRALI GEÇİŞ (1-10)
+                -- SIRALI VE SAKİN GEÇİŞ (1-10)
                 for i = 1, Settings.MaxStages do
                     if not Settings.FarmEnabled or NewChar then break end
                     
@@ -169,21 +177,31 @@ local function FarmLoop()
                         local TargetPart = Stage.DarknessPart
                         local Teleporting = true
                         
-                        -- Karakteri bölgeye kilitle
+                        -- Karakteri bölgeye kilitle (Sunucu onaylayana kadar)
                         task.spawn(function()
                             while Teleporting and Settings.FarmEnabled and not NewChar do
                                 Root.CFrame = TargetPart.CFrame
-                                Root.Velocity = Vector3.zero
+                                -- Fiziksel hızları sıfırla (Anti-Cheat bypass)
+                                for _, part in pairs(Char:GetChildren()) do
+                                    if part:IsA("BasePart") then
+                                        part.Velocity = Vector3.zero
+                                        part.RotVelocity = Vector3.zero
+                                    end
+                                end
                                 task.wait()
                             end
                         end)
                         
-                        ClaimStage()
-                        -- Bölge onaylanana kadar bekle (Örnekteki HasStage mantığı)
-                        local startWait = tick()
-                        repeat task.wait() until HasStage(i) or NewChar or not Settings.FarmEnabled or (tick() - startWait > 3)
+                        -- Bölgeyi talep et ve sunucu yanıtını bekle
+                        ClaimStage(i)
+                        
+                        -- ÇOK ÖNEMLİ: Sunucu Stage{i} değerini güncelleyene kadar bekle
+                        -- Bu sayede farm "fazla hızlı" olmaz, sırayla ve güvenli gider.
+                        local timeout = tick()
+                        repeat task.wait() until HasStage(i) or NewChar or not Settings.FarmEnabled or (tick() - timeout > 4)
                         
                         Teleporting = false
+                        task.wait(Settings.TeleportSpeed) -- Kısa bir nefes payı
                     end
                 end
                 
@@ -193,7 +211,7 @@ local function FarmLoop()
                     if EndStage and EndStage:FindFirstChild("GoldenChest") then
                         local Chest = EndStage.GoldenChest.Trigger
                         
-                        -- Örnekteki gibi sandığı karakterin üzerine çekme bypass
+                        -- Sandığı karakterin üzerine çekme (Xeno/Solara Bypass)
                         local OldCFrame = Chest.CFrame
                         Chest.CFrame = Root.CFrame
                         
@@ -203,12 +221,12 @@ local function FarmLoop()
                             firetouchinterest(Root, Chest, 1)
                         end
                         
-                        task.wait(0.2)
-                        Chest.CFrame = OldCFrame -- Sandığı yerine geri koy
+                        task.wait(0.3)
+                        Chest.CFrame = OldCFrame -- Sandığı orijinal yerine çek
                         
-                        ClaimStage()
+                        Claim:FireServer()
                         task.wait(1.5)
-                        Char:BreakJoints() -- Yeni tur için reset
+                        Char:BreakJoints() -- Yeni döngü için reset
                     end
                 end
                 
@@ -232,4 +250,4 @@ RunService.Stepped:Connect(function()
 end)
 
 task.spawn(FarmLoop)
-print("🚀 Gemini Hub V9 - Sıralı Onaylı Farm Aktif!")
+print("🚀 Gemini Hub V10 - Stabil Onaylı Döngü Aktif!")
