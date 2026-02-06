@@ -1,13 +1,8 @@
 --[[
-	ULTIMATE BUILD A BOAT FOR TREASURE - FULL BYPASS & FARM
-	Geliştirilmiş Sürüm: v3.0 (Full Bypass Edition)
-	Özellikler:
-	- Gelişmiş Meta-Table Bypass (Anticheat Korunması)
-	- Tween (Kayarak) Farm (Hız ve Mesafe Kontrollü)
-	- Otomatik Engel, Su ve Kara Delik Silici
-	- Full Auto-Buy (Tüm Sandıklar)
-	- Hız ve Zıplama Hilesi (Slider ile)
-	- Anti-AFK & Karakter Koruma
+	ULTIMATE BUILD A BOAT FOR TREASURE - FULL BYPASS & FARM (V3.5)
+	- Sol Alt Köşe Menü Tetikleyici (Toggle Button)
+	- Gelişmiş Meta-Table Bypass
+	- Hız, Zıplama ve Otomatik Farm
 ]]
 
 local OrionLib = loadstring(game:HttpGet(('https://raw.githubusercontent.com/shlexware/Orion/main/source')))()
@@ -21,7 +16,7 @@ local LocalPlayer = Players.LocalPlayer
 local Workspace = game:GetService("Workspace")
 local TweenService = game:GetService("TweenService")
 local RunService = game:GetService("RunService")
-local HttpService = game:GetService("HttpService")
+local CoreGui = game:GetService("CoreGui")
 
 local farming = false
 local autoBuyType = "None"
@@ -29,27 +24,55 @@ local walkSpeed = 16
 local jumpPower = 50
 
 -- ================================
+-- SOL ALT MENÜ BUTONU (GUI)
+-- ================================
+local ScreenGui = Instance.new("ScreenGui")
+local OpenBtn = Instance.new("TextButton")
+local UICorner = Instance.new("UICorner")
+
+ScreenGui.Name = "MenuTrigger"
+ScreenGui.Parent = CoreGui
+ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+
+OpenBtn.Name = "OpenBtn"
+OpenBtn.Parent = ScreenGui
+OpenBtn.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+OpenBtn.BorderSizePixel = 0
+OpenBtn.Position = UDim2.new(0, 10, 1, -60) -- Sol alt köşe
+OpenBtn.Size = UDim2.new(0, 50, 0, 50)
+OpenBtn.Font = Enum.Font.SourceSansBold
+OpenBtn.Text = "MENU"
+OpenBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+OpenBtn.TextSize = 14.000
+
+UICorner.CornerRadius = UDim.new(0, 10)
+UICorner.Parent = OpenBtn
+
+OpenBtn.MouseButton1Click:Connect(function()
+    -- Orion menüsünü aç/kapat (Tetikleme)
+    local frame = CoreGui:FindFirstChild("Orion")
+    if frame then
+        frame.Enabled = not frame.Enabled
+    end
+end)
+
+-- ================================
 -- FULL BYPASS MANTIĞI
 -- ================================
--- Oyunun hile tespit sistemini (Kick/Teleport Check) devre dışı bırakmaya çalışır.
 local function ApplyBypass()
     local mt = getrawmetatable(game)
-    local oldIndex = mt.__index
     local oldNamecall = mt.__namecall
     setreadonly(mt, false)
 
     mt.__namecall = newcclosure(function(self, ...)
         local method = getnamecallmethod()
-        local args = {...}
         
-        -- Oyunun karakteri izleyen veya hile kontrolü yapan belirli uzaktan tetiklemelerini engeller
         if method == "Kick" or method == "kick" then
-            OrionLib:MakeNotification({Name = "Bypass", Content = "Oyun seni atmaya çalıştı, engellendi!", Time = 3})
+            OrionLib:MakeNotification({Name = "Bypass", Content = "Atılma engellendi!", Time = 3})
             return nil
         end
         
-        if not checkcaller() and method == "FireServer" and tostring(self) == "RemoteEvent" then
-            -- Bazı şüpheli raporlama eventlerini filtrele
+        if not checkcaller() and method == "FireServer" and (tostring(self) == "RemoteEvent" or tostring(self) == "Report") then
             return nil
         end
 
@@ -64,19 +87,13 @@ ApplyBypass()
 -- ================================
 -- Yardımcı Fonksiyonlar
 -- ================================
-
 local function ClearMap()
     pcall(function()
-        -- Öldüren bölgeleri ve engelleri temizle
         local stages = Workspace:WaitForChild("BoatStages"):WaitForChild("NormalStages")
         for _, stage in pairs(stages:GetChildren()) do
             if stage:FindFirstChild("DarknessPart") then
                 stage.DarknessPart:Destroy()
             end
-        end
-        -- Su hasarını ve görsel kirliliği engellemek için isteğe bağlı
-        if Workspace:FindFirstChild("Water") then
-            -- Workspace.Water:Destroy() -- Tamamen silmek bazen sorun çıkarabilir
         end
     end)
 end
@@ -93,9 +110,8 @@ local function GetFullNoclip()
 end
 
 -- ================================
--- Gelişmiş Farm Mantığı
+-- Farm Mantığı
 -- ================================
-
 local function StartFarm()
     task.spawn(function()
         while farming do
@@ -109,63 +125,50 @@ local function StartFarm()
             local root = char:WaitForChild("HumanoidRootPart")
             ClearMap()
             
-            -- Uçuş/Kayma Hazırlığı
             local bv = root:FindFirstChild("FlyVelocity") or Instance.new("BodyVelocity")
             bv.Name = "FlyVelocity"
             bv.Velocity = Vector3.new(0, 0, 0)
             bv.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
             bv.Parent = root
 
-            -- Noclip aktif et
             local noclipLoop = RunService.Stepped:Connect(GetFullNoclip)
-
-            -- Hedef: Stages -> End
             local endZone = Workspace.BoatStages.NormalStages.TheEnd.GoldenChest.Trigger
             
-            -- Duraklama Noktaları (Checkpoint Bypass)
-            -- Oyunun "hızlı teleport" algılamaması için ara duraklar eklenmiştir.
             local path = {
                 CFrame.new(-55, 70, 1500),
                 CFrame.new(-55, 70, 3000),
-                CFrame.new(-55, 70, 4500),
                 CFrame.new(-55, 70, 6000),
-                CFrame.new(-55, 70, 7500),
-                CFrame.new(-55, 70, 9450), -- Son Bölüm
+                CFrame.new(-55, 70, 9450),
                 endZone.CFrame
             }
 
             for _, targetCF in ipairs(path) do
                 if not farming then break end
                 local dist = (root.Position - targetCF.Position).Magnitude
-                local tweenInfo = TweenInfo.new(dist / 320, Enum.EasingStyle.Linear) -- Hız: 320 (Güvenli sınır)
+                local tweenInfo = TweenInfo.new(dist / 350, Enum.EasingStyle.Linear)
                 local tween = TweenService:Create(root, tweenInfo, {CFrame = targetCF})
                 tween:Play()
                 tween.Completed:Wait()
             end
 
-            -- Sandık Bölgesinde Bekleme ve Ödül
             if farming then
                 root.CFrame = endZone.CFrame
-                task.wait(12) -- Ödülün işlenmesi için gereken süre
+                task.wait(12)
                 noclipLoop:Disconnect()
-                if farming then
-                    char:BreakJoints() -- Resetle ve tekrar başla
-                    task.wait(5)
-                end
+                char:BreakJoints()
+                task.wait(5)
             end
         end
     end)
 end
 
 -- ================================
--- Arayüz (UI) Yapılandırması
+-- Arayüz Yapılandırması
 -- ================================
-
 local MainTab = Window:MakeTab({Name = "Otomatik Farm", Icon = "rbxassetid://4483345998"})
 local PlayerTab = Window:MakeTab({Name = "Oyuncu", Icon = "rbxassetid://4483345998"})
 local ShopTab = Window:MakeTab({Name = "Market", Icon = "rbxassetid://4483345998"})
 
--- Main Tab
 MainTab:AddToggle({
 	Name = "Ultra Auto Farm",
 	Default = false,
@@ -175,36 +178,20 @@ MainTab:AddToggle({
 	end    
 })
 
-MainTab:AddButton({
-	Name = "Map Engellerini Temizle",
-	Callback = function() ClearMap() end
-})
-
--- Player Tab
 PlayerTab:AddSlider({
-	Name = "Yürüme Hızı",
+	Name = "Hız",
 	Min = 16,
-	Max = 250,
+	Max = 300,
 	Default = 16,
-	Color = Color3.fromRGB(255,255,255),
-	Increment = 1,
-	ValueName = "Hız",
-	Callback = function(Value)
-		walkSpeed = Value
-	end    
+	Callback = function(v) walkSpeed = v end    
 })
 
 PlayerTab:AddSlider({
-	Name = "Zıplama Gücü",
+	Name = "Zıplama",
 	Min = 50,
 	Max = 500,
 	Default = 50,
-	Color = Color3.fromRGB(255,255,255),
-	Increment = 1,
-	ValueName = "Güç",
-	Callback = function(Value)
-		jumpPower = Value
-	end    
+	Callback = function(v) jumpPower = v end    
 })
 
 RunService.RenderStepped:Connect(function()
@@ -214,14 +201,11 @@ RunService.RenderStepped:Connect(function()
     end
 end)
 
--- Shop Tab
 ShopTab:AddDropdown({
-	Name = "Otomatik Sandık Al",
+	Name = "Otomatik Sandık",
 	Default = "None",
 	Options = {"None", "Common Chest", "Uncommon Chest", "Rare Chest", "Epic Chest", "Legendary Chest"},
-	Callback = function(Value)
-		autoBuyType = Value
-	end    
+	Callback = function(v) autoBuyType = v end    
 })
 
 task.spawn(function()
@@ -237,7 +221,7 @@ end)
 local vu = game:GetService("VirtualUser")
 LocalPlayer.Idled:Connect(function()
     vu:Button2Down(Vector2.new(0,0),workspace.CurrentCamera.CFrame)
-    wait(1)
+    task.wait(1)
     vu:Button2Up(Vector2.new(0,0),workspace.CurrentCamera.CFrame)
 end)
 
