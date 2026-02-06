@@ -1,125 +1,162 @@
 -- ===============================================================
--- ⚡ GEMINI HUB V4 - 11 STAGE ULTRA FAST (FIXED)
+-- 👑 GEMINI HUB V5 - Build A Boat Ultra Farm
+-- 🚀 Orijinal Mantık Geliştirildi + 11 Stage + Bypass + GUI
 -- ===============================================================
 
 local Settings = {
     Enabled = false,
-    Speed = 0.05, -- Daha da hızlandırıldı
-    Stages = 11   -- İstediğin gibi 11 stage yapıldı
+    ChestStage = 11, -- 11 Stage desteği
+    TouchChest = true,
+    AutoClaim = true,
+    DoubleGoldBypass = true
 }
 
 -- Servisler
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 local Workspace = game:GetService("Workspace")
-local RunService = game:GetService("RunService")
 
--- [ GUI ]
+-- [ GUI TASARIMI ]
 local ScreenGui = Instance.new("ScreenGui", game.CoreGui)
-local Main = Instance.new("Frame", ScreenGui)
-local Btn = Instance.new("TextButton", Main)
-local Title = Instance.new("TextLabel", Main)
+local MainFrame = Instance.new("Frame", ScreenGui)
+local ToggleBtn = Instance.new("TextButton", MainFrame)
+local Title = Instance.new("TextLabel", MainFrame)
+local StatusLabel = Instance.new("TextLabel", MainFrame)
 
-Main.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
-Main.Position = UDim2.new(0.05, 0, 0.4, 0)
-Main.Size = UDim2.new(0, 160, 0, 100)
-Main.Active = true
-Main.Draggable = true
+MainFrame.Name = "GeminiMain"
+MainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
+MainFrame.Position = UDim2.new(0.02, 0, 0.4, 0)
+MainFrame.Size = UDim2.new(0, 170, 0, 120)
+MainFrame.Active = true
+MainFrame.Draggable = true
 
-Title.Size = UDim2.new(1, 0, 0, 30)
-Title.Text = "GEMINI V4 (11 STAGE)"
+Title.Size = UDim2.new(1, 0, 0, 25)
+Title.BackgroundColor3 = Color3.fromRGB(45, 45, 50)
+Title.Text = "GEMINI HUB V5"
 Title.TextColor3 = Color3.fromRGB(255, 255, 255)
-Title.BackgroundColor3 = Color3.fromRGB(60, 0, 150)
+Title.Font = Enum.Font.GothamBold
 Title.TextSize = 12
 
-Btn.Size = UDim2.new(0.8, 0, 0.4, 0)
-Btn.Position = UDim2.new(0.1, 0, 0.45, 0)
-Btn.Text = "BAŞLAT"
-Btn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
-Btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+ToggleBtn.Size = UDim2.new(0.85, 0, 0, 40)
+ToggleBtn.Position = UDim2.new(0.075, 0, 0.3, 0)
+ToggleBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+ToggleBtn.Text = "FARM: KAPALI"
+ToggleBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+ToggleBtn.Font = Enum.Font.Gotham
+ToggleBtn.TextSize = 14
 
--- [ GAMEPASS & BYPASS ]
-local function ApplyBypass()
-    pcall(function()
-        local data = LocalPlayer:WaitForChild("OtherData", 5)
-        if data then
-            if data:FindFirstChild("DoubleGold") then data.DoubleGold.Value = true end
-            if data:FindFirstChild("Gold") then -- Gold çarpanı tetikleyici
-                local goldVal = data.Gold
-                goldVal.Changed:Connect(function()
-                    Workspace.ClaimRiverResultsGold:FireServer()
-                end)
-            end
+StatusLabel.Size = UDim2.new(1, 0, 0, 20)
+StatusLabel.Position = UDim2.new(0, 0, 0.75, 0)
+StatusLabel.Text = "Double Gold: AKTİF ✅"
+StatusLabel.TextColor3 = Color3.fromRGB(0, 255, 150)
+StatusLabel.BackgroundTransparency = 1
+StatusLabel.Font = Enum.Font.Small
+StatusLabel.TextSize = 10
+
+-- [ BYPASS & DATA ]
+local Data = LocalPlayer:WaitForChild("OtherData")
+local Claim = Workspace:WaitForChild("ClaimRiverResultsGold")
+
+if Settings.DoubleGoldBypass then
+    task.spawn(function()
+        if Data:FindFirstChild("DoubleGold") then
+            Data.DoubleGold.Value = true
         end
     end)
 end
 
--- [ ANA FARM DÖNGÜSÜ ]
-local function DoFarm()
-    while Settings.Enabled do
-        local char = LocalPlayer.Character
-        local root = char and char:FindFirstChild("HumanoidRootPart")
-        local stages = Workspace:FindFirstChild("BoatStages") and Workspace.BoatStages:FindFirstChild("NormalStages")
-        
-        if root and stages then
-            ApplyBypass()
-            
-            -- Anti-Düşme: Karakteri havada kilitler
-            local antizero = Instance.new("BodyVelocity", root)
-            antizero.Velocity = Vector3.new(0,0,0)
-
-            for i = 1, Settings.Stages do
-                if not Settings.Enabled then break end
-                
-                local sName = "CaveStage" .. i
-                local stage = stages:FindFirstChild(sName)
-                
-                if stage and stage:FindFirstChild("DarknessPart") then
-                    -- Çok hızlı ışınlanma
-                    root.CFrame = stage.DarknessPart.CFrame
-                    Workspace.ClaimRiverResultsGold:FireServer()
-                    task.wait(Settings.Speed)
-                end
-            end
-            
-            -- Sandık Bölümü
-            if Settings.Enabled then
-                local endStage = stages:FindFirstChild("TheEnd")
-                if endStage and endStage:FindFirstChild("GoldenChest") then
-                    local chest = endStage.GoldenChest.Trigger
-                    root.CFrame = chest.CFrame
-                    if firetouchinterest then
-                        firetouchinterest(root, chest, 0)
-                        task.wait(0.1)
-                        firetouchinterest(root, chest, 1)
-                    end
-                end
-                task.wait(1)
-                char:BreakJoints() -- Resetle ve tekrar başla
-            end
-            antizero:Destroy()
-        end
-        task.wait(2) -- Reset sonrası bekleme
-    end
+local function HasStage(Num)
+    local stageVal = Data:FindFirstChild(`Stage{Num}`)
+    return stageVal and stageVal.Value ~= "" and stageVal.Value
 end
 
--- [ BUTON TETİKLEME FIX ]
-Btn.MouseButton1Click:Connect(function()
+local function ClaimStage(Num)
+    if not Settings.AutoClaim then return end
+    task.spawn(function()
+        Claim:FireServer()
+    end)
+end
+
+-- [ ANA FARM FONKSİYONU ]
+local function StartFarm()
+    if not Settings.Enabled then return end
+    
+    local Char = LocalPlayer.Character
+    if not Char then return end
+    local Root = Char:WaitForChild("HumanoidRootPart")
+    local Stages = Workspace.BoatStages.NormalStages
+    local Chest = Stages.TheEnd.GoldenChest.Trigger
+    
+    local NewChar = false
+    local connection
+    connection = LocalPlayer.CharacterAdded:Once(function()
+        NewChar = true
+    end)
+
+    print("🚀 Farm Döngüsü Başladı...")
+
+    for i = 1, Settings.ChestStage do
+        if not Settings.Enabled or NewChar then break end
+        
+        local StageFolder = Stages:FindFirstChild(`CaveStage{i}`)
+        if not StageFolder then continue end
+        local TargetPart = StageFolder:FindFirstChild("DarknessPart")
+        
+        local Teleporting = true
+        task.spawn(function()
+            while Teleporting and Settings.Enabled do
+                Root.CFrame = TargetPart.CFrame
+                for _, BodyPart in Char:GetChildren() do
+                    if BodyPart:IsA("BasePart") then
+                        BodyPart.Velocity = Vector3.zero
+                        BodyPart.RotVelocity = Vector3.zero
+                    end
+                end
+                task.wait()
+            end
+        end)
+
+        if i == Settings.ChestStage and Settings.TouchChest then
+            task.spawn(function()
+                -- Xeno & Others Bypass (Sandığı Karakterin Üstüne Çeker ve Geri Atar)
+                local OldCFrame = Chest.CFrame
+                Chest.CFrame = Root.CFrame
+                if firetouchinterest then firetouchinterest(Root, Chest, 0) end
+                task.wait(0.2)
+                Chest.CFrame = OldCFrame
+                if firetouchinterest then firetouchinterest(Root, Chest, 1) end
+                
+                ClaimStage(i)
+                task.wait(0.5)
+                Char:BreakJoints()
+            end)
+        else
+            ClaimStage(i)
+            -- Stage'in kaydedilmesini bekle (Hızlı geçiş için repeat)
+            repeat task.wait() until HasStage(i) or NewChar or not Settings.Enabled
+        end
+
+        Teleporting = false
+    end
+    if connection then connection:Disconnect() end
+end
+
+-- [ KONTROLLER ]
+ToggleBtn.MouseButton1Click:Connect(function()
     Settings.Enabled = not Settings.Enabled
     if Settings.Enabled then
-        Btn.Text = "ÇALIŞIYOR..."
-        Btn.BackgroundColor3 = Color3.fromRGB(50, 200, 50)
-        task.spawn(DoFarm)
+        ToggleBtn.Text = "FARM: AÇIK"
+        ToggleBtn.BackgroundColor3 = Color3.fromRGB(50, 200, 50)
+        task.spawn(StartFarm)
     else
-        Btn.Text = "DURDURULDU"
-        Btn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+        ToggleBtn.Text = "FARM: KAPALI"
+        ToggleBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
     end
 end)
 
--- Karakter doğduğunda ayarları kontrol et
 LocalPlayer.CharacterAdded:Connect(function()
+    task.wait(1)
     if Settings.Enabled then
-        task.wait(1)
-        task.spawn(DoFarm)
+        StartFarm()
     end
 end)
