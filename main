@@ -31,10 +31,13 @@ local Stages = Workspace:WaitForChild("BoatStages"):WaitForChild("NormalStages")
 -- Ekran görüntülerindeki tüm ürünleri (2x Gold, Penguin, Fox, Chicken vb.) kapsar
 local function TriggerAllGamepassBypass()
     pcall(function()
-        -- 1. Double Gold Bypass (Dex & Server)
+        -- 1. Double Gold Bypass (%100 Tetikleyici)
+        -- Dex'te true yapar ve sunucuya sahiplik sinyali gönderir
         if Data:FindFirstChild("DoubleGold") then
             Data.DoubleGold.Value = true
         end
+        
+        -- Kritik çarpan tetikleyici (Sunucu tarafı x2 onayı için)
         if ReplicatedStorage:FindFirstChild("DoubleGoldGamepass") then
             ReplicatedStorage.DoubleGoldGamepass:FireServer(true)
         end
