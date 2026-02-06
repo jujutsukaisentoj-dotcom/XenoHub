@@ -1,99 +1,111 @@
 -- ===============================================================
--- 👑 GEMINI HUB V5 - Build A Boat Ultra Farm
--- 🚀 Orijinal Mantık Geliştirildi + 11 Stage + Bypass + GUI
+-- 👑 GEMINI HUB V6 - TÜM EXECUTORLARLA UYUMLU ULTRA FARM
+-- 🚀 11 STAGE + DOUBLE GOLD BYPASS + AUTO REPEAT
 -- ===============================================================
 
 local Settings = {
     Enabled = false,
-    ChestStage = 11, -- 11 Stage desteği
+    ChestStage = 11,
     TouchChest = true,
     AutoClaim = true,
-    DoubleGoldBypass = true
+    DoubleGoldBypass = true,
+    TeleportSpeed = 0.01 -- En yüksek hız
 }
 
 -- Servisler
 local Players = game:GetService("Players")
-local LocalPlayer = Players.LocalPlayer
+local RunService = game:GetService("RunService")
 local Workspace = game:GetService("Workspace")
 
--- [ GUI TASARIMI ]
-local ScreenGui = Instance.new("ScreenGui", game.CoreGui)
-local MainFrame = Instance.new("Frame", ScreenGui)
-local ToggleBtn = Instance.new("TextButton", MainFrame)
-local Title = Instance.new("TextLabel", MainFrame)
-local StatusLabel = Instance.new("TextLabel", MainFrame)
+local LocalPlayer = Players.LocalPlayer
+local Data = LocalPlayer:WaitForChild("OtherData")
+local Claim = Workspace:WaitForChild("ClaimRiverResultsGold")
+local Stages = Workspace:WaitForChild("BoatStages"):WaitForChild("NormalStages")
 
-MainFrame.Name = "GeminiMain"
-MainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
-MainFrame.Position = UDim2.new(0.02, 0, 0.4, 0)
-MainFrame.Size = UDim2.new(0, 170, 0, 120)
+-- [ GUI OLUŞTURMA ]
+local ScreenGui = Instance.new("ScreenGui")
+local MainFrame = Instance.new("Frame")
+local ToggleBtn = Instance.new("TextButton")
+local Title = Instance.new("TextLabel")
+local Decoration = Instance.new("Frame")
+
+-- GUI'nin tüm executorlarda görünmesi için CoreGui kullanımı
+ScreenGui.Name = "Gemini_V6"
+ScreenGui.Parent = (gethui and gethui()) or (game:GetService("CoreGui")) or LocalPlayer:WaitForChild("PlayerGui")
+ScreenGui.ResetOnSpawn = false
+
+MainFrame.Name = "MainFrame"
+MainFrame.Parent = ScreenGui
+MainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 30)
+MainFrame.BorderSizePixel = 0
+MainFrame.Position = UDim2.new(0.05, 0, 0.4, 0)
+MainFrame.Size = UDim2.new(0, 180, 0, 100)
 MainFrame.Active = true
 MainFrame.Draggable = true
 
-Title.Size = UDim2.new(1, 0, 0, 25)
-Title.BackgroundColor3 = Color3.fromRGB(45, 45, 50)
-Title.Text = "GEMINI HUB V5"
-Title.TextColor3 = Color3.fromRGB(255, 255, 255)
-Title.Font = Enum.Font.GothamBold
-Title.TextSize = 12
+Decoration.Size = UDim2.new(1, 0, 0, 3)
+Decoration.BackgroundColor3 = Color3.fromRGB(120, 0, 255)
+Decoration.BorderSizePixel = 0
+Decoration.Parent = MainFrame
 
-ToggleBtn.Size = UDim2.new(0.85, 0, 0, 40)
-ToggleBtn.Position = UDim2.new(0.075, 0, 0.3, 0)
-ToggleBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+Title.Parent = MainFrame
+Title.Size = UDim2.new(1, 0, 0, 30)
+Title.Text = "GEMINI V6"
+Title.TextColor3 = Color3.fromRGB(255, 255, 255)
+Title.BackgroundTransparency = 1
+Title.Font = Enum.Font.GothamBold
+Title.TextSize = 14
+
+ToggleBtn.Name = "ToggleBtn"
+ToggleBtn.Parent = MainFrame
+ToggleBtn.Position = UDim2.new(0.1, 0, 0.4, 0)
+ToggleBtn.Size = UDim2.new(0.8, 0, 0.45, 0)
+ToggleBtn.BackgroundColor3 = Color3.fromRGB(180, 40, 40)
 ToggleBtn.Text = "FARM: KAPALI"
 ToggleBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-ToggleBtn.Font = Enum.Font.Gotham
+ToggleBtn.Font = Enum.Font.GothamMedium
 ToggleBtn.TextSize = 14
+ToggleBtn.BorderSizePixel = 0
 
-StatusLabel.Size = UDim2.new(1, 0, 0, 20)
-StatusLabel.Position = UDim2.new(0, 0, 0.75, 0)
-StatusLabel.Text = "Double Gold: AKTİF ✅"
-StatusLabel.TextColor3 = Color3.fromRGB(0, 255, 150)
-StatusLabel.BackgroundTransparency = 1
-StatusLabel.Font = Enum.Font.Small
-StatusLabel.TextSize = 10
+-- Yuvarlatılmış köşeler
+local corner = Instance.new("UICorner")
+corner.CornerRadius = UDim.new(0, 6)
+corner.Parent = ToggleBtn
 
--- [ BYPASS & DATA ]
-local Data = LocalPlayer:WaitForChild("OtherData")
-local Claim = Workspace:WaitForChild("ClaimRiverResultsGold")
-
-if Settings.DoubleGoldBypass then
-    task.spawn(function()
-        if Data:FindFirstChild("DoubleGold") then
-            Data.DoubleGold.Value = true
-        end
-    end)
-end
+-- [ FONKSİYONLAR ]
 
 local function HasStage(Num)
-    local stageVal = Data:FindFirstChild(`Stage{Num}`)
-    return stageVal and stageVal.Value ~= "" and stageVal.Value
+    local val = Data:FindFirstChild(`Stage{Num}`)
+    return val and val.Value ~= "" and val.Value
 end
 
 local function ClaimStage(Num)
     if not Settings.AutoClaim then return end
+    Claim:FireServer()
+end
+
+-- Double Gold Bypass (Patch Silici)
+if Settings.DoubleGoldBypass then
     task.spawn(function()
-        Claim:FireServer()
+        local dg = Data:FindFirstChild("DoubleGold")
+        if dg then dg.Value = true end
+        print("⚡ Double Gold Bypass Aktif!")
     end)
 end
 
--- [ ANA FARM FONKSİYONU ]
-local function StartFarm()
+-- Ana Farm Döngüsü
+local function Farm()
     if not Settings.Enabled then return end
     
     local Char = LocalPlayer.Character
     if not Char then return end
     local Root = Char:WaitForChild("HumanoidRootPart")
-    local Stages = Workspace.BoatStages.NormalStages
-    local Chest = Stages.TheEnd.GoldenChest.Trigger
     
     local NewChar = false
-    local connection
-    connection = LocalPlayer.CharacterAdded:Once(function()
+    local charConn
+    charConn = LocalPlayer.CharacterAdded:Once(function()
         NewChar = true
     end)
-
-    print("🚀 Farm Döngüsü Başladı...")
 
     for i = 1, Settings.ChestStage do
         if not Settings.Enabled or NewChar then break end
@@ -102,61 +114,66 @@ local function StartFarm()
         if not StageFolder then continue end
         local TargetPart = StageFolder:FindFirstChild("DarknessPart")
         
+        -- Hızlı Işınlanma Loop
         local Teleporting = true
         task.spawn(function()
-            while Teleporting and Settings.Enabled do
+            while Teleporting and Settings.Enabled and not NewChar do
                 Root.CFrame = TargetPart.CFrame
-                for _, BodyPart in Char:GetChildren() do
-                    if BodyPart:IsA("BasePart") then
-                        BodyPart.Velocity = Vector3.zero
-                        BodyPart.RotVelocity = Vector3.zero
-                    end
-                end
+                -- Hız ve Yerçekimi Bypass
+                Root.Velocity = Vector3.zero
+                Root.RotVelocity = Vector3.zero
                 task.wait()
             end
         end)
 
         if i == Settings.ChestStage and Settings.TouchChest then
             task.spawn(function()
-                -- Xeno & Others Bypass (Sandığı Karakterin Üstüne Çeker ve Geri Atar)
-                local OldCFrame = Chest.CFrame
+                local Chest = Stages.TheEnd.GoldenChest.Trigger
+                local oldC = Chest.CFrame
+                
+                -- Xeno/Solara Bypass
                 Chest.CFrame = Root.CFrame
                 if firetouchinterest then firetouchinterest(Root, Chest, 0) end
                 task.wait(0.2)
-                Chest.CFrame = OldCFrame
+                Chest.CFrame = oldC
                 if firetouchinterest then firetouchinterest(Root, Chest, 1) end
                 
                 ClaimStage(i)
                 task.wait(0.5)
-                Char:BreakJoints()
+                Char:BreakJoints() -- Tekrar doğup devam etmek için
             end)
         else
             ClaimStage(i)
-            -- Stage'in kaydedilmesini bekle (Hızlı geçiş için repeat)
-            repeat task.wait() until HasStage(i) or NewChar or not Settings.Enabled
+            -- Stage'in sunucuya kaydedilmesini bekle (Gerekirse atlar)
+            local startWait = tick()
+            repeat task.wait() until HasStage(i) or NewChar or not Settings.Enabled or (tick() - startWait > 2)
         end
-
         Teleporting = false
     end
-    if connection then connection:Disconnect() end
+    if charConn then charConn:Disconnect() end
 end
 
--- [ KONTROLLER ]
-ToggleBtn.MouseButton1Click:Connect(function()
+-- [ BUTON TETİKLEYİCİ ]
+-- Activated kullanımı tüm platformlarda daha kararlıdır
+ToggleBtn.Activated:Connect(function()
     Settings.Enabled = not Settings.Enabled
     if Settings.Enabled then
         ToggleBtn.Text = "FARM: AÇIK"
-        ToggleBtn.BackgroundColor3 = Color3.fromRGB(50, 200, 50)
-        task.spawn(StartFarm)
+        ToggleBtn.BackgroundColor3 = Color3.fromRGB(40, 180, 40)
+        task.spawn(Farm)
     else
         ToggleBtn.Text = "FARM: KAPALI"
-        ToggleBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+        ToggleBtn.BackgroundColor3 = Color3.fromRGB(180, 40, 40)
     end
 end)
 
+-- Karakter Yenilendiğinde Otomatik Devam
 LocalPlayer.CharacterAdded:Connect(function()
-    task.wait(1)
+    task.wait(1.5)
     if Settings.Enabled then
-        StartFarm()
+        Farm()
     end
 end)
+
+-- İlk Çalıştırma Kontrolü
+if Settings.Enabled then Farm() end
