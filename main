@@ -1,7 +1,7 @@
 -- =========================================================
--- W31rd.Hub - Gold Farming V1.2 (rqccc & Dex True Edition)
+-- W31rd.Hub - Gold Farming V1.3 (ULTIMATE EDITION)
 -- IMPROVED LOOP, STAGE 1-11, & JESUS MODE
--- FIXED STAGE 11 CHEST COLLECTION & AUTO-RESET
+-- FIXED STAGE 10/11 STICKING & GOLD BLOCK COLLECTION
 -- =========================================================
 
 -- Services
@@ -34,7 +34,7 @@ local function ApplyDexTrue()
     end
 end
 
--- [2] JESUS MODE (Water Walk)
+-- [2] JESUS MODE (Suda Yürüme)
 local function EnableJesusMode()
     task.spawn(function()
         while true do
@@ -67,7 +67,7 @@ local function CreateUI()
     -- Title
     local Title = Instance.new("TextLabel", MainFrame)
     Title.Size = UDim2.new(1, 0, 0, 40)
-    Title.Text = "W31rd.Hub • Gold Farming • V1.2"
+    Title.Text = "W31rd.Hub • Gold Farming • V1.3"
     Title.TextColor3 = Color3.fromRGB(130, 180, 255)
     Title.BackgroundTransparency = 1
     Title.Font = Enum.Font.SourceSansBold
@@ -95,7 +95,7 @@ local function CreateUI()
     
     local CurGoldL = CreateStatLabel("Current Gold: " .. StartGold, 55, Color3.fromRGB(255, 215, 0))
     local GainGoldL = CreateStatLabel("Gained Gold: 0", 85, Color3.fromRGB(100, 255, 100))
-    local ChestsL = CreateStatLabel("Chests Collected: 0", 115, Color3.fromRGB(255, 170, 50))
+    local ChestsL = CreateStatLabel("Gold Blocks: 0", 115, Color3.fromRGB(255, 170, 50))
     local TimeL = CreateStatLabel("Total Time: 00:00:00", 145, Color3.fromRGB(150, 200, 255))
     
     -- Status Update Loop
@@ -107,7 +107,7 @@ local function CreateUI()
             
             CurGoldL.Text = "Current Gold: " .. current
             GainGoldL.Text = "Gained Gold: " .. (current - StartGold)
-            ChestsL.Text = "Chests Collected: " .. ChestsCollected
+            ChestsL.Text = "Gold Blocks: " .. ChestsCollected
             TimeL.Text = "Total Time: " .. string.format("%02d:%02d:%02d", h, m, s)
         end
     end)
@@ -122,7 +122,6 @@ local function CreateUI()
     ResetBtn.Font = Enum.Font.SourceSansBold
     ResetBtn.TextSize = 14
     local RCorner = Instance.new("UICorner", ResetBtn)
-    
     ResetBtn.MouseButton1Click:Connect(function()
         if LocalPlayer.Character then LocalPlayer.Character:BreakJoints() end
     end)
@@ -143,7 +142,7 @@ local function CreateUI()
     local Tip = Instance.new("TextLabel", MainFrame)
     Tip.Size = UDim2.new(1, 0, 0, 20)
     Tip.Position = UDim2.new(0, 0, 0, 230)
-    Tip.Text = "Farming Stage 1-11 | Jesus Mode: ON"
+    Tip.Text = "Status: Optimized Stage 1-11 Cycle"
     Tip.TextColor3 = Color3.fromRGB(180, 180, 180)
     Tip.BackgroundTransparency = 1
     Tip.Font = Enum.Font.SourceSansItalic
@@ -212,47 +211,56 @@ local function Farm()
                     Root.CFrame = TargetPart.CFrame
                     Root.Velocity = Vector3.zero
                     Root.RotVelocity = Vector3.zero
+                    
+                    -- Anti-physics freeze
+                    for _, v in pairs(Char:GetChildren()) do
+                        if v:IsA("BasePart") then
+                            v.Velocity = Vector3.new(0, 0, 0)
+                            v.RotVelocity = Vector3.new(0, 0, 0)
+                        end
+                    end
                 end
                 task.wait()
             end
         end)
 
-        -- Stage Claims
+        -- Claim Stages 1-10
         if i <= 10 then
             ClaimStage(i)
         end
 
         if i == 11 then
-            -- Chest Room Logic - Forced Collection
-            task.wait(1.5)
+            -- Stage 11: Chest Room Optimization
+            task.wait(1)
             
-            -- Sandığı karakterin üzerine ışınla (Dokunma garantisi)
-            if Root then
-                GoldenChest.CFrame = Root.CFrame
-                task.wait(0.8)
-                -- Sandık alındıktan sonra uzaklaştır (Hata önleyici)
-                GoldenChest.CFrame = CFrame.new(0, 9e9, 0)
+            -- Force Chest Collision (Multiple attempts to ensure collection)
+            for touch_attempt = 1, 5 do
+                if Root and GoldenChest then
+                    GoldenChest.CFrame = Root.CFrame
+                    task.wait(0.2)
+                end
             end
             
-            task.wait(2.5) -- Altının işlenmesi için güvenli bekleme
+            -- Move chest away to trigger server-side reward
+            GoldenChest.CFrame = CFrame.new(0, 9e9, 0)
+            
+            task.wait(3) -- Sufficient time for Gold Block & Gold processing
             ChestsCollected = ChestsCollected + 1
             FarmingInProgress = false
             
-            -- Turu bitir ve RESET at (Döngü başlangıcı)
-            if Char then 
-                Char:BreakJoints() 
-            end
+            -- Clear Round & Reset
+            if Char then Char:BreakJoints() end
             task.spawn(function() 
-                task.wait(1) 
+                task.wait(0.5) 
                 Claim:FireServer() 
             end)
         else
-            -- Normal Stage Timeout
+            -- Normal Stage Timeout with Anti-Stuck
             local timeout = 0
             repeat 
                 task.wait(0.1) 
                 timeout = timeout + 0.1
-            until HasStage(i) or NewChar or timeout > 6
+            until HasStage(i) or NewChar or timeout > 5.5
         end
         Teleporting = false
     end
@@ -264,18 +272,18 @@ ApplyDexTrue()
 EnableJesusMode()
 CreateUI()
 
--- Auto-restart when character spawns
+-- Auto-restart logic
 LocalPlayer.CharacterAdded:Connect(function()
-    task.wait(4) -- Karakterin tam yüklenmesini bekle
+    task.wait(3.5) -- Faster restart
     Farm()
 end)
 
--- Initial Execution loop to ensure it's always running
+-- Main execution guard
 task.spawn(function()
     while true do
-        if not FarmingInProgress then
+        if not FarmingInProgress and (not LocalPlayer.Character or LocalPlayer.Character.Humanoid.Health > 0) then
             Farm()
         end
-        task.wait(5)
+        task.wait(3)
     end
 end)
