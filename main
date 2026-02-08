@@ -31,16 +31,25 @@ local StartTime = os.time()
 -- ================================
 -- STAT BOARD (Görseldeki Tasarım)
 -- ================================
+-- Eski panelleri temizle (Çakışmaması için)
+if CoreGui:FindFirstChild("MaxStatBoard") then
+    CoreGui.MaxStatBoard:Destroy()
+end
+
 local StatGui = Instance.new("ScreenGui")
 StatGui.Name = "MaxStatBoard"
 StatGui.Parent = CoreGui
+StatGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 
 local MainFrame = Instance.new("Frame", StatGui)
 MainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 22)
 MainFrame.BorderSizePixel = 0
 MainFrame.Position = UDim2.new(0, 20, 0, 20)
 MainFrame.Size = UDim2.new(0, 280, 0, 240)
-Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 10)
+MainFrame.Visible = true -- Başlangıçta görünür kıl
+
+local FrameCorner = Instance.new("UICorner", MainFrame)
+FrameCorner.CornerRadius = UDim.new(0, 10)
 
 local FrameStroke = Instance.new("UIStroke", MainFrame)
 FrameStroke.Color = Color3.fromRGB(40, 40, 55)
@@ -110,7 +119,12 @@ end)
 -- ================================
 -- MENÜ TETİKLEME (Sol Alt)
 -- ================================
+if CoreGui:FindFirstChild("OpenBtnGui") then
+    CoreGui.OpenBtnGui:Destroy()
+end
+
 local OpenBtnGui = Instance.new("ScreenGui", CoreGui)
+OpenBtnGui.Name = "OpenBtnGui"
 local OpenBtn = Instance.new("TextButton", OpenBtnGui)
 OpenBtn.Size = UDim2.new(0, 65, 0, 65)
 OpenBtn.Position = UDim2.new(0, 15, 1, -80)
@@ -124,8 +138,10 @@ Stroke.Color = Color3.fromRGB(100, 160, 255)
 Stroke.Thickness = 2
 
 OpenBtn.MouseButton1Click:Connect(function()
-    local frame = CoreGui:FindFirstChild("Orion")
-    if frame then frame.Enabled = not frame.Enabled end
+    local orionFrame = CoreGui:FindFirstChild("Orion")
+    if orionFrame then
+        orionFrame.Enabled = not orionFrame.Enabled
+    end
     MainFrame.Visible = not MainFrame.Visible
 end)
 
@@ -138,7 +154,9 @@ local function ApplyBypass()
     local oldNamecall = mt.__namecall
     mt.__namecall = newcclosure(function(self, ...)
         local method = getnamecallmethod()
-        if method == "Kick" or method == "kick" then return nil end
+        if method == "Kick" or method == "kick" then 
+            return nil 
+        end
         return oldNamecall(self, ...)
     end)
     setreadonly(mt, true)
@@ -149,7 +167,9 @@ local function ClearMap()
     pcall(function()
         local stages = Workspace.BoatStages.NormalStages
         for _, stage in pairs(stages:GetChildren()) do
-            if stage:FindFirstChild("DarknessPart") then stage.DarknessPart:Destroy() end
+            if stage:FindFirstChild("DarknessPart") then 
+                stage.DarknessPart:Destroy() 
+            end
         end
     end)
 end
