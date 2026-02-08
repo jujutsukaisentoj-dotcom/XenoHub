@@ -1,126 +1,149 @@
 -- =========================================================
--- BUILD A BOAT - FULL TETİKLİ & YAVAŞ SAFE FARMER (V6)
+-- rqccc Logic + Gemini UI (Mobile & PC)
 -- =========================================================
 
 local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/xHeptc/Kavo-UI-Library/main/source.lua"))()
-local Window = Library.CreateLib("BABFT - Pro Tetikli v6", "Midnight")
+local Window = Library.CreateLib("BABFT - rqccc Hybrid v7", "Midnight")
 
--- SERVICES & DATA
+-- SERVICES
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 local Data = LocalPlayer:WaitForChild("OtherData")
 local Claim = workspace:WaitForChild("ClaimRiverResultsGold")
-local StartGold = LocalPlayer.Data.Gold.Value
-local GainedGold = 0
-local Chests = 0
-local StartTime = os.time()
-local AutoFarmActive = false 
+local Stages = workspace.BoatStages.NormalStages
+local Chest = Stages.TheEnd.GoldenChest.Trigger
 
--- MOBILE UI TOGGLE
+-- VARIABLES
+local StartGold = LocalPlayer.Data.Gold.Value
+local ChestCount = 0
+local StartTime = os.time()
+local AutoFarmActive = false
+
+-- MOBILE TOGGLE
 local ScreenGui = Instance.new("ScreenGui", game.CoreGui)
 local ToggleBtn = Instance.new("TextButton", ScreenGui)
 ToggleBtn.Size = UDim2.new(0, 90, 0, 35)
 ToggleBtn.Position = UDim2.new(0, 10, 0, 250)
 ToggleBtn.Text = "MENU"
-ToggleBtn.BackgroundColor3 = Color3.fromRGB(0, 150, 255)
+ToggleBtn.BackgroundColor3 = Color3.fromRGB(80, 0, 200)
 ToggleBtn.TextColor3 = Color3.new(1,1,1)
 ToggleBtn.Draggable = true
 ToggleBtn.MouseButton1Click:Connect(function() Library:ToggleUI() end)
 
--- SEKMELER
+-- UI TABS
 local MainTab = Window:NewTab("Farming")
-local StatusSection = MainTab:NewSection("Anlık Veriler")
+local StatusSection = MainTab:NewSection("Live Stats")
 
--- UI SAYAÇLARI (TETİKLİ)
-local goldLabel = StatusSection:NewLabel("Currenct Gold: " .. StartGold)
+-- UI LABELS
+local goldLabel = StatusSection:NewLabel("Current Gold: " .. StartGold)
 local gainedLabel = StatusSection:NewLabel("Gained Gold: 0")
 local chestLabel = StatusSection:NewLabel("Chest Collected: 0")
-local timeLabel = StatusSection:NewLabel("Total Time Farming: 00:00:00")
-local stageLabel = StatusSection:NewLabel("Durum: Bekleniyor...")
+local timeLabel = StatusSection:NewLabel("Farming Time: 00:00:00")
 
--- STAGE ONAY FONKSİYONU
+-- FUNCTIONS (rqccc Logic)
 local function HasStage(Num)
     return Data[`Stage{Num}`].Value ~= "" and Data[`Stage{Num}`].Value
 end
 
--- YAVAŞ VE TETİKLİ FARM DÖNGÜSÜ
-local function StartSlowFarm()
-    while AutoFarmActive do
-        local Char = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
-        local Root = Char:WaitForChild("HumanoidRootPart")
-        local Stages = workspace.BoatStages.NormalStages
-        
-        -- 1'den 10'a Kadar Bölüm Bölüm Geçiş
-        for i = 1, 10 do
-            if not AutoFarmActive then break end
-            
-            stageLabel:UpdateLabel("Bölüm Geçiliyor: " .. i .. " / 11")
-            
-            local Target = Stages[`CaveStage{i}`].DarknessPart
-            Root.CFrame = Target.CFrame
-            Root.Velocity = Vector3.zero
-            
-            -- Sunucuya Bildirim Gönder (Claim)
-            task.spawn(function() Claim:FireServer() end)
-            
-            -- FULL YAVAŞ: 4.5 Saniye Bekle (Anticheat Bypass)
-            task.wait(4.5) 
-            
-            -- Bölümün Kaydedilmesini Bekle (Tetikli)
-            repeat task.wait(0.5) until HasStage(i) or not AutoFarmActive
+local function ClaimStage(Num)
+    task.spawn(function()
+        local Value = Data[`Stage{Num}`]
+        if not Value then
+            Value:GetPropertyChangedSignal("Value"):Wait()
         end
+        Claim:FireServer()
+    end)
+end
 
-        -- 11. BÖLÜM (THE END - SANDIK)
-        if AutoFarmActive then
-            stageLabel:UpdateLabel("Durum: SANDIK ALINIYOR (11/11)")
-            local EndStage = Stages.TheEnd.GoldenChest
-            Root.CFrame = EndStage.Trigger.CFrame
-            task.wait(2)
-            
-            -- Sandık Dokunma Bypass
-            EndStage.Trigger.CFrame = Root.CFrame
-            task.wait(2)
-            
-            -- Sandık Sayacını Tetikle
-            Chests = Chests + 1
-            chestLabel:UpdateLabel("Chest Collected: " .. Chests)
-            
-            -- Reset ve Güvenli Bekleme
-            stageLabel:UpdateLabel("Durum: Resetleniyor, Bekle...")
-            Char:BreakJoints()
-            task.wait(8) 
-        end
+-- MAIN FARM LOOP
+local function ExecuteFarm()
+    if not AutoFarmActive then return end
+    
+    local Char = LocalPlayer.Character
+    if not Char then return end
+    local Root = Char:WaitForChild("HumanoidRootPart")
+
+    local NewChar = false
+    local Connection
+    Connection = LocalPlayer.CharacterAdded:Once(function()
+        NewChar = true
+    end)
+
+    -- 1'den 10'a Stage Loop (rqccc style)
+    for i = 1, 10 do
+        if not AutoFarmActive or NewChar then break end
+        
+        local TargetPart = Stages[`CaveStage{i}`].DarknessPart
+        local Teleporting = true
+
+        -- Smooth Bypass Teleport
+        task.spawn(function()
+            while Teleporting and AutoFarmActive do
+                Root.CFrame = TargetPart.CFrame
+                for _, BodyPart in Char:GetChildren() do
+                    if BodyPart:IsA("BasePart") then
+                        BodyPart.Velocity = Vector3.zero
+                        BodyPart.RotVelocity = Vector3.zero
+                    end
+                end
+                task.wait()
+            end
+        end)
+
+        -- Yavaş Geçiş (Senin istediğin full yavaşlık)
+        task.wait(4.5) 
+        ClaimStage(i)
+
+        -- Bölüm Onayı Bekle
+        repeat task.wait(0.5) until HasStage(i) or NewChar or not AutoFarmActive
+        Teleporting = false
+    end
+
+    -- 11. BÖLÜM (THE END CHEST)
+    if AutoFarmActive and not NewChar then
+        Root.CFrame = Chest.CFrame
+        task.wait(1)
+        Chest.CFrame = Root.CFrame -- Sandık dokunuşu
+        
+        task.wait(2)
+        ChestCount = ChestCount + 1
+        chestLabel:UpdateLabel("Chest Collected: " .. ChestCount)
+        
+        Char:BreakJoints() -- Reset for next loop
     end
 end
 
--- KONTROL BUTONU
-StatusSection:NewToggle("Auto Farm [BAŞLAT]", "Bölümleri yavaşça geçer", function(state)
+-- UI CONTROLS
+StatusSection:NewToggle("Auto Farm (rqccc Logic)", "Basınca başlar, ölünce devam eder", function(state)
     AutoFarmActive = state
     if state then
-        Library:Notify("Sistem", "Farm Başlatıldı!", "Default")
-        task.spawn(StartSlowFarm)
-    else
-        Library:Notify("Sistem", "Farm Durduruldu.", "Default")
+        Library:Notify("Sistem", "Farm Aktif", "Default")
+        ExecuteFarm()
     end
 end)
 
--- DOUBLE GOLD BUTTON
-StatusSection:NewButton("Double Gold (X2) [TETİKLE]", "DEX: TRUE / Bypass", function()
-    local gp = Instance.new("BoolValue", LocalPlayer); gp.Name = "GoldPass"
-    Library:Notify("Gamepass", "Double Gold Aktif Edildi!", "Success")
+StatusSection:NewButton("Unlock All Gamepasses", "Double Gold & VIP", function()
+    local g = Instance.new("BoolValue", LocalPlayer); g.Name = "GoldPass"
+    local v = Instance.new("BoolValue", LocalPlayer); v.Name = "VIP"
+    Library:Notify("Bypass", "Tüm Gamepass Özellikleri Açıldı", "Success")
 end)
 
--- CANLI TAKİP DÖNGÜSÜ
+-- AUTO RESTART ON DEATH
+LocalPlayer.CharacterAdded:Connect(function()
+    if AutoFarmActive then
+        task.wait(5) -- Doğma beklemesi
+        ExecuteFarm()
+    end
+end)
+
+-- STATS UPDATER
 task.spawn(function()
     while task.wait(1) do
-        -- Zaman Sayacı
         local diff = os.time() - StartTime
-        local h, m, s = math.floor(diff/3600), math.floor((diff%3600)/60), diff%60
-        timeLabel:UpdateLabel("Total Time Farming: " .. string.format("%02d:%02d:%02d", h, m, s))
+        timeLabel:UpdateLabel("Farming Time: " .. string.format("%02d:%02d:%02d", math.floor(diff/3600), math.floor((diff%3600)/60), diff%60))
         
-        -- Altın Verisi
         local cur = LocalPlayer.Data.Gold.Value
-        goldLabel:UpdateLabel("Currenct Gold: " .. cur)
+        goldLabel:UpdateLabel("Current Gold: " .. cur)
         gainedLabel:UpdateLabel("Gained Gold: " .. (cur - StartGold))
     end
 end)
