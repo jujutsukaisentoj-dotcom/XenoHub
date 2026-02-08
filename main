@@ -5,7 +5,7 @@
 ]]
 
 local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/xHeptc/Kavo-UI-Library/main/source.lua"))()
-local Window = Library.CreateLib("BABFT - Mobile Pro", "DarkTheme")
+local Window = Library.CreateLib("Xeno - Mobile Pro", "DarkTheme")
 
 -- VERİLER
 local StartGold = game.Players.LocalPlayer.Data.Gold.Value
