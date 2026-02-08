@@ -1,6 +1,6 @@
 -- =========================================================
--- W31rd.Hub - Gold Farming V2.2 (STEP-BY-STEP MODE)
--- 2 SECONDS DELAY AFTER EACH STAGE
+-- W31rd.Hub - Gold Farming V2.3 (STAY IN AIR MODE)
+-- 2 SECONDS DELAY + POSITION LOCK
 -- INTEGRATED TREASURE EFFECTS & AUTO-COLLECT
 -- =========================================================
 
@@ -72,7 +72,7 @@ local function CreateUI()
     
     local Title = Instance.new("TextLabel", MainFrame)
     Title.Size = UDim2.new(1, 0, 0, 40)
-    Title.Text = "W31rd.Hub • Gold Farming • V2.2"
+    Title.Text = "W31rd.Hub • Gold Farming • V2.3"
     Title.TextColor3 = Color3.fromRGB(130, 180, 255)
     Title.BackgroundTransparency = 1
     Title.Font = Enum.Font.SourceSansBold
@@ -119,7 +119,7 @@ local function CreateUI()
     local Tip = Instance.new("TextLabel", MainFrame)
     Tip.Size = UDim2.new(1, 0, 0, 20)
     Tip.Position = UDim2.new(0, 0, 0, 230)
-    Tip.Text = "Durum: Adım Adım (2sn Bekleme)"
+    Tip.Text = "Durum: Havada Sabit (2sn)"
     Tip.TextColor3 = Color3.fromRGB(255, 255, 255)
     Tip.BackgroundTransparency = 1
     Tip.Font = Enum.Font.SourceSansItalic
@@ -188,7 +188,7 @@ local function TriggerTreasureFX(Root)
     end
 end
 
--- [5] CORE FARM LOGIC (2 SEC DELAY PER STAGE)
+-- [5] CORE FARM LOGIC (AIR LOCK MODE)
 local function Farm()
     if FarmingInProgress then return end
     FarmingInProgress = true
@@ -206,14 +206,14 @@ local function Farm()
 
     for _ = 1, 11 do
         if NewChar then break end
-        if StatusLabelRef then StatusLabelRef.Text = "Hedef: Bölüm " .. _ .. " / 11" end
+        if StatusLabelRef then StatusLabelRef.Text = "Bölüm " .. _ .. " / 11" end
 
         local TargetPart = (_ <= 10) and Stages[`CaveStage{_}`].DarknessPart or GoldenChestTrigger
 
-        -- Bölüme Işınlan
-        local Teleporting = true
+        -- Bölüme Git ve Bekle (Havada Sabitleme)
+        local Active = true
         task.spawn(function()
-            while Teleporting and not NewChar do
+            while Active and not NewChar do
                 if Root and TargetPart then
                     Root.CFrame = TargetPart.CFrame
                     for _, v in pairs(Char:GetChildren()) do
@@ -242,16 +242,16 @@ local function Farm()
             task.wait(0.4)
             if Char then Char:BreakJoints() end
             task.spawn(function() Claim:FireServer() end)
+            Active = false
             break
         else
-            -- Bölümü Tamamla
-            task.wait(0.3) -- Kararlılık için kısa bekleme
-            Teleporting = false
+            -- Bölümü Onayla ve Havada Bekle
+            task.wait(0.3) -- Kararlılık için
             Claim:FireServer()
             
-            -- BÖLÜMLER ARASI 2 SANİYE BEKLEME
-            if StatusLabelRef then StatusLabelRef.Text = "Bölüm " .. _ .. " Tamam. 2sn Bekleniyor..." end
-            task.wait(2)
+            if StatusLabelRef then StatusLabelRef.Text = "Bölüm " .. _ .. " Tamam. Havada Bekleniyor (2sn)..." end
+            task.wait(2) -- 2 Saniye Havada Sabit Bekleme
+            Active = false -- Bir sonraki bölüme geçmek için kilidi bırak
         end
     end
     if conn then conn:Disconnect() end
