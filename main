@@ -1,11 +1,11 @@
 -- =========================================================
--- BUILD A BOAT - FULL TETİKLİ & YAVAŞ SAFE FARMER
+-- BUILD A BOAT - FULL TETİKLİ & YAVAŞ SAFE FARMER (V6)
 -- =========================================================
 
 local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/xHeptc/Kavo-UI-Library/main/source.lua"))()
-local Window = Library.CreateLib("BABFT - Full Tetikli v5", "DarkTheme")
+local Window = Library.CreateLib("BABFT - Pro Tetikli v6", "Midnight")
 
--- DATA & SERVICES
+-- SERVICES & DATA
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 local Data = LocalPlayer:WaitForChild("OtherData")
@@ -16,103 +16,101 @@ local Chests = 0
 local StartTime = os.time()
 local AutoFarmActive = false 
 
--- MOBILE UI BUTTON (AÇ/KAPAT)
+-- MOBILE UI TOGGLE
 local ScreenGui = Instance.new("ScreenGui", game.CoreGui)
 local ToggleBtn = Instance.new("TextButton", ScreenGui)
-ToggleBtn.Size = UDim2.new(0, 80, 0, 35)
-ToggleBtn.Position = UDim2.new(0, 10, 0, 300)
+ToggleBtn.Size = UDim2.new(0, 90, 0, 35)
+ToggleBtn.Position = UDim2.new(0, 10, 0, 250)
 ToggleBtn.Text = "MENU"
-ToggleBtn.BackgroundColor3 = Color3.fromRGB(0, 170, 255)
+ToggleBtn.BackgroundColor3 = Color3.fromRGB(0, 150, 255)
 ToggleBtn.TextColor3 = Color3.new(1,1,1)
+ToggleBtn.Draggable = true
 ToggleBtn.MouseButton1Click:Connect(function() Library:ToggleUI() end)
 
 -- SEKMELER
 local MainTab = Window:NewTab("Farming")
-local StatusSection = MainTab:NewSection("Anlık Takip (Tetikli)")
+local StatusSection = MainTab:NewSection("Anlık Veriler")
 
--- SAYAÇLAR (UI ÜZERİNDE TETİKLENENLER)
-local goldLabel = StatusSection:NewLabel("Current Gold: " .. StartGold)
+-- UI SAYAÇLARI (TETİKLİ)
+local goldLabel = StatusSection:NewLabel("Currenct Gold: " .. StartGold)
 local gainedLabel = StatusSection:NewLabel("Gained Gold: 0")
 local chestLabel = StatusSection:NewLabel("Chest Collected: 0")
 local timeLabel = StatusSection:NewLabel("Total Time Farming: 00:00:00")
-local stageLabel = StatusSection:NewLabel("Şu Anki Bölüm: Bekliyor...")
+local stageLabel = StatusSection:NewLabel("Durum: Bekleniyor...")
 
--- BÖLÜM KONTROL FONKSİYONU
+-- STAGE ONAY FONKSİYONU
 local function HasStage(Num)
     return Data[`Stage{Num}`].Value ~= "" and Data[`Stage{Num}`].Value
 end
 
--- FULL YAVAŞ & TETİKLİ FARM DÖNGÜSÜ
-local function StartFullTetikliFarm()
+-- YAVAŞ VE TETİKLİ FARM DÖNGÜSÜ
+local function StartSlowFarm()
     while AutoFarmActive do
         local Char = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
         local Root = Char:WaitForChild("HumanoidRootPart")
         local Stages = workspace.BoatStages.NormalStages
         
-        -- 1'den 10'a Kadar Bölümleri Tetikleyerek Geç
+        -- 1'den 10'a Kadar Bölüm Bölüm Geçiş
         for i = 1, 10 do
             if not AutoFarmActive then break end
             
-            stageLabel:UpdateLabel("Şu Anki Bölüm: " .. i .. " / 11")
+            stageLabel:UpdateLabel("Bölüm Geçiliyor: " .. i .. " / 11")
             
             local Target = Stages[`CaveStage{i}`].DarknessPart
             Root.CFrame = Target.CFrame
             Root.Velocity = Vector3.zero
             
-            -- Bölüm Ödülünü Tetikle
+            -- Sunucuya Bildirim Gönder (Claim)
             task.spawn(function() Claim:FireServer() end)
             
-            -- Yavaş İlerleme (Senin istediğin full yavaşlık)
+            -- FULL YAVAŞ: 4.5 Saniye Bekle (Anticheat Bypass)
             task.wait(4.5) 
             
-            -- Bölümün onaylanmasını bekle
+            -- Bölümün Kaydedilmesini Bekle (Tetikli)
             repeat task.wait(0.5) until HasStage(i) or not AutoFarmActive
         end
 
-        -- 11. BÖLÜM (GOLDEN CHEST - OYUNU BİTİRİŞ)
+        -- 11. BÖLÜM (THE END - SANDIK)
         if AutoFarmActive then
-            stageLabel:UpdateLabel("Şu Anki Bölüm: 11 (FINAL CHEST)")
+            stageLabel:UpdateLabel("Durum: SANDIK ALINIYOR (11/11)")
             local EndStage = Stages.TheEnd.GoldenChest
-            
-            -- Sandığa Git
             Root.CFrame = EndStage.Trigger.CFrame
             task.wait(2)
             
-            -- Sandık Dokunmasını Tetikle (Bypass)
+            -- Sandık Dokunma Bypass
             EndStage.Trigger.CFrame = Root.CFrame
             task.wait(2)
             
-            -- UI Sayaçlarını Tetikle
+            -- Sandık Sayacını Tetikle
             Chests = Chests + 1
             chestLabel:UpdateLabel("Chest Collected: " .. Chests)
             
-            -- Turu Bitir ve Dinlen
+            -- Reset ve Güvenli Bekleme
+            stageLabel:UpdateLabel("Durum: Resetleniyor, Bekle...")
             Char:BreakJoints()
-            stageLabel:UpdateLabel("Şu Anki Bölüm: Resetleniyor...")
             task.wait(8) 
         end
     end
 end
 
--- KONTROL PANELİ
-StatusSection:NewToggle("Auto Farm (Tetikli)", "Bölüm bölüm geçer, sayaçları günceller", function(state)
+-- KONTROL BUTONU
+StatusSection:NewToggle("Auto Farm [BAŞLAT]", "Bölümleri yavaşça geçer", function(state)
     AutoFarmActive = state
     if state then
-        Library:Notify("Sistem", "Tetikli Farm Başladı!", "Default")
-        task.spawn(StartFullTetikliFarm)
+        Library:Notify("Sistem", "Farm Başlatıldı!", "Default")
+        task.spawn(StartSlowFarm)
     else
-        stageLabel:UpdateLabel("Şu Anki Bölüm: DURDURULDU")
-        Library:Notify("Sistem", "Farm Kapatıldı.", "Default")
+        Library:Notify("Sistem", "Farm Durduruldu.", "Default")
     end
 end)
 
-StatusSection:NewButton("Double Gold Button (X2)", "Gamepass Bypass Tetikle", function()
+-- DOUBLE GOLD BUTTON
+StatusSection:NewButton("Double Gold (X2) [TETİKLE]", "DEX: TRUE / Bypass", function()
     local gp = Instance.new("BoolValue", LocalPlayer); gp.Name = "GoldPass"
-    local vip = Instance.new("BoolValue", LocalPlayer); vip.Name = "VIP"
-    Library:Notify("Bypass", "Double Gold Aktif (DEX: TRUE)", "Success")
+    Library:Notify("Gamepass", "Double Gold Aktif Edildi!", "Success")
 end)
 
--- ANA VERİ GÜNCELLEME DÖNGÜSÜ (SÜREKLİ TETİKLİ)
+-- CANLI TAKİP DÖNGÜSÜ
 task.spawn(function()
     while task.wait(1) do
         -- Zaman Sayacı
@@ -120,9 +118,9 @@ task.spawn(function()
         local h, m, s = math.floor(diff/3600), math.floor((diff%3600)/60), diff%60
         timeLabel:UpdateLabel("Total Time Farming: " .. string.format("%02d:%02d:%02d", h, m, s))
         
-        -- Altın Takibi
+        -- Altın Verisi
         local cur = LocalPlayer.Data.Gold.Value
-        goldLabel:UpdateLabel("Current Gold: " .. cur)
+        goldLabel:UpdateLabel("Currenct Gold: " .. cur)
         gainedLabel:UpdateLabel("Gained Gold: " .. (cur - StartGold))
     end
 end)
