@@ -1,13 +1,13 @@
 --[[
-	ULTIMATE BUILD A BOAT FOR TREASURE - GOLD FARMING HUB (V5.0)
-	- Görseldeki gibi İstatistik Paneli (Gold Farming Hub) eklendi.
-	- İstatistik Takibi: Mevcut Altın, Kazanılan Altın, Sandık Sayısı, Geçen Süre.
-	- Sol Alt Menü Tetikleyici Buton.
-	- Gelişmiş Bypass & Noclip & Farm Hızı.
+	ULTIMATE BUILD A BOAT FOR TREASURE - MAX SPEED FARM (V6.0)
+	- Sonsuz Döngülü Farm (Infinite Loop)
+	- Gelişmiş İstatistik Paneli (Live Tracking)
+	- Güçlendirilmiş Bypass & Anti-Kick
+	- Otomatik Engel Temizleyici
 ]]
 
 local OrionLib = loadstring(game:HttpGet(('https://raw.githubusercontent.com/shlexware/Orion/main/source')))()
-local Window = OrionLib:MakeWindow({Name = "BaBft Ultimate - Pro Edition", HidePremium = false, SaveConfig = true, ConfigFolder = "BaBftUltimate"})
+local Window = OrionLib:MakeWindow({Name = "BaBft Ultimate - MAX EDITION", HidePremium = false, SaveConfig = true, ConfigFolder = "BaBftUltimate"})
 
 -- ================================
 -- Değişkenler & İstatistikler
@@ -22,7 +22,6 @@ local CoreGui = game:GetService("CoreGui")
 local farming = false
 local autoBuyType = "None"
 local walkSpeed = 16
-local jumpPower = 50
 local noclipActive = false
 
 -- İstatistik Verileri
@@ -32,124 +31,91 @@ local ChestsCollected = 0
 local StartTime = os.time()
 
 -- ================================
--- STAT BOARD (Görseldeki Panel)
+-- STAT BOARD (İstatistik Paneli)
 -- ================================
 local StatGui = Instance.new("ScreenGui")
-local MainFrame = Instance.new("Frame")
-local TitleLabel = Instance.new("TextLabel")
-local Line = Instance.new("Frame")
-local CurrentGoldLabel = Instance.new("TextLabel")
-local GainedGoldLabel = Instance.new("TextLabel")
-local ChestsLabel = Instance.new("TextLabel")
-local TimeLabel = Instance.new("TextLabel")
-local DiscordBtn = Instance.new("TextButton")
-
-StatGui.Name = "StatBoard"
+StatGui.Name = "MaxStatBoard"
 StatGui.Parent = CoreGui
 
-MainFrame.Name = "MainFrame"
-MainFrame.Parent = StatGui
-MainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 20)
+local MainFrame = Instance.new("Frame", StatGui)
+MainFrame.BackgroundColor3 = Color3.fromRGB(10, 10, 15)
 MainFrame.BorderSizePixel = 0
-MainFrame.Position = UDim2.new(0, 20, 0, 20) -- Sol üst
+MainFrame.Position = UDim2.new(0, 20, 0, 20)
 MainFrame.Size = UDim2.new(0, 260, 0, 220)
-local FrameCorner = Instance.new("UICorner", MainFrame)
-FrameCorner.CornerRadius = UDim.new(0, 8)
+Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 10)
+Instance.new("UIStroke", MainFrame).Color = Color3.fromRGB(0, 255, 150)
 
-local FrameStroke = Instance.new("UIStroke", MainFrame)
-FrameStroke.Color = Color3.fromRGB(45, 45, 60)
-FrameStroke.Thickness = 1.5
-
-TitleLabel.Parent = MainFrame
-TitleLabel.Size = UDim2.new(1, 0, 0, 35)
+local TitleLabel = Instance.new("TextLabel", MainFrame)
+TitleLabel.Size = UDim2.new(1, 0, 0, 40)
 TitleLabel.Font = Enum.Font.GothamBold
-TitleLabel.Text = "W31rd.Hub • Gold Farming • V5.0"
-TitleLabel.TextColor3 = Color3.fromRGB(100, 160, 255)
-TitleLabel.TextSize = 14
-TitleLabel.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
+TitleLabel.Text = "MAX FARM HUB • V6.0"
+TitleLabel.TextColor3 = Color3.fromRGB(0, 255, 150)
+TitleLabel.TextSize = 16
+TitleLabel.BackgroundTransparency = 1
 
-Line.Parent = MainFrame
-Line.Position = UDim2.new(0, 10, 0, 36)
-Line.Size = UDim2.new(1, -20, 0, 1)
-Line.BackgroundColor3 = Color3.fromRGB(100, 160, 255)
-Line.BorderSizePixel = 0
-
--- İstatistik Satırları Fonksiyonu
-local function CreateStatLabel(name, color, pos)
+local function CreateStatLine(text, color, pos)
     local lbl = Instance.new("TextLabel", MainFrame)
     lbl.Position = UDim2.new(0, 15, 0, pos)
-    lbl.Size = UDim2.new(1, -30, 0, 25)
+    lbl.Size = UDim2.new(1, -30, 0, 30)
     lbl.Font = Enum.Font.GothamBold
     lbl.TextXAlignment = Enum.TextXAlignment.Left
     lbl.TextColor3 = color
-    lbl.TextSize = 16
+    lbl.TextSize = 14
     lbl.BackgroundTransparency = 1
     return lbl
 end
 
-CurrentGoldLabel = CreateStatLabel("Current Gold: 0", Color3.fromRGB(255, 200, 0), 55)
-GainedGoldLabel = CreateStatLabel("Gained Gold: 0", Color3.fromRGB(0, 255, 100), 85)
-ChestsLabel = CreateStatLabel("Chests Collected: 0", Color3.fromRGB(255, 150, 0), 115)
-TimeLabel = CreateStatLabel("Total Time: 00:00:00", Color3.fromRGB(120, 200, 255), 145)
+local CurrentGoldLabel = CreateStatLine("Mevcut Altın: 0", Color3.fromRGB(255, 215, 0), 50)
+local GainedGoldLabel = CreateStatLine("Kazanılan: 0", Color3.fromRGB(0, 255, 100), 80)
+local ChestsLabel = CreateStatLine("Toplanan Sandık: 0", Color3.fromRGB(255, 165, 0), 110)
+local TimeLabel = CreateStatLine("Geçen Süre: 00:00:00", Color3.fromRGB(0, 200, 255), 140)
 
-DiscordBtn.Parent = MainFrame
-DiscordBtn.Size = UDim2.new(1, -30, 0, 30)
-DiscordBtn.Position = UDim2.new(0, 15, 1, -40)
-DiscordBtn.BackgroundColor3 = Color3.fromRGB(60, 120, 255)
-DiscordBtn.Text = "Copy Discord Link"
-DiscordBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-DiscordBtn.Font = Enum.Font.GothamBold
-DiscordBtn.TextSize = 14
-Instance.new("UICorner", DiscordBtn).CornerRadius = UDim.new(0, 6)
-
--- İstatistik Güncelleme Döngüsü
+-- İstatistik Güncelleme
 task.spawn(function()
     while task.wait(1) do
-        local currentGold = LocalPlayer.Data.Gold.Value
-        GainedGold = currentGold - StartGold
-        
-        local diff = os.time() - StartTime
-        local hours = math.floor(diff / 3600)
-        local mins = math.floor((diff % 3600) / 60)
-        local secs = diff % 60
-        
-        CurrentGoldLabel.Text = "Current Gold: " .. string.format('%,d', currentGold)
-        GainedGoldLabel.Text = "Gained Gold: " .. string.format('%,d', GainedGold)
-        ChestsLabel.Text = "Chests Collected: " .. ChestsCollected
-        TimeLabel.Text = "Total Time Farming: " .. string.format("%02d:%02d:%02d", hours, mins, secs)
+        pcall(function()
+            local currentGold = LocalPlayer.Data.Gold.Value
+            GainedGold = currentGold - StartGold
+            local diff = os.time() - StartTime
+            local h, m, s = math.floor(diff/3600), math.floor((diff%3600)/60), diff%60
+            
+            CurrentGoldLabel.Text = "Mevcut Altın: " .. string.format('%,d', currentGold)
+            GainedGoldLabel.Text = "Kazanılan: " .. string.format('%,d', GainedGold)
+            ChestsLabel.Text = "Toplanan Sandık: " .. ChestsCollected
+            TimeLabel.Text = "Geçen Süre: " .. string.format("%02d:%02d:%02d", h, m, s)
+        end)
     end
 end)
 
 -- ================================
--- MENÜ TETİKLEME BUTONU
+-- MENÜ TETİKLEME (Sol Alt)
 -- ================================
 local OpenBtnGui = Instance.new("ScreenGui", CoreGui)
 local OpenBtn = Instance.new("TextButton", OpenBtnGui)
-OpenBtn.Size = UDim2.new(0, 60, 0, 60)
-OpenBtn.Position = UDim2.new(0, 15, 1, -75)
-OpenBtn.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
-OpenBtn.Text = "MENU"
-OpenBtn.TextColor3 = Color3.fromRGB(100, 160, 255)
+OpenBtn.Size = UDim2.new(0, 65, 0, 65)
+OpenBtn.Position = UDim2.new(0, 15, 1, -80)
+OpenBtn.BackgroundColor3 = Color3.fromRGB(10, 10, 15)
+OpenBtn.Text = "MAX"
+OpenBtn.TextColor3 = Color3.fromRGB(0, 255, 150)
 OpenBtn.Font = Enum.Font.GothamBold
-local BtnCorner = Instance.new("UICorner", OpenBtn)
-local BtnStroke = Instance.new("UIStroke", OpenBtn)
-BtnStroke.Color = Color3.fromRGB(100, 160, 255)
-BtnStroke.Thickness = 2
+Instance.new("UICorner", OpenBtn).CornerRadius = UDim.new(0, 12)
+local Stroke = Instance.new("UIStroke", OpenBtn)
+Stroke.Color = Color3.fromRGB(0, 255, 150)
+Stroke.Thickness = 2
 
 OpenBtn.MouseButton1Click:Connect(function()
     local frame = CoreGui:FindFirstChild("Orion")
     if frame then frame.Enabled = not frame.Enabled end
-    MainFrame.Visible = not MainFrame.Visible -- Stat board'ı da senkronize et
+    MainFrame.Visible = not MainFrame.Visible
 end)
 
 -- ================================
--- BYPASS & FARM SİSTEMİ
+-- MAX BYPASS & FARM SİSTEMİ
 -- ================================
 local function ApplyBypass()
     local mt = getrawmetatable(game)
     setreadonly(mt, false)
     local oldNamecall = mt.__namecall
-
     mt.__namecall = newcclosure(function(self, ...)
         local method = getnamecallmethod()
         if method == "Kick" or method == "kick" then return nil end
@@ -171,65 +137,70 @@ end
 local function StartFarm()
     task.spawn(function()
         while farming do
-            local char = LocalPlayer.Character
-            if not char or not char:FindFirstChild("HumanoidRootPart") then
-                LocalPlayer.CharacterAdded:Wait()
-                task.wait(1)
-                char = LocalPlayer.Character
-            end
-
-            local root = char.HumanoidRootPart
-            ClearMap()
+            local char = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+            local root = char:WaitForChild("HumanoidRootPart", 10)
             
-            local bv = Instance.new("BodyVelocity", root)
-            bv.Velocity = Vector3.new(0, 0, 0)
-            bv.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
+            if root then
+                ClearMap()
+                -- Anti-Gravity & Noclip
+                local bv = Instance.new("BodyVelocity", root)
+                bv.Velocity = Vector3.new(0, 0, 0)
+                bv.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
 
-            local endZone = Workspace.BoatStages.NormalStages.TheEnd.GoldenChest.Trigger
-            local path = {
-                CFrame.new(-55, 85, 1500),
-                CFrame.new(-55, 85, 4500),
-                CFrame.new(-55, 85, 7500),
-                CFrame.new(-55, 85, 9450),
-                endZone.CFrame
-            }
+                local endZone = Workspace.BoatStages.NormalStages.TheEnd.GoldenChest.Trigger
+                local path = {
+                    CFrame.new(-55, 90, 1500),
+                    CFrame.new(-55, 90, 4500),
+                    CFrame.new(-55, 90, 7500),
+                    CFrame.new(-55, 90, 9480),
+                    endZone.CFrame
+                }
 
-            for _, targetCF in ipairs(path) do
-                if not farming then break end
-                local dist = (root.Position - targetCF.Position).Magnitude
-                local tween = TweenService:Create(root, TweenInfo.new(dist / 350, Enum.EasingStyle.Linear), {CFrame = targetCF})
-                tween:Play()
-                tween.Completed:Wait()
+                for _, targetCF in ipairs(path) do
+                    if not farming then break end
+                    local dist = (root.Position - targetCF.Position).Magnitude
+                    local tween = TweenService:Create(root, TweenInfo.new(dist / 380, Enum.EasingStyle.Linear), {CFrame = targetCF})
+                    tween:Play()
+                    tween.Completed:Wait()
+                end
+
+                if farming then
+                    root.CFrame = endZone.CFrame
+                    task.wait(1)
+                    -- Chest Claim Logic
+                    ChestsCollected = ChestsCollected + 1
+                    task.wait(9) -- Paranın gelmesi ve loading için bekleme
+                    bv:Destroy()
+                    char:BreakJoints()
+                    task.wait(4) -- Respawn bekleme
+                end
             end
-
-            if farming then
-                root.CFrame = endZone.CFrame
-                task.wait(2) -- Hazineye dokunma payı
-                ChestsCollected = ChestsCollected + 1
-                task.wait(8)
-                bv:Destroy()
-                char:BreakJoints()
-                task.wait(4)
-            end
+            task.wait()
         end
     end)
 end
 
 -- ================================
--- ARAYÜZ AYARLARI
+-- ARAYÜZ (Orion)
 -- ================================
-local MainTab = Window:MakeTab({Name = "Farm", Icon = "rbxassetid://4483345998"})
+local MainTab = Window:MakeTab({Name = "Farm & Loop", Icon = "rbxassetid://4483345998"})
 local PlayerTab = Window:MakeTab({Name = "Karakter", Icon = "rbxassetid://4483345998"})
 
 MainTab:AddToggle({
-	Name = "Auto Gold Farm",
+	Name = "MAX Auto Loop Farm",
 	Default = false,
-	Callback = function(v) farming = v if v then StartFarm() end end    
+	Callback = function(v)
+        farming = v 
+        if v then 
+            StartFarm() 
+            OrionLib:MakeNotification({Name = "Farm Aktif", Content = "Döngü başlatıldı, sona uçuluyor.", Time = 3})
+        end 
+    end    
 })
 
 PlayerTab:AddSlider({
 	Name = "Hız",
-	Min = 16, Max = 300, Default = 16,
+	Min = 16, Max = 400, Default = 16,
 	Callback = function(v) walkSpeed = v end    
 })
 
