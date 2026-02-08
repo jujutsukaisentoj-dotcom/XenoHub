@@ -1,7 +1,13 @@
+-- =========================================================
+-- W31rd.Hub - Gold Farming V1.2 (rqccc & Dex True Edition)
+-- IMPROVED LOOP & AUTO-RESET WARNING
+-- =========================================================
+
 -- Services
 local Players = game:GetService("Players")
 local CoreGui = game:GetService("CoreGui")
 local RunService = game:GetService("RunService")
+local TeleportService = game:GetService("TeleportService")
 
 -- Variables
 local LocalPlayer = Players.LocalPlayer
@@ -14,9 +20,9 @@ local GoldenChest = Stages.TheEnd.GoldenChest.Trigger
 local StartGold = LocalPlayer.Data.Gold.Value
 local ChestsCollected = 0
 local StartTime = os.time()
+local FarmingInProgress = false
 
 -- [1] DEX TRUE & DOUBLE GOLD ENJECTOR
--- Script çalışır çalışmaz tüm market ürünlerine sahipsin gibi gösterir
 local function ApplyDexTrue()
     local passes = {"GoldPass", "VIP", "Member", "DoubleGold", "DoubleMoney", "ExtraBoatSlot"}
     for _, name in pairs(passes) do
@@ -28,58 +34,57 @@ local function ApplyDexTrue()
     end
 end
 
--- [2] W31RD.HUB PANEL UI (Videodaki Tasarım)
+-- [2] W31RD.HUB PANEL UI
 local function CreateUI()
-    if CoreGui:FindFirstChild("XenoHubGui") then CoreGui.W3rdHubGui:Destroy() end
+    if CoreGui:FindFirstChild("W3rdHubGui") then CoreGui.W3rdHubGui:Destroy() end
     
     local ScreenGui = Instance.new("ScreenGui", CoreGui)
-    ScreenGui.Name = "XenoHubGui"
+    ScreenGui.Name = "W3rdHubGui"
     
     local MainFrame = Instance.new("Frame", ScreenGui)
-    MainFrame.Size = UDim2.new(0, 280, 0, 220)
-    MainFrame.Position = UDim2.new(0.5, -140, 0.4, -110)
-    MainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 30)
+    MainFrame.Size = UDim2.new(0, 300, 0, 260) -- Slightly larger for the new button
+    MainFrame.Position = UDim2.new(0.5, -150, 0.4, -130)
+    MainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
     MainFrame.BorderSizePixel = 0
     
-    -- Rounded Corner
     local Corner = Instance.new("UICorner", MainFrame)
     Corner.CornerRadius = UDim.new(0, 10)
     
     -- Title
     local Title = Instance.new("TextLabel", MainFrame)
-    Title.Size = UDim2.new(1, 0, 0, 35)
-    Title.Text = "Xeno.Hub • Gold Farming"
+    Title.Size = UDim2.new(1, 0, 0, 40)
+    Title.Text = "W31rd.Hub • Gold Farming • V1.2"
     Title.TextColor3 = Color3.fromRGB(130, 180, 255)
     Title.BackgroundTransparency = 1
     Title.Font = Enum.Font.SourceSansBold
-    Title.TextSize = 18
+    Title.TextSize = 20
     
     local Line = Instance.new("Frame", MainFrame)
     Line.Size = UDim2.new(0.9, 0, 0, 2)
-    Line.Position = UDim2.new(0.05, 0, 0, 35)
+    Line.Position = UDim2.new(0.05, 0, 0, 40)
     Line.BackgroundColor3 = Color3.fromRGB(50, 100, 255)
     Line.BorderSizePixel = 0
     
     -- Labels
     local function CreateStatLabel(text, pos, color)
         local Label = Instance.new("TextLabel", MainFrame)
-        Label.Size = UDim2.new(1, -20, 0, 25)
+        Label.Size = UDim2.new(1, -30, 0, 25)
         Label.Position = UDim2.new(0, 15, 0, pos)
         Label.Text = text
         Label.TextColor3 = color
         Label.TextXAlignment = Enum.TextXAlignment.Left
         Label.BackgroundTransparency = 1
         Label.Font = Enum.Font.SourceSansBold
-        Label.TextSize = 20
+        Label.TextSize = 19
         return Label
     end
     
-    local CurGoldL = CreateStatLabel("Current Gold: " .. StartGold, 50, Color3.fromRGB(255, 215, 0))
-    local GainGoldL = CreateStatLabel("Gained Gold: 0", 80, Color3.fromRGB(100, 255, 100))
-    local ChestsL = CreateStatLabel("Chests Collected: 0", 110, Color3.fromRGB(255, 170, 50))
-    local TimeL = CreateStatLabel("Total Time Farming: 00:00:00", 140, Color3.fromRGB(150, 200, 255))
+    local CurGoldL = CreateStatLabel("Current Gold: " .. StartGold, 55, Color3.fromRGB(255, 215, 0))
+    local GainGoldL = CreateStatLabel("Gained Gold: 0", 85, Color3.fromRGB(100, 255, 100))
+    local ChestsL = CreateStatLabel("Chests Collected: 0", 115, Color3.fromRGB(255, 170, 50))
+    local TimeL = CreateStatLabel("Total Time: 00:00:00", 145, Color3.fromRGB(150, 200, 255))
     
-    -- Update Loop
+    -- Status Update Loop
     task.spawn(function()
         while task.wait(1) do
             local current = LocalPlayer.Data.Gold.Value
@@ -89,23 +94,53 @@ local function CreateUI()
             CurGoldL.Text = "Current Gold: " .. current
             GainGoldL.Text = "Gained Gold: " .. (current - StartGold)
             ChestsL.Text = "Chests Collected: " .. ChestsCollected
-            TimeL.Text = "Total Time Farming: " .. string.format("%02d:%02d:%02d", h, m, s)
+            TimeL.Text = "Total Time: " .. string.format("%02d:%02d:%02d", h, m, s)
         end
     end)
     
-    -- Discord Button
-    local Btn = Instance.new("TextButton", MainFrame)
-    Btn.Size = UDim2.new(0.9, 0, 0, 35)
-    Btn.Position = UDim2.new(0.05, 0, 0, 175)
-    Btn.BackgroundColor3 = Color3.fromRGB(50, 120, 255)
-    Btn.Text = "Copy Discord Link"
-    Btn.TextColor3 = Color3.new(1,1,1)
-    Btn.Font = Enum.Font.SourceSansBold
-    Btn.TextSize = 18
-    local BtnCorner = Instance.new("UICorner", Btn)
-    Btn.MouseButton1Click:Connect(function() setclipboard("discord.gg/VaqUrur89H") end)
+    -- [NEW] RESET INFO BUTTON (Left Side)
+    local ResetBtn = Instance.new("TextButton", MainFrame)
+    ResetBtn.Size = UDim2.new(0.43, 0, 0, 35)
+    ResetBtn.Position = UDim2.new(0.05, 0, 0, 185)
+    ResetBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+    ResetBtn.Text = "FIX / RESET"
+    ResetBtn.TextColor3 = Color3.new(1,1,1)
+    ResetBtn.Font = Enum.Font.SourceSansBold
+    ResetBtn.TextSize = 14
+    local RCorner = Instance.new("UICorner", ResetBtn)
     
-    -- Dragging
+    ResetBtn.MouseButton1Click:Connect(function()
+        -- User friendly message for stuck situations
+        local hint = Instance.new("Message", workspace)
+        hint.Text = "If you are stuck or bugged, please RESET your character to fix the loop!"
+        task.wait(4)
+        hint:Destroy()
+        if LocalPlayer.Character then LocalPlayer.Character:BreakJoints() end
+    end)
+
+    -- Discord Button (Right Side)
+    local DiscordBtn = Instance.new("TextButton", MainFrame)
+    DiscordBtn.Size = UDim2.new(0.43, 0, 0, 35)
+    DiscordBtn.Position = UDim2.new(0.52, 0, 0, 185)
+    DiscordBtn.BackgroundColor3 = Color3.fromRGB(88, 101, 242)
+    DiscordBtn.Text = "Copy Discord"
+    DiscordBtn.TextColor3 = Color3.new(1,1,1)
+    DiscordBtn.Font = Enum.Font.SourceSansBold
+    DiscordBtn.TextSize = 14
+    local DCorner = Instance.new("UICorner", DiscordBtn)
+    DiscordBtn.MouseButton1Click:Connect(function() setclipboard("discord.gg/EbhtGYbuTa") end)
+
+    -- Tip Label
+    local Tip = Instance.new("TextLabel", MainFrame)
+    Tip.Size = UDim2.new(1, 0, 0, 20)
+    Tip.Position = UDim2.new(0, 0, 0, 230)
+    Tip.Text = "Reset character if farming stops unexpectedly."
+    Tip.TextColor3 = Color3.fromRGB(180, 180, 180)
+    Tip.BackgroundTransparency = 1
+    Tip.Font = Enum.Font.SourceSansItalic
+    Tip.TextSize = 12
+    
+    -- Dragging Logic
     local Dragging, DragInput, DragStart, StartPos
     MainFrame.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 then Dragging = true DragStart = input.Position StartPos = MainFrame.Position end
@@ -121,74 +156,91 @@ local function CreateUI()
     end)
 end
 
--- [3] rqccc CORE FARM LOGIC (Automatic)
+-- [3] CORE FARM LOGIC
 local function HasStage(Num)
-	return Data[`Stage{Num}`].Value ~= "" and Data[`Stage{Num}`].Value
+    return Data[`Stage{Num}`].Value ~= "" and Data[`Stage{Num}`].Value
 end
 
 local function ClaimStage(Num)
-	task.spawn(function()
-		local Value = Data[`Stage{Num}`]
-		if not Value then Value:GetPropertyChangedSignal("Value"):Wait() end
-		Claim:FireServer()
-	end)
+    task.spawn(function()
+        local Value = Data[`Stage{Num}`]
+        if not Value then Value:GetPropertyChangedSignal("Value"):Wait() end
+        Claim:FireServer()
+    end)
 end
 
 local function Farm()
+    if FarmingInProgress then return end
+    FarmingInProgress = true
+    
     ApplyDexTrue()
-	local Char = LocalPlayer.Character
-	if not Char then return end
-	local Root = Char:WaitForChild("HumanoidRootPart")
+    local Char = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+    local Root = Char:WaitForChild("HumanoidRootPart")
 
-	local NewChar = false
-	task.spawn(function() LocalPlayer.CharacterAdded:Once(function() NewChar = true end) end)
+    local NewChar = false
+    local conn
+    conn = LocalPlayer.CharacterAdded:Once(function() 
+        NewChar = true 
+        FarmingInProgress = false
+    end)
 
-	for _ = 1, 10 do
-		local TargetPart = Stages[`CaveStage{_}`].DarknessPart
-		local Teleporting = true
+    for i = 1, 10 do
+        if NewChar then break end
+        
+        local TargetPart = Stages[`CaveStage{i}`].DarknessPart
+        local Teleporting = true
 
-		task.spawn(function()
-			while Teleporting do
-				Root.CFrame = TargetPart.CFrame
-				Root.Velocity = Vector3.zero
-				Root.RotVelocity = Vector3.zero
-				task.wait()
-			end
-		end)
+        -- Safety task to prevent getting stuck in a loop
+        task.spawn(function()
+            while Teleporting and not NewChar do
+                Root.CFrame = TargetPart.CFrame
+                Root.Velocity = Vector3.zero
+                Root.RotVelocity = Vector3.zero
+                task.wait()
+            end
+        end)
 
-		-- Stage 3 Special (from original rqccc)
-		if _ == 3 then
-			task.spawn(function()
-				GoldenChest.CFrame = Root.CFrame
-				task.wait()
-				GoldenChest.CFrame = CFrame.new(0, 9e9, 0)
-				task.wait(0.2)
-				ClaimStage(_)
-			end)
-		elseif _ ~= 10 then
-			ClaimStage(_)
-		end
+        -- Optimized Timing for Bypass
+        if i == 3 then
+            task.spawn(function()
+                GoldenChest.CFrame = Root.CFrame
+                task.wait()
+                GoldenChest.CFrame = CFrame.new(0, 9e9, 0)
+                task.wait(0.2)
+                ClaimStage(i)
+            end)
+        elseif i ~= 10 then
+            ClaimStage(i)
+        end
 
-		if _ == 10 then
-            -- Final
-			task.wait(1)
+        if i == 10 then
+            task.wait(1.5)
             ChestsCollected = ChestsCollected + 1
-			Char:BreakJoints()
-			task.spawn(function() task.wait(1) Claim:FireServer() end)
-		else
-			repeat task.wait(0.1) until HasStage(_) or NewChar
-		end
-		Teleporting = false
-	end
+            FarmingInProgress = false
+            Char:BreakJoints()
+            task.spawn(function() task.wait(1) Claim:FireServer() end)
+        else
+            -- Check for stage validation or timeout
+            local timeout = 0
+            repeat 
+                task.wait(0.1) 
+                timeout = timeout + 0.1
+            until HasStage(i) or NewChar or timeout > 8
+        end
+        Teleporting = false
+    end
+    if conn then conn:Disconnect() end
 end
 
--- [4] STARTUP
+-- [4] STARTUP & INFINITE LOOP
 ApplyDexTrue()
 CreateUI()
 
+-- Auto-restart on spawn
 LocalPlayer.CharacterAdded:Connect(function()
-    task.wait(2)
+    task.wait(3) -- Wait for world to load
     Farm()
 end)
 
+-- Initial Start
 task.spawn(Farm)
