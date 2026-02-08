@@ -1,361 +1,253 @@
--- ===============================================================
--- 👑 GEMINI HUB V12 - GOD MODE & INFINITE FARM
--- 🚀 ALL GAMEPASS BYPASS + 999+ SIMULATOR + ALL MORPHS + ALL CODES
--- ===============================================================
+--[[
+	ULTIMATE BUILD A BOAT FOR TREASURE - GOLD FARMING HUB (V5.0)
+	- Görseldeki gibi İstatistik Paneli (Gold Farming Hub) eklendi.
+	- İstatistik Takibi: Mevcut Altın, Kazanılan Altın, Sandık Sayısı, Geçen Süre.
+	- Sol Alt Menü Tetikleyici Buton.
+	- Gelişmiş Bypass & Noclip & Farm Hızı.
+]]
 
-local Settings = {
-    FarmEnabled = false,
-    DoubleGold = true,
-    AntiWater = true,
-    AutoGoldBlock = true,
-    WalkSpeed = 16,
-    JumpPower = 50,
-    MaxStages = 10,
-    ChestStage = 11,
-    TeleportSpeed = 0.05,
-    AutoClaim = true,
-    Invisibility = false,
-    WaterWalk = false
-}
+local OrionLib = loadstring(game:HttpGet(('https://raw.githubusercontent.com/shlexware/Orion/main/source')))()
+local Window = OrionLib:MakeWindow({Name = "BaBft Ultimate - Pro Edition", HidePremium = false, SaveConfig = true, ConfigFolder = "BaBftUltimate"})
 
--- Servisler
+-- ================================
+-- Değişkenler & İstatistikler
+-- ================================
 local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
-local Workspace = game:GetService("Workspace")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-
 local LocalPlayer = Players.LocalPlayer
-local Data = LocalPlayer:WaitForChild("OtherData")
-local Claim = Workspace:WaitForChild("ClaimRiverResultsGold")
-local Stages = Workspace:WaitForChild("BoatStages"):WaitForChild("NormalStages")
+local Workspace = game:GetService("Workspace")
+local TweenService = game:GetService("TweenService")
+local RunService = game:GetService("RunService")
+local CoreGui = game:GetService("CoreGui")
 
--- [ TÜM GÜNCEL KODLAR LİSTESİ ]
--- 2026 itibariyle çalışan ve aktif olan tüm Build A Boat kodları
-local PromoCodes = {
-    "hi",
-    "Squid Army",
-    "=D",
-    "=P",
-    "chillthrill709 was here",
-    "fuzzy friend?",
-    "Lurking Legend",
-    "GGGOOOAAALLL",
-    "Be a big f00t print",
-    "1B",
-    "voted code",
-    "1M Likes"
-}
+local farming = false
+local autoBuyType = "None"
+local walkSpeed = 16
+local jumpPower = 50
+local noclipActive = false
 
--- [ KOD KULLANMA FONKSİYONU ]
-local function RedeemAllCodes()
-    pcall(function()
-        local RedeemRemote = ReplicatedStorage:FindFirstChild("RedeemCode", true)
-        if RedeemRemote and RedeemRemote:IsA("RemoteFunction") then
-            for _, code in pairs(PromoCodes) do
-                -- Sunucuyu yormamak ve ban riskini önlemek için küçük bekleme
-                RedeemRemote:InvokeServer(code)
-                task.wait(0.2)
-            end
-        end
-    end)
-end
+-- İstatistik Verileri
+local StartGold = LocalPlayer.Data.Gold.Value
+local GainedGold = 0
+local ChestsCollected = 0
+local StartTime = os.time()
 
--- [ TÜM GAMEPASS & MORPH BYPASS SİSTEMİ ]
-local function TriggerAllGamepassBypass()
-    pcall(function()
-        -- 1. Double Gold Bypass (%100 Tetikleyici)
-        if Data:FindFirstChild("DoubleGold") then
-            Data.DoubleGold.Value = true
-        end
-        
-        if ReplicatedStorage:FindFirstChild("DoubleGoldGamepass") then
-            ReplicatedStorage.DoubleGoldGamepass:FireServer(true)
-        end
-
-        -- 2. Morph & Transformation Bypass
-        local MorphList = {"Penguin", "Fox", "Chicken", "PenguinMorph", "FoxMorph", "ChickenMorph"}
-        for _, morph in pairs(MorphList) do
-            if Data:FindFirstChild(morph) then
-                Data[morph].Value = true
-            end
-        end
-
-        -- 3. Diğer Gamepass Değerlerini Dex'te True Yapma
-        local PassList = {"DoubleMoney", "ExtraHealth", "RoyalMember", "MegaMember"}
-        for _, pass in pairs(PassList) do
-            if Data:FindFirstChild(pass) then
-                Data[pass].Value = true
-            end
-        end
-
-        -- 4. Sunucu Kontrolü Bypass
-        if ReplicatedStorage:FindFirstChild("CheckGamepasses") then
-            ReplicatedStorage.CheckGamepasses:InvokeServer()
-        end
-    end)
-end
-
--- [ GUI OLUŞTURMA ]
-local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "Gemini_V12_Ultimate"
-ScreenGui.Parent = (gethui and gethui()) or (game:GetService("CoreGui")) or LocalPlayer:WaitForChild("PlayerGui")
-ScreenGui.ResetOnSpawn = false
-
+-- ================================
+-- STAT BOARD (Görseldeki Panel)
+-- ================================
+local StatGui = Instance.new("ScreenGui")
 local MainFrame = Instance.new("Frame")
+local TitleLabel = Instance.new("TextLabel")
+local Line = Instance.new("Frame")
+local CurrentGoldLabel = Instance.new("TextLabel")
+local GainedGoldLabel = Instance.new("TextLabel")
+local ChestsLabel = Instance.new("TextLabel")
+local TimeLabel = Instance.new("TextLabel")
+local DiscordBtn = Instance.new("TextButton")
+
+StatGui.Name = "StatBoard"
+StatGui.Parent = CoreGui
+
 MainFrame.Name = "MainFrame"
-MainFrame.Parent = ScreenGui
-MainFrame.BackgroundColor3 = Color3.fromRGB(10, 10, 15)
-MainFrame.Size = UDim2.new(0, 260, 0, 520) -- Yeni butonlar için genişletildi
-MainFrame.Position = UDim2.new(0.05, 0, 0.2, 0)
+MainFrame.Parent = StatGui
+MainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 20)
 MainFrame.BorderSizePixel = 0
-MainFrame.Active = true
-MainFrame.Draggable = true
+MainFrame.Position = UDim2.new(0, 20, 0, 20) -- Sol üst
+MainFrame.Size = UDim2.new(0, 260, 0, 220)
+local FrameCorner = Instance.new("UICorner", MainFrame)
+FrameCorner.CornerRadius = UDim.new(0, 8)
 
-local UICorner = Instance.new("UICorner")
-UICorner.CornerRadius = UDim.new(0, 15)
-UICorner.Parent = MainFrame
+local FrameStroke = Instance.new("UIStroke", MainFrame)
+FrameStroke.Color = Color3.fromRGB(45, 45, 60)
+FrameStroke.Thickness = 1.5
 
-local Title = Instance.new("TextLabel")
-Title.Parent = MainFrame
-Title.Size = UDim2.new(1, 0, 0, 50)
-Title.Text = "GEMINI ULTIMATE V12 👑"
-Title.TextColor3 = Color3.fromRGB(255, 215, 0)
-Title.Font = Enum.Font.GothamBold
-Title.TextSize = 18
-Title.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
+TitleLabel.Parent = MainFrame
+TitleLabel.Size = UDim2.new(1, 0, 0, 35)
+TitleLabel.Font = Enum.Font.GothamBold
+TitleLabel.Text = "W31rd.Hub • Gold Farming • V5.0"
+TitleLabel.TextColor3 = Color3.fromRGB(100, 160, 255)
+TitleLabel.TextSize = 14
+TitleLabel.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
 
-local Corner2 = Instance.new("UICorner")
-Corner2.CornerRadius = UDim.new(0, 15)
-Corner2.Parent = Title
+Line.Parent = MainFrame
+Line.Position = UDim2.new(0, 10, 0, 36)
+Line.Size = UDim2.new(1, -20, 0, 1)
+Line.BackgroundColor3 = Color3.fromRGB(100, 160, 255)
+Line.BorderSizePixel = 0
 
--- [ BUTON OLUŞTURUCU ]
-local function CreateButton(name, pos, text, callback)
-    local Btn = Instance.new("TextButton")
-    Btn.Name = name
-    Btn.Parent = MainFrame
-    Btn.Position = pos
-    Btn.Size = UDim2.new(0.9, 0, 0, 28)
-    Btn.BackgroundColor3 = Color3.fromRGB(35, 35, 45)
-    Btn.Text = text
-    Btn.TextColor3 = Color3.fromRGB(200, 200, 200)
-    Btn.Font = Enum.Font.GothamMedium
-    Btn.TextSize = 10
-    Btn.BorderSizePixel = 0
-    
-    local Corner = Instance.new("UICorner")
-    Corner.CornerRadius = UDim.new(0, 8)
-    Corner.Parent = Btn
-    
-    Btn.Activated:Connect(function()
-        callback(Btn)
-    end)
-    return Btn
+-- İstatistik Satırları Fonksiyonu
+local function CreateStatLabel(name, color, pos)
+    local lbl = Instance.new("TextLabel", MainFrame)
+    lbl.Position = UDim2.new(0, 15, 0, pos)
+    lbl.Size = UDim2.new(1, -30, 0, 25)
+    lbl.Font = Enum.Font.GothamBold
+    lbl.TextXAlignment = Enum.TextXAlignment.Left
+    lbl.TextColor3 = color
+    lbl.TextSize = 16
+    lbl.BackgroundTransparency = 1
+    return lbl
 end
 
--- Özellik Butonları
-CreateButton("FarmBtn", UDim2.new(0.05, 0, 0.11, 0), "OTOMATİK FARM: KAPALI", function(self)
-    Settings.FarmEnabled = not Settings.FarmEnabled
-    self.Text = Settings.FarmEnabled and "OTOMATİK FARM: AÇIK" or "OTOMATİK FARM: KAPALI"
-    self.BackgroundColor3 = Settings.FarmEnabled and Color3.fromRGB(0, 180, 80) or Color3.fromRGB(35, 35, 45)
-end)
+CurrentGoldLabel = CreateStatLabel("Current Gold: 0", Color3.fromRGB(255, 200, 0), 55)
+GainedGoldLabel = CreateStatLabel("Gained Gold: 0", Color3.fromRGB(0, 255, 100), 85)
+ChestsLabel = CreateStatLabel("Chests Collected: 0", Color3.fromRGB(255, 150, 0), 115)
+TimeLabel = CreateStatLabel("Total Time: 00:00:00", Color3.fromRGB(120, 200, 255), 145)
 
-CreateButton("PassBtn", UDim2.new(0.05, 0, 0.18, 0), "TÜM GAMEPASS'LERİ VER (DEX TRUE)", function(self)
-    TriggerAllGamepassBypass()
-    self.Text = "GAMEPASS'LER VERİLDİ! ✅"
-    self.BackgroundColor3 = Color3.fromRGB(200, 150, 0)
-end)
+DiscordBtn.Parent = MainFrame
+DiscordBtn.Size = UDim2.new(1, -30, 0, 30)
+DiscordBtn.Position = UDim2.new(0, 15, 1, -40)
+DiscordBtn.BackgroundColor3 = Color3.fromRGB(60, 120, 255)
+DiscordBtn.Text = "Copy Discord Link"
+DiscordBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+DiscordBtn.Font = Enum.Font.GothamBold
+DiscordBtn.TextSize = 14
+Instance.new("UICorner", DiscordBtn).CornerRadius = UDim.new(0, 6)
 
-CreateButton("CodeBtn", UDim2.new(0.05, 0, 0.25, 0), "TÜM KODLARI KULLAN (HEPSİ)", function(self)
-    self.Text = "KODLAR ALINIYOR... ⏳"
-    RedeemAllCodes()
-    self.Text = "TÜM KODLAR ALINDI! 🎁"
-    self.BackgroundColor3 = Color3.fromRGB(0, 120, 200)
-end)
-
-CreateButton("WaterBtn", UDim2.new(0.05, 0, 0.32, 0), "ANTİ-SU HASARI: AÇIK", function(self)
-    Settings.AntiWater = not Settings.AntiWater
-    self.Text = Settings.AntiWater and "ANTİ-SU HASARI: AÇIK" or "ANTİ-SU HASARI: KAPALI"
-end)
-
-CreateButton("InvisibleBtn", UDim2.new(0.05, 0, 0.39, 0), "GÖRÜNMEZLİK: KAPALI", function(self)
-    Settings.Invisibility = not Settings.Invisibility
-    self.Text = Settings.Invisibility and "GÖRÜNMEZLİK: AÇIK" or "GÖRÜNMEZLİK: KAPALI"
-    if LocalPlayer.Character then
-        for _, v in pairs(LocalPlayer.Character:GetChildren()) do
-            if v:IsA("BasePart") and v.Name ~= "HumanoidRootPart" then
-                v.Transparency = Settings.Invisibility and 1 or 0
-            end
-            if v:IsA("Accessory") and v:FindFirstChild("Handle") then
-                v.Handle.Transparency = Settings.Invisibility and 1 or 0
-            end
-        end
+-- İstatistik Güncelleme Döngüsü
+task.spawn(function()
+    while task.wait(1) do
+        local currentGold = LocalPlayer.Data.Gold.Value
+        GainedGold = currentGold - StartGold
+        
+        local diff = os.time() - StartTime
+        local hours = math.floor(diff / 3600)
+        local mins = math.floor((diff % 3600) / 60)
+        local secs = diff % 60
+        
+        CurrentGoldLabel.Text = "Current Gold: " .. string.format('%,d', currentGold)
+        GainedGoldLabel.Text = "Gained Gold: " .. string.format('%,d', GainedGold)
+        ChestsLabel.Text = "Chests Collected: " .. ChestsCollected
+        TimeLabel.Text = "Total Time Farming: " .. string.format("%02d:%02d:%02d", hours, mins, secs)
     end
 end)
 
-CreateButton("WaterWalkBtn", UDim2.new(0.05, 0, 0.46, 0), "SUDA YÜRÜME: KAPALI", function(self)
-    Settings.WaterWalk = not Settings.WaterWalk
-    self.Text = Settings.WaterWalk and "SUDA YÜRÜME: AÇIK" or "SUDA YÜRÜME: KAPALI"
+-- ================================
+-- MENÜ TETİKLEME BUTONU
+-- ================================
+local OpenBtnGui = Instance.new("ScreenGui", CoreGui)
+local OpenBtn = Instance.new("TextButton", OpenBtnGui)
+OpenBtn.Size = UDim2.new(0, 60, 0, 60)
+OpenBtn.Position = UDim2.new(0, 15, 1, -75)
+OpenBtn.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
+OpenBtn.Text = "MENU"
+OpenBtn.TextColor3 = Color3.fromRGB(100, 160, 255)
+OpenBtn.Font = Enum.Font.GothamBold
+local BtnCorner = Instance.new("UICorner", OpenBtn)
+local BtnStroke = Instance.new("UIStroke", OpenBtn)
+BtnStroke.Color = Color3.fromRGB(100, 160, 255)
+BtnStroke.Thickness = 2
+
+OpenBtn.MouseButton1Click:Connect(function()
+    local frame = CoreGui:FindFirstChild("Orion")
+    if frame then frame.Enabled = not frame.Enabled end
+    MainFrame.Visible = not MainFrame.Visible -- Stat board'ı da senkronize et
 end)
 
-CreateButton("SpeedBtn", UDim2.new(0.05, 0, 0.53, 0), "HIZI ARTIR (100)", function()
-    local hum = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid")
-    if hum then hum.WalkSpeed = 100 end
-end)
+-- ================================
+-- BYPASS & FARM SİSTEMİ
+-- ================================
+local function ApplyBypass()
+    local mt = getrawmetatable(game)
+    setreadonly(mt, false)
+    local oldNamecall = mt.__namecall
 
-CreateButton("NoClipBtn", UDim2.new(0.05, 0, 0.60, 0), "NOCLIP (DUVARLARDAN GEÇ)", function(self)
-    _G.Noclip = not _G.Noclip
-    self.Text = _G.Noclip and "NOCLIP: AÇIK" or "NOCLIP: KAPALI"
-    RunService.Stepped:Connect(function()
-        if _G.Noclip and LocalPlayer.Character then
-            for _, v in pairs(LocalPlayer.Character:GetChildren()) do
-                if v:IsA("BasePart") then v.CanCollide = false end
-            end
+    mt.__namecall = newcclosure(function(self, ...)
+        local method = getnamecallmethod()
+        if method == "Kick" or method == "kick" then return nil end
+        return oldNamecall(self, ...)
+    end)
+    setreadonly(mt, true)
+end
+ApplyBypass()
+
+local function ClearMap()
+    pcall(function()
+        local stages = Workspace.BoatStages.NormalStages
+        for _, stage in pairs(stages:GetChildren()) do
+            if stage:FindFirstChild("DarknessPart") then stage.DarknessPart:Destroy() end
         end
     end)
-end)
-
-CreateButton("JumpBtn", UDim2.new(0.05, 0, 0.67, 0), "SÜPER ZIPLAMA (100)", function()
-    local hum = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid")
-    if hum then hum.JumpPower = 100 end
-end)
-
-CreateButton("FlyBtn", UDim2.new(0.05, 0, 0.74, 0), "UÇMA MODU (E tuşu)", function(self)
-    self.Text = "UÇMA AKTİF (E)"
-    -- Uçma scripti buraya entegre edilebilir
-end)
-
-CreateButton("MorphBtn", UDim2.new(0.05, 0, 0.81, 0), "DÖNÜŞÜMLERİ AKTİF ET", function()
-    TriggerAllGamepassBypass()
-end)
-
-CreateButton("TeleportBtn", UDim2.new(0.05, 0, 0.88, 0), "SONA IŞINLAN (ANINDA)", function()
-    local Root = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
-    if Root then
-        Root.CFrame = Stages:FindFirstChild("TheEnd").GoldenChest.Trigger.CFrame
-    end
-end)
-
-CreateButton("ResetBtn", UDim2.new(0.05, 0, 0.95, 0), "KARAKTERİ SIFIRLA", function()
-    if LocalPlayer.Character then LocalPlayer.Character:BreakJoints() end
-end)
-
--- [ ANA SİSTEM FONKSİYONLARI ]
-
-local function HasStage(Num)
-    local val = Data:FindFirstChild(`Stage{Num}`)
-    return val and val.Value ~= "" and val.Value
 end
 
-local function ClaimStage(Num)
-    if not Settings.AutoClaim then return end
+local function StartFarm()
     task.spawn(function()
-        local Value = Data:FindFirstChild(`Stage{Num}`)
-        if Value and Value.Value == "" then
-            Value:GetPropertyChangedSignal("Value"):Wait()
+        while farming do
+            local char = LocalPlayer.Character
+            if not char or not char:FindFirstChild("HumanoidRootPart") then
+                LocalPlayer.CharacterAdded:Wait()
+                task.wait(1)
+                char = LocalPlayer.Character
+            end
+
+            local root = char.HumanoidRootPart
+            ClearMap()
+            
+            local bv = Instance.new("BodyVelocity", root)
+            bv.Velocity = Vector3.new(0, 0, 0)
+            bv.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
+
+            local endZone = Workspace.BoatStages.NormalStages.TheEnd.GoldenChest.Trigger
+            local path = {
+                CFrame.new(-55, 85, 1500),
+                CFrame.new(-55, 85, 4500),
+                CFrame.new(-55, 85, 7500),
+                CFrame.new(-55, 85, 9450),
+                endZone.CFrame
+            }
+
+            for _, targetCF in ipairs(path) do
+                if not farming then break end
+                local dist = (root.Position - targetCF.Position).Magnitude
+                local tween = TweenService:Create(root, TweenInfo.new(dist / 350, Enum.EasingStyle.Linear), {CFrame = targetCF})
+                tween:Play()
+                tween.Completed:Wait()
+            end
+
+            if farming then
+                root.CFrame = endZone.CFrame
+                task.wait(2) -- Hazineye dokunma payı
+                ChestsCollected = ChestsCollected + 1
+                task.wait(8)
+                bv:Destroy()
+                char:BreakJoints()
+                task.wait(4)
+            end
         end
-        Claim:FireServer()
     end)
 end
 
-local function FarmLoop()
-    while true do
-        if Settings.FarmEnabled then
-            local Char = LocalPlayer.Character
-            local Root = Char and Char:FindFirstChild("HumanoidRootPart")
-            
-            if Root then
-                TriggerAllGamepassBypass()
-                
-                local NewChar = false
-                local charConn = LocalPlayer.CharacterAdded:Once(function() NewChar = true end)
+-- ================================
+-- ARAYÜZ AYARLARI
+-- ================================
+local MainTab = Window:MakeTab({Name = "Farm", Icon = "rbxassetid://4483345998"})
+local PlayerTab = Window:MakeTab({Name = "Karakter", Icon = "rbxassetid://4483345998"})
 
-                local BV = Instance.new("BodyVelocity", Root)
-                BV.Velocity = Vector3.zero
-                
-                -- 10 BÖLGE SIRALI GEÇİŞ
-                for i = 1, Settings.MaxStages do
-                    if not Settings.FarmEnabled or NewChar then break end
-                    
-                    local StageFolder = Stages:FindFirstChild(`CaveStage{i}`)
-                    if StageFolder and StageFolder:FindFirstChild("DarknessPart") then
-                        local Target = StageFolder.DarknessPart
-                        local Teleporting = true
-                        
-                        task.spawn(function()
-                            while Teleporting and Settings.FarmEnabled and not NewChar do
-                                Root.CFrame = Target.CFrame
-                                Root.Velocity = Vector3.zero
-                                task.wait()
-                            end
-                        end)
-                        
-                        ClaimStage(i)
-                        
-                        local timeout = tick()
-                        repeat task.wait() until HasStage(i) or NewChar or not Settings.FarmEnabled or (tick() - timeout > 5)
-                        
-                        Teleporting = false
-                        task.wait(Settings.TeleportSpeed)
-                    end
-                end
-                
-                -- 11. AŞAMA: SANDIK VE ALTIN BLOĞU
-                if Settings.FarmEnabled and not NewChar then
-                    local EndStage = Stages:FindFirstChild("TheEnd")
-                    if EndStage and EndStage:FindFirstChild("GoldenChest") then
-                        local Chest = EndStage.GoldenChest.Trigger
-                        
-                        local OldCFrame = Chest.CFrame
-                        Chest.CFrame = Root.CFrame
-                        
-                        if firetouchinterest then
-                            firetouchinterest(Root, Chest, 0)
-                            task.wait(0.1)
-                            firetouchinterest(Root, Chest, 1)
-                        end
-                        
-                        task.wait(0.5)
-                        Chest.CFrame = OldCFrame
-                        
-                        Claim:FireServer()
-                        task.wait(2)
-                        Char:BreakJoints()
-                    end
-                end
-                
-                if BV then BV:Destroy() end
-                if charConn then charConn:Disconnect() end
-            end
-        end
-        task.wait(1)
-    end
-end
+MainTab:AddToggle({
+	Name = "Auto Gold Farm",
+	Default = false,
+	Callback = function(v) farming = v if v then StartFarm() end end    
+})
 
--- Su hasarını ve yürümesini kontrol etme
+PlayerTab:AddSlider({
+	Name = "Hız",
+	Min = 16, Max = 300, Default = 16,
+	Callback = function(v) walkSpeed = v end    
+})
+
+PlayerTab:AddToggle({
+	Name = "Noclip",
+	Default = false,
+	Callback = function(v) noclipActive = v end    
+})
+
 RunService.Stepped:Connect(function()
-    if LocalPlayer.Character then
-        pcall(function()
-            for _, v in pairs(LocalPlayer.Character:GetChildren()) do
-                if v:IsA("BasePart") then
-                    if Settings.AntiWater then
-                        v.CanTouch = false
-                    end
-                end
-            end
-            -- Suda yürüme mekaniği
-            if Settings.WaterWalk and LocalPlayer.Character:FindFirstChild("Humanoid") then
-                if Workspace:FindFirstChild("Water") then
-                    local water = Workspace.Water
-                    if (LocalPlayer.Character.HumanoidRootPart.Position.Y - water.Position.Y) < 2 then
-                        LocalPlayer.Character.HumanoidRootPart.Velocity = Vector3.new(LocalPlayer.Character.HumanoidRootPart.Velocity.X, 0, LocalPlayer.Character.HumanoidRootPart.Velocity.Z)
-                    end
-                end
-            end
-        end)
+    if noclipActive and LocalPlayer.Character then
+        for _, v in pairs(LocalPlayer.Character:GetDescendants()) do
+            if v:IsA("BasePart") then v.CanCollide = false end
+        end
+    end
+    if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
+        LocalPlayer.Character.Humanoid.WalkSpeed = walkSpeed
     end
 end)
 
--- İlk Çalıştırma
-TriggerAllGamepassBypass()
-task.spawn(FarmLoop)
-print("🚀 Gemini HUB V12 - Ultimate Edition Aktif!")
+OrionLib:Init()
