@@ -1,9 +1,7 @@
 --[[
 	ULTIMATE BUILD A BOAT FOR TREASURE - MAX SPEED FARM (V6.0)
-	- Sonsuz Döngülü Farm (Infinite Loop)
-	- Gelişmiş İstatistik Paneli (Live Tracking)
-	- Güçlendirilmiş Bypass & Anti-Kick
-	- Otomatik Engel Temizleyici
+	- Scripti çalıştırmak için aşağıdaki kodu kopyalayın:
+	loadstring(game:HttpGet("https://raw.githubusercontent.com/jujutsukaisentoj-dotcom/XenoHub/main/main"))()
 ]]
 
 local OrionLib = loadstring(game:HttpGet(('https://raw.githubusercontent.com/shlexware/Orion/main/source')))()
@@ -20,7 +18,6 @@ local RunService = game:GetService("RunService")
 local CoreGui = game:GetService("CoreGui")
 
 local farming = false
-local autoBuyType = "None"
 local walkSpeed = 16
 local noclipActive = false
 
@@ -31,27 +28,38 @@ local ChestsCollected = 0
 local StartTime = os.time()
 
 -- ================================
--- STAT BOARD (İstatistik Paneli)
+-- STAT BOARD (Görseldeki Tasarım)
 -- ================================
 local StatGui = Instance.new("ScreenGui")
 StatGui.Name = "MaxStatBoard"
 StatGui.Parent = CoreGui
 
 local MainFrame = Instance.new("Frame", StatGui)
-MainFrame.BackgroundColor3 = Color3.fromRGB(10, 10, 15)
+MainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 22)
 MainFrame.BorderSizePixel = 0
 MainFrame.Position = UDim2.new(0, 20, 0, 20)
-MainFrame.Size = UDim2.new(0, 260, 0, 220)
+MainFrame.Size = UDim2.new(0, 280, 0, 240)
 Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 10)
-Instance.new("UIStroke", MainFrame).Color = Color3.fromRGB(0, 255, 150)
+
+local FrameStroke = Instance.new("UIStroke", MainFrame)
+FrameStroke.Color = Color3.fromRGB(40, 40, 55)
+FrameStroke.Thickness = 2
 
 local TitleLabel = Instance.new("TextLabel", MainFrame)
 TitleLabel.Size = UDim2.new(1, 0, 0, 40)
 TitleLabel.Font = Enum.Font.GothamBold
-TitleLabel.Text = "MAX FARM HUB • V6.0"
-TitleLabel.TextColor3 = Color3.fromRGB(0, 255, 150)
-TitleLabel.TextSize = 16
+TitleLabel.Text = "W31rd.Hub • Gold Farming • V1.2"
+TitleLabel.TextColor3 = Color3.fromRGB(100, 160, 255)
+TitleLabel.TextSize = 15
 TitleLabel.BackgroundTransparency = 1
+TitleLabel.TextXAlignment = Enum.TextXAlignment.Left
+TitleLabel.Position = UDim2.new(0, 15, 0, 0)
+
+local Line = Instance.new("Frame", MainFrame)
+Line.Position = UDim2.new(0, 10, 0, 38)
+Line.Size = UDim2.new(1, -20, 0, 1)
+Line.BackgroundColor3 = Color3.fromRGB(100, 160, 255)
+Line.BorderSizePixel = 0
 
 local function CreateStatLine(text, color, pos)
     local lbl = Instance.new("TextLabel", MainFrame)
@@ -60,17 +68,28 @@ local function CreateStatLine(text, color, pos)
     lbl.Font = Enum.Font.GothamBold
     lbl.TextXAlignment = Enum.TextXAlignment.Left
     lbl.TextColor3 = color
-    lbl.TextSize = 14
+    lbl.TextSize = 17
     lbl.BackgroundTransparency = 1
+    lbl.Text = text
     return lbl
 end
 
-local CurrentGoldLabel = CreateStatLine("Mevcut Altın: 0", Color3.fromRGB(255, 215, 0), 50)
-local GainedGoldLabel = CreateStatLine("Kazanılan: 0", Color3.fromRGB(0, 255, 100), 80)
-local ChestsLabel = CreateStatLine("Toplanan Sandık: 0", Color3.fromRGB(255, 165, 0), 110)
-local TimeLabel = CreateStatLine("Geçen Süre: 00:00:00", Color3.fromRGB(0, 200, 255), 140)
+local CurrentGoldLabel = CreateStatLine("Current Gold: 0", Color3.fromRGB(255, 200, 0), 50)
+local GainedGoldLabel = CreateStatLine("Gained Gold: 0", Color3.fromRGB(0, 255, 100), 85)
+local ChestsLabel = CreateStatLine("Chests Collected: 0", Color3.fromRGB(255, 140, 0), 120)
+local TimeLabel = CreateStatLine("Total Time Farming: 00:00:00", Color3.fromRGB(110, 200, 255), 155)
 
--- İstatistik Güncelleme
+local DiscordBtn = Instance.new("TextButton", MainFrame)
+DiscordBtn.Size = UDim2.new(1, -30, 0, 35)
+DiscordBtn.Position = UDim2.new(0, 15, 1, -45)
+DiscordBtn.BackgroundColor3 = Color3.fromRGB(60, 120, 255)
+DiscordBtn.Font = Enum.Font.GothamBold
+DiscordBtn.Text = "Copy Discord Link"
+DiscordBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+DiscordBtn.TextSize = 14
+Instance.new("UICorner", DiscordBtn).CornerRadius = UDim.new(0, 8)
+
+-- İstatistik Güncelleme Döngüsü
 task.spawn(function()
     while task.wait(1) do
         pcall(function()
@@ -79,10 +98,10 @@ task.spawn(function()
             local diff = os.time() - StartTime
             local h, m, s = math.floor(diff/3600), math.floor((diff%3600)/60), diff%60
             
-            CurrentGoldLabel.Text = "Mevcut Altın: " .. string.format('%,d', currentGold)
-            GainedGoldLabel.Text = "Kazanılan: " .. string.format('%,d', GainedGold)
-            ChestsLabel.Text = "Toplanan Sandık: " .. ChestsCollected
-            TimeLabel.Text = "Geçen Süre: " .. string.format("%02d:%02d:%02d", h, m, s)
+            CurrentGoldLabel.Text = "Current Gold: " .. string.format('%,d', currentGold)
+            GainedGoldLabel.Text = "Gained Gold: " .. string.format('%,d', GainedGold)
+            ChestsLabel.Text = "Chests Collected: " .. ChestsCollected
+            TimeLabel.Text = "Total Time Farming: " .. string.format("%02d:%02d:%02d", h, m, s)
         end)
     end
 end)
@@ -94,13 +113,13 @@ local OpenBtnGui = Instance.new("ScreenGui", CoreGui)
 local OpenBtn = Instance.new("TextButton", OpenBtnGui)
 OpenBtn.Size = UDim2.new(0, 65, 0, 65)
 OpenBtn.Position = UDim2.new(0, 15, 1, -80)
-OpenBtn.BackgroundColor3 = Color3.fromRGB(10, 10, 15)
+OpenBtn.BackgroundColor3 = Color3.fromRGB(15, 15, 22)
 OpenBtn.Text = "MAX"
-OpenBtn.TextColor3 = Color3.fromRGB(0, 255, 150)
+OpenBtn.TextColor3 = Color3.fromRGB(100, 160, 255)
 OpenBtn.Font = Enum.Font.GothamBold
 Instance.new("UICorner", OpenBtn).CornerRadius = UDim.new(0, 12)
 local Stroke = Instance.new("UIStroke", OpenBtn)
-Stroke.Color = Color3.fromRGB(0, 255, 150)
+Stroke.Color = Color3.fromRGB(100, 160, 255)
 Stroke.Thickness = 2
 
 OpenBtn.MouseButton1Click:Connect(function()
@@ -142,7 +161,6 @@ local function StartFarm()
             
             if root then
                 ClearMap()
-                -- Anti-Gravity & Noclip
                 local bv = Instance.new("BodyVelocity", root)
                 bv.Velocity = Vector3.new(0, 0, 0)
                 bv.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
@@ -167,12 +185,11 @@ local function StartFarm()
                 if farming then
                     root.CFrame = endZone.CFrame
                     task.wait(1)
-                    -- Chest Claim Logic
                     ChestsCollected = ChestsCollected + 1
-                    task.wait(9) -- Paranın gelmesi ve loading için bekleme
+                    task.wait(9)
                     bv:Destroy()
                     char:BreakJoints()
-                    task.wait(4) -- Respawn bekleme
+                    task.wait(4)
                 end
             end
             task.wait()
@@ -193,7 +210,7 @@ MainTab:AddToggle({
         farming = v 
         if v then 
             StartFarm() 
-            OrionLib:MakeNotification({Name = "Farm Aktif", Content = "Döngü başlatıldı, sona uçuluyor.", Time = 3})
+            OrionLib:MakeNotification({Name = "Farm Aktif", Content = "Döngü başlatıldı.", Time = 3})
         end 
     end    
 })
