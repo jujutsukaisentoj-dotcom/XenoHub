@@ -1,6 +1,7 @@
 --[[
 	ULTIMATE BUILD A BOAT FOR TREASURE - MAX SPEED FARM (V6.0)
-	- Scripti çalıştırmak için aşağıdaki kodu kopyalayın:
+	
+	ÇALIŞTIRMA KODU (LOADSTRING):
 	loadstring(game:HttpGet("https://raw.githubusercontent.com/jujutsukaisentoj-dotcom/XenoHub/main/main"))()
 ]]
 
