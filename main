@@ -1,11 +1,11 @@
 -- =========================================================
--- rqccc Logic + Gemini UI (Mobile & PC)
+-- BABFT - FULL DEX TRUE & rqccc HYBRID V8 (FINAL)
 -- =========================================================
 
 local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/xHeptc/Kavo-UI-Library/main/source.lua"))()
-local Window = Library.CreateLib("BABFT - rqccc Hybrid v7", "Midnight")
+local Window = Library.CreateLib("BABFT - Full Dex True v8", "Midnight")
 
--- SERVICES
+-- SERVICES & DATA
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 local Data = LocalPlayer:WaitForChild("OtherData")
@@ -19,28 +19,28 @@ local ChestCount = 0
 local StartTime = os.time()
 local AutoFarmActive = false
 
--- MOBILE TOGGLE
-local ScreenGui = Instance.new("ScreenGui", game.CoreGui)
-local ToggleBtn = Instance.new("TextButton", ScreenGui)
-ToggleBtn.Size = UDim2.new(0, 90, 0, 35)
-ToggleBtn.Position = UDim2.new(0, 10, 0, 250)
-ToggleBtn.Text = "MENU"
-ToggleBtn.BackgroundColor3 = Color3.fromRGB(80, 0, 200)
-ToggleBtn.TextColor3 = Color3.new(1,1,1)
-ToggleBtn.Draggable = true
-ToggleBtn.MouseButton1Click:Connect(function() Library:ToggleUI() end)
-
--- UI TABS
-local MainTab = Window:NewTab("Farming")
-local StatusSection = MainTab:NewSection("Live Stats")
+-- DEX TRUE / GAMEPASS BYPASS (Hepsini Aktif Eder)
+local function ActivateDexTrue()
+    local passList = {"GoldPass", "VIP", "Member", "ExtraBoatSlot", "DoubleGold"}
+    for _, pass in pairs(passList) do
+        if not LocalPlayer:FindFirstChild(pass) then
+            local val = Instance.new("BoolValue", LocalPlayer)
+            val.Name = pass
+            val.Value = true
+        end
+    end
+end
 
 -- UI LABELS
+local MainTab = Window:NewTab("Farming")
+local StatusSection = MainTab:NewSection("Anlık Stats & Dex: True")
+
 local goldLabel = StatusSection:NewLabel("Current Gold: " .. StartGold)
 local gainedLabel = StatusSection:NewLabel("Gained Gold: 0")
 local chestLabel = StatusSection:NewLabel("Chest Collected: 0")
-local timeLabel = StatusSection:NewLabel("Farming Time: 00:00:00")
+local stageLabel = StatusSection:NewLabel("Statü: Bekleniyor...")
 
--- FUNCTIONS (rqccc Logic)
+-- rqccc LOGIC FUNCTIONS
 local function HasStage(Num)
     return Data[`Stage{Num}`].Value ~= "" and Data[`Stage{Num}`].Value
 end
@@ -55,95 +55,95 @@ local function ClaimStage(Num)
     end)
 end
 
--- MAIN FARM LOOP
+-- FULL SLOW FARM LOOP (rqccc + Final Chest)
 local function ExecuteFarm()
-    if not AutoFarmActive then return end
-    
-    local Char = LocalPlayer.Character
-    if not Char then return end
-    local Root = Char:WaitForChild("HumanoidRootPart")
-
-    local NewChar = false
-    local Connection
-    Connection = LocalPlayer.CharacterAdded:Once(function()
-        NewChar = true
-    end)
-
-    -- 1'den 10'a Stage Loop (rqccc style)
-    for i = 1, 10 do
-        if not AutoFarmActive or NewChar then break end
+    while AutoFarmActive do
+        local Char = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+        local Root = Char:WaitForChild("HumanoidRootPart")
         
-        local TargetPart = Stages[`CaveStage{i}`].DarknessPart
-        local Teleporting = true
+        -- Bölümleri Tek Tek Geç (1-10)
+        for i = 1, 10 do
+            if not AutoFarmActive then break end
+            
+            stageLabel:UpdateLabel("Bölüm Geçiliyor: " .. i .. " / 11")
+            local TargetPart = Stages[`CaveStage{i}`].DarknessPart
+            local Teleporting = true
 
-        -- Smooth Bypass Teleport
-        task.spawn(function()
-            while Teleporting and AutoFarmActive do
-                Root.CFrame = TargetPart.CFrame
-                for _, BodyPart in Char:GetChildren() do
-                    if BodyPart:IsA("BasePart") then
-                        BodyPart.Velocity = Vector3.zero
-                        BodyPart.RotVelocity = Vector3.zero
+            -- rqccc Bypass Teleport (Hız Sıfırlama)
+            task.spawn(function()
+                while Teleporting and AutoFarmActive do
+                    Root.CFrame = TargetPart.CFrame
+                    for _, BodyPart in Char:GetChildren() do
+                        if BodyPart:IsA("BasePart") then
+                            BodyPart.Velocity = Vector3.zero
+                            BodyPart.RotVelocity = Vector3.zero
+                        end
                     end
+                    task.wait()
                 end
-                task.wait()
-            end
-        end)
+            end)
 
-        -- Yavaş Geçiş (Senin istediğin full yavaşlık)
-        task.wait(4.5) 
-        ClaimStage(i)
+            task.wait(4.5) -- Güvenli Yavaşlık
+            ClaimStage(i)
+            
+            -- Stage Onayı Bekle
+            repeat task.wait(0.5) until HasStage(i) or not AutoFarmActive
+            Teleporting = false
+        end
 
-        -- Bölüm Onayı Bekle
-        repeat task.wait(0.5) until HasStage(i) or NewChar or not AutoFarmActive
-        Teleporting = false
-    end
-
-    -- 11. BÖLÜM (THE END CHEST)
-    if AutoFarmActive and not NewChar then
-        Root.CFrame = Chest.CFrame
-        task.wait(1)
-        Chest.CFrame = Root.CFrame -- Sandık dokunuşu
-        
-        task.wait(2)
-        ChestCount = ChestCount + 1
-        chestLabel:UpdateLabel("Chest Collected: " .. ChestCount)
-        
-        Char:BreakJoints() -- Reset for next loop
+        -- 11. BÖLÜM (FINAL CHEST)
+        if AutoFarmActive then
+            stageLabel:UpdateLabel("Durum: SON SANDIK ALINIYOR")
+            Root.CFrame = Chest.CFrame
+            task.wait(2)
+            
+            -- Chest Tetikleyici
+            Chest.CFrame = Root.CFrame
+            task.wait(2)
+            
+            ChestCount = ChestCount + 1
+            chestLabel:UpdateLabel("Chest Collected: " .. ChestCount)
+            
+            -- Reset ve Yeni Tur
+            stageLabel:UpdateLabel("Durum: Tur Bitti, Resetleniyor...")
+            Char:BreakJoints()
+            task.wait(8)
+        end
     end
 end
 
 -- UI CONTROLS
-StatusSection:NewToggle("Auto Farm (rqccc Logic)", "Basınca başlar, ölünce devam eder", function(state)
+StatusSection:NewToggle("Auto Farm (Yavaş & Tetikli)", "Bölüm bölüm geçer, sandığı alır", function(state)
     AutoFarmActive = state
     if state then
-        Library:Notify("Sistem", "Farm Aktif", "Default")
-        ExecuteFarm()
+        ActivateDexTrue() -- Farm başlarken Dex True yapar
+        Library:Notify("Sistem", "Farm ve Dex: True Aktif!", "Default")
+        task.spawn(ExecuteFarm)
+    else
+        stageLabel:UpdateLabel("Statü: DURDURULDU")
     end
 end)
 
-StatusSection:NewButton("Unlock All Gamepasses", "Double Gold & VIP", function()
-    local g = Instance.new("BoolValue", LocalPlayer); g.Name = "GoldPass"
-    local v = Instance.new("BoolValue", LocalPlayer); v.Name = "VIP"
-    Library:Notify("Bypass", "Tüm Gamepass Özellikleri Açıldı", "Success")
+StatusSection:NewButton("Manual Dex: True Yap", "Tüm Gamepassleri Enjekte Eder", function()
+    ActivateDexTrue()
+    Library:Notify("Bypass", "Tüm özellikler DEX: TRUE yapıldı!", "Success")
 end)
 
--- AUTO RESTART ON DEATH
-LocalPlayer.CharacterAdded:Connect(function()
-    if AutoFarmActive then
-        task.wait(5) -- Doğma beklemesi
-        ExecuteFarm()
-    end
-end)
-
--- STATS UPDATER
+-- STATS AUTO-UPDATE
 task.spawn(function()
     while task.wait(1) do
-        local diff = os.time() - StartTime
-        timeLabel:UpdateLabel("Farming Time: " .. string.format("%02d:%02d:%02d", math.floor(diff/3600), math.floor((diff%3600)/60), diff%60))
-        
         local cur = LocalPlayer.Data.Gold.Value
         goldLabel:UpdateLabel("Current Gold: " .. cur)
         gainedLabel:UpdateLabel("Gained Gold: " .. (cur - StartGold))
     end
 end)
+
+-- MOBILE UI BUTTON
+local ScreenGui = Instance.new("ScreenGui", game.CoreGui)
+local ToggleBtn = Instance.new("TextButton", ScreenGui)
+ToggleBtn.Size = UDim2.new(0, 80, 0, 35)
+ToggleBtn.Position = UDim2.new(0, 10, 0, 200)
+ToggleBtn.Text = "MENÜ"
+ToggleBtn.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+ToggleBtn.TextColor3 = Color3.new(1,1,1)
+ToggleBtn.MouseButton1Click:Connect(function() Library:ToggleUI() end)
