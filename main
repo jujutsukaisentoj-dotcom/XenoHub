@@ -1,17 +1,26 @@
 -- =========================================================
--- rqccc AUTO-LOADER + FULL DEX TRUE (NO BUTTON EDITION)
+-- W31rd.Hub - Gold Farming V1.2 (rqccc & Dex True Edition)
 -- =========================================================
 
 -- Services
 local Players = game:GetService("Players")
+local CoreGui = game:GetService("CoreGui")
+local RunService = game:GetService("RunService")
+
+-- Variables
 local LocalPlayer = Players.LocalPlayer
 local Data = LocalPlayer:WaitForChild("OtherData")
 local Claim = workspace:WaitForChild("ClaimRiverResultsGold")
 local Stages = workspace.BoatStages.NormalStages
-local Chest = Stages.TheEnd.GoldenChest.Trigger
+local GoldenChest = Stages.TheEnd.GoldenChest.Trigger
 
--- [1] DEX TRUE / GAMEPASS BYPASS (Hemen Çalışır)
--- Bu kısım sana Double Gold ve VIP özelliklerini script açıldığı an verir.
+-- Stats
+local StartGold = LocalPlayer.Data.Gold.Value
+local ChestsCollected = 0
+local StartTime = os.time()
+
+-- [1] DEX TRUE & DOUBLE GOLD ENJECTOR
+-- Script çalışır çalışmaz tüm market ürünlerine sahipsin gibi gösterir
 local function ApplyDexTrue()
     local passes = {"GoldPass", "VIP", "Member", "DoubleGold", "DoubleMoney", "ExtraBoatSlot"}
     for _, name in pairs(passes) do
@@ -21,11 +30,102 @@ local function ApplyDexTrue()
             val.Value = true
         end
     end
-    -- Oyun içi bildirim (Opsiyonel, temizlik için sadece print bırakabilirsin)
-    print("Dex: True Aktif! Double Gold ve Tüm Özelliklere Sahipsin.")
 end
 
--- [2] rqccc'S FUNCTIONS
+-- [2] W31RD.HUB PANEL UI (Videodaki Tasarım)
+local function CreateUI()
+    if CoreGui:FindFirstChild("W3rdHubGui") then CoreGui.W3rdHubGui:Destroy() end
+    
+    local ScreenGui = Instance.new("ScreenGui", CoreGui)
+    ScreenGui.Name = "W3rdHubGui"
+    
+    local MainFrame = Instance.new("Frame", ScreenGui)
+    MainFrame.Size = UDim2.new(0, 280, 0, 220)
+    MainFrame.Position = UDim2.new(0.5, -140, 0.4, -110)
+    MainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 30)
+    MainFrame.BorderSizePixel = 0
+    
+    -- Rounded Corner
+    local Corner = Instance.new("UICorner", MainFrame)
+    Corner.CornerRadius = UDim.new(0, 10)
+    
+    -- Title
+    local Title = Instance.new("TextLabel", MainFrame)
+    Title.Size = UDim2.new(1, 0, 0, 35)
+    Title.Text = "W31rd.Hub • Gold Farming • V1.2"
+    Title.TextColor3 = Color3.fromRGB(130, 180, 255)
+    Title.BackgroundTransparency = 1
+    Title.Font = Enum.Font.SourceSansBold
+    Title.TextSize = 18
+    
+    local Line = Instance.new("Frame", MainFrame)
+    Line.Size = UDim2.new(0.9, 0, 0, 2)
+    Line.Position = UDim2.new(0.05, 0, 0, 35)
+    Line.BackgroundColor3 = Color3.fromRGB(50, 100, 255)
+    Line.BorderSizePixel = 0
+    
+    -- Labels
+    local function CreateStatLabel(text, pos, color)
+        local Label = Instance.new("TextLabel", MainFrame)
+        Label.Size = UDim2.new(1, -20, 0, 25)
+        Label.Position = UDim2.new(0, 15, 0, pos)
+        Label.Text = text
+        Label.TextColor3 = color
+        Label.TextXAlignment = Enum.TextXAlignment.Left
+        Label.BackgroundTransparency = 1
+        Label.Font = Enum.Font.SourceSansBold
+        Label.TextSize = 20
+        return Label
+    end
+    
+    local CurGoldL = CreateStatLabel("Current Gold: " .. StartGold, 50, Color3.fromRGB(255, 215, 0))
+    local GainGoldL = CreateStatLabel("Gained Gold: 0", 80, Color3.fromRGB(100, 255, 100))
+    local ChestsL = CreateStatLabel("Chests Collected: 0", 110, Color3.fromRGB(255, 170, 50))
+    local TimeL = CreateStatLabel("Total Time Farming: 00:00:00", 140, Color3.fromRGB(150, 200, 255))
+    
+    -- Update Loop
+    task.spawn(function()
+        while task.wait(1) do
+            local current = LocalPlayer.Data.Gold.Value
+            local diff = os.time() - StartTime
+            local h, m, s = math.floor(diff/3600), math.floor((diff%3600)/60), diff%60
+            
+            CurGoldL.Text = "Current Gold: " .. current
+            GainGoldL.Text = "Gained Gold: " .. (current - StartGold)
+            ChestsL.Text = "Chests Collected: " .. ChestsCollected
+            TimeL.Text = "Total Time Farming: " .. string.format("%02d:%02d:%02d", h, m, s)
+        end
+    end)
+    
+    -- Discord Button
+    local Btn = Instance.new("TextButton", MainFrame)
+    Btn.Size = UDim2.new(0.9, 0, 0, 35)
+    Btn.Position = UDim2.new(0.05, 0, 0, 175)
+    Btn.BackgroundColor3 = Color3.fromRGB(50, 120, 255)
+    Btn.Text = "Copy Discord Link"
+    Btn.TextColor3 = Color3.new(1,1,1)
+    Btn.Font = Enum.Font.SourceSansBold
+    Btn.TextSize = 18
+    local BtnCorner = Instance.new("UICorner", Btn)
+    Btn.MouseButton1Click:Connect(function() setclipboard("discord.gg/EbhtGYbuTa") end)
+    
+    -- Dragging
+    local Dragging, DragInput, DragStart, StartPos
+    MainFrame.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then Dragging = true DragStart = input.Position StartPos = MainFrame.Position end
+    end)
+    MainFrame.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then Dragging = false end
+    end)
+    RunService.RenderStepped:Connect(function()
+        if Dragging then
+            local delta = game:GetService("UserInputService"):GetMouseLocation() - Vector2.new(DragStart.X, DragStart.Y)
+            MainFrame.Position = UDim2.new(StartPos.X.Scale, StartPos.X.Offset + delta.X, StartPos.Y.Scale, StartPos.Y.Offset + delta.Y)
+        end
+    end)
+end
+
+-- [3] rqccc CORE FARM LOGIC (Automatic)
 local function HasStage(Num)
 	return Data[`Stage{Num}`].Value ~= "" and Data[`Stage{Num}`].Value
 end
@@ -33,30 +133,19 @@ end
 local function ClaimStage(Num)
 	task.spawn(function()
 		local Value = Data[`Stage{Num}`]
-		if not Value then
-			Value:GetPropertyChangedSignal("Value"):Wait()
-		end
+		if not Value then Value:GetPropertyChangedSignal("Value"):Wait() end
 		Claim:FireServer()
 	end)
 end
 
--- [3] MAIN AUTOMATIC FARM
 local function Farm()
-    -- Her tur başında Dex True kontrolü (Garantiye almak için)
     ApplyDexTrue()
-
 	local Char = LocalPlayer.Character
 	if not Char then return end
-
 	local Root = Char:WaitForChild("HumanoidRootPart")
-	if not Root then return end
 
 	local NewChar = false
-	task.spawn(function()
-		LocalPlayer.CharacterAdded:Once(function()
-			NewChar = true
-		end)
-	end)
+	task.spawn(function() LocalPlayer.CharacterAdded:Once(function() NewChar = true end) end)
 
 	for _ = 1, 10 do
 		local TargetPart = Stages[`CaveStage{_}`].DarknessPart
@@ -65,22 +154,18 @@ local function Farm()
 		task.spawn(function()
 			while Teleporting do
 				Root.CFrame = TargetPart.CFrame
-				for _, BodyPart in Char:GetChildren() do
-					if BodyPart:IsA("BasePart") then
-						BodyPart.Velocity = Vector3.zero
-						BodyPart.RotVelocity = Vector3.zero
-					end
-				end
+				Root.Velocity = Vector3.zero
+				Root.RotVelocity = Vector3.zero
 				task.wait()
 			end
 		end)
 
-		-- rqccc Orijinal Chest Mantığı (Stage 3)
+		-- Stage 3 Special (from original rqccc)
 		if _ == 3 then
 			task.spawn(function()
-				Chest.CFrame = Root.CFrame
+				GoldenChest.CFrame = Root.CFrame
 				task.wait()
-				Chest.CFrame = CFrame.new(0, 9e9, 0)
+				GoldenChest.CFrame = CFrame.new(0, 9e9, 0)
 				task.wait(0.2)
 				ClaimStage(_)
 			end)
@@ -89,28 +174,25 @@ local function Farm()
 		end
 
 		if _ == 10 then
-            -- 10. Bölümde Reset Atar
+            -- Final
+			task.wait(1)
+            ChestsCollected = ChestsCollected + 1
 			Char:BreakJoints()
-			task.spawn(function()
-				task.wait(1)
-				Claim:FireServer()
-			end)
+			task.spawn(function() task.wait(1) Claim:FireServer() end)
 		else
-            -- Stage onayı gelene kadar bekler (Bypass)
 			repeat task.wait(0.1) until HasStage(_) or NewChar
 		end
-
 		Teleporting = false
 	end
 end
 
--- [4] SİSTEMİ BAŞLAT
--- Scripti inject ettiğin an çalışır
+-- [4] STARTUP
 ApplyDexTrue()
+CreateUI()
+
 LocalPlayer.CharacterAdded:Connect(function()
-    task.wait(2) -- Karakterin tam doğmasını bekle
+    task.wait(2)
     Farm()
 end)
 
--- İlk çalıştırma
-Farm()
+task.spawn(Farm)
