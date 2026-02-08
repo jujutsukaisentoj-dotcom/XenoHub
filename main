@@ -1,11 +1,11 @@
 -- =========================================================
--- BUILD A BOAT - SAFE & LEGIT FARMER (BUTTON ACTIVATED)
+-- BUILD A BOAT - ULTIMATE SLOW & SAFE FARMER
 -- =========================================================
 
 local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/xHeptc/Kavo-UI-Library/main/source.lua"))()
-local Window = Library.CreateLib("BABFT - Safe Farm v4", "DarkTheme")
+local Window = Library.CreateLib("BABFT - Full Safe Mode", "DarkTheme")
 
--- DATA
+-- DATA & SERVICES
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 local Data = LocalPlayer:WaitForChild("OtherData")
@@ -14,36 +14,36 @@ local StartGold = LocalPlayer.Data.Gold.Value
 local GainedGold = 0
 local Chests = 0
 local StartTime = os.time()
-local AutoFarmActive = false -- Başlangıçta kapalı
+local AutoFarmActive = false 
 
--- MOBILE TOGGLE
+-- MOBILE UI BUTTON
 local ScreenGui = Instance.new("ScreenGui", game.CoreGui)
 local ToggleBtn = Instance.new("TextButton", ScreenGui)
-ToggleBtn.Size = UDim2.new(0, 90, 0, 35)
-ToggleBtn.Position = UDim2.new(0, 10, 0, 250)
-ToggleBtn.Text = "Menü"
-ToggleBtn.BackgroundColor3 = Color3.fromRGB(30, 144, 255)
+ToggleBtn.Size = UDim2.new(0, 80, 0, 35)
+ToggleBtn.Position = UDim2.new(0, 10, 0, 300)
+ToggleBtn.Text = "MENU"
+ToggleBtn.BackgroundColor3 = Color3.fromRGB(50, 205, 50)
 ToggleBtn.TextColor3 = Color3.new(1,1,1)
 ToggleBtn.MouseButton1Click:Connect(function() Library:ToggleUI() end)
 
 -- SEKMELER
 local MainTab = Window:NewTab("Farming")
-local StatusSection = MainTab:NewSection("Status & Controls")
+local StatusSection = MainTab:NewSection("Status Dashboard")
 
--- SAYAÇLAR
+-- SAYAÇLAR (TETİKLİ)
 local goldLabel = StatusSection:NewLabel("Current Gold: " .. StartGold)
 local gainedLabel = StatusSection:NewLabel("Gained Gold: 0")
 local chestLabel = StatusSection:NewLabel("Chest Collected: 0")
-local timeLabel = StatusSection:NewLabel("Time Farming: 00:00:00")
+local timeLabel = StatusSection:NewLabel("Total Time Farming: 00:00:00")
 
--- SAFE FARM FONKSİYONU
-local function SafeFarm()
+-- FULL YAVAŞ FARM DÖNGÜSÜ
+local function SlowFarm()
     while AutoFarmActive do
         local Char = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
         local Root = Char:WaitForChild("HumanoidRootPart")
         local Stages = workspace.BoatStages.NormalStages
         
-        -- Bölümleri Tek Tek Geç (Beklemeli)
+        -- 1'den 10'a kadar her bölümde 4 saniye bekle (Full Yavaş)
         for i = 1, 10 do
             if not AutoFarmActive then break end
             
@@ -51,56 +51,62 @@ local function SafeFarm()
             Root.CFrame = Target.CFrame
             Root.Velocity = Vector3.zero
             
-            -- Bölümü geçtiğini sisteme bildir
+            -- Bölüm geçtiğini bildir
             task.spawn(function() Claim:FireServer() end)
             
-            -- Senin istediğin o bekleme süresi (Güvenli aralık)
-            task.wait(2.5) 
+            -- Gerçekçi bekleme süresi
+            task.wait(4.0) 
         end
 
-        -- 11. BÖLÜM (FINAL CHEST)
+        -- 11. BÖLÜM (SANDIK)
         if AutoFarmActive then
             local EndStage = Stages.TheEnd.GoldenChest
             Root.CFrame = EndStage.Trigger.CFrame
-            task.wait(1)
+            task.wait(2) -- Sandık başında bekleme
             
-            -- Sandığı tetikle
+            -- Sandığa dokunma simülasyonu
             EndStage.Trigger.CFrame = Root.CFrame
-            task.wait(1)
+            task.wait(1.5)
             
+            -- Sayaç Güncelle
             Chests = Chests + 1
             chestLabel:UpdateLabel("Chest Collected: " .. Chests)
             
-            -- Reset ve yeni tur beklemesi
+            -- Başa dönmeden önce dinlenme
             Char:BreakJoints()
-            task.wait(6) 
+            task.wait(8) 
         end
     end
 end
 
--- AUTO FARM BUTONU (TETİKLEYİCİ)
-StatusSection:NewToggle("Auto Farm [OFF]", "Basınca Farm Başlar/Durur", function(state)
+-- KONTROL BUTONLARI
+StatusSection:NewToggle("Auto Farm Başlat", "Açınca yavaşça farm yapar", function(state)
     AutoFarmActive = state
     if state then
-        Library:Notify("Sistem", "Farm Başlatıldı!", "Default")
-        SafeFarm()
+        Library:Notify("Sistem", "Farm Başladı (Güvenli Mod)", "Default")
+        task.spawn(SlowFarm)
     else
-        Library:Notify("Sistem", "Farm Durduruldu!", "Default")
+        Library:Notify("Sistem", "Farm Durduruldu", "Default")
     end
 end)
 
--- PREMIUM BYPASS
-StatusSection:NewButton("Bypass Gamepass (X2)", "DEX: TRUE", function()
-    local gp = Instance.new("BoolValue", LocalPlayer); gp.Name = "GoldPass"
-    Library:Notify("Başarılı", "X2 Gold Tetiklendi", "Default")
+StatusSection:NewButton("Double Gold (X2) Aktif Et", "DEX: TRUE / Bypasslı", function()
+    if not LocalPlayer:FindFirstChild("GoldPass") then
+        local gp = Instance.new("BoolValue", LocalPlayer)
+        gp.Name = "GoldPass"
+        Library:Notify("Bypass", "X2 Gold Özelliği Tetiklendi!", "Success")
+    end
 end)
 
 -- CANLI TAKİP SİSTEMİ
 task.spawn(function()
     while task.wait(1) do
+        -- Zaman Sayacı
         local diff = os.time() - StartTime
-        timeLabel:UpdateLabel("Time Farming: " .. string.format("%02d:%02d:%02d", math.floor(diff/3600), math.floor((diff%3600)/60), diff%60))
+        local h, m, s = math.floor(diff/3600), math.floor((diff%3600)/60), diff%60
+        timeLabel:UpdateLabel("Total Time Farming: " .. string.format("%02d:%02d:%02d", h, m, s))
         
+        -- Altın Verisi (Data üzerinden anlık)
         local cur = LocalPlayer.Data.Gold.Value
         goldLabel:UpdateLabel("Current Gold: " .. cur)
         gainedLabel:UpdateLabel("Gained Gold: " .. (cur - StartGold))
