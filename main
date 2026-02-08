@@ -1,22 +1,28 @@
 --[[ 
-    XENOHUB - BUILD A BOAT FOR TREASURE (PRO LOOP EDITION)
-    Entegre Edilen Mantık: rqccc's scripts
-    Özellikler: Auto Farm (Stages 1-11), Auto Chest, Anti-Die, Auto Loop.
+    XENOHUB - BUILD A BOAT FOR TREASURE (V2 PRO LOOP)
+    Özellikler: Dex Kontrollü Teleport, Tetikli Bypass, Modern UI, Auto-Farm.
 ]]
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
+local TweenService = game:GetService("TweenService")
+local UserInputService = game:GetService("UserInputService")
+local CoreGui = game:GetService("CoreGui")
+
 local lp = Players.LocalPlayer
+local targetParent = (gethui and gethui()) or CoreGui
 
 -- ============================================================================== --
--- AYARLAR VE DEĞİŞKENLER
+-- AYARLAR VE DURUM
 -- ============================================================================== --
 local Config = {
-    AutoFarm = true,
+    AutoFarm = false,
     TouchChest = true,
     AutoClaim = true,
-    ChestStage = 10, -- 10. aşama genellikle hazine öncesi sondur
+    ChestStage = 10,
+    TeleportSpeed = 0.5,
+    BypassActive = true
 }
 
 local Stages = workspace:WaitForChild("BoatStages"):WaitForChild("NormalStages")
@@ -25,18 +31,8 @@ local GoldenChestTrigger = Stages:WaitForChild("TheEnd"):WaitForChild("GoldenChe
 local OtherData = lp:WaitForChild("OtherData")
 
 -- ============================================================================== --
--- YARDIMCI FONKSİYONLAR (RQCCC LOGIC)
+-- YARDIMCI FONKSİYONLAR (BYPASS VE KONTROL)
 -- ============================================================================== --
-
-local function HasStage(Num)
-    local stageVal = OtherData:FindFirstChild("Stage" .. Num)
-    return stageVal and stageVal.Value ~= "" and stageVal.Value
-end
-
-local function ClaimStageReward()
-    if not Config.AutoClaim then return end
-    ClaimRemote:FireServer()
-end
 
 local function Notify(title, text)
     game:GetService("StarterGui"):SetCore("SendNotification", {
@@ -46,16 +42,32 @@ local function Notify(title, text)
     })
 end
 
+local function HasStage(Num)
+    local stageVal = OtherData:FindFirstChild("Stage" .. Num)
+    return stageVal and stageVal.Value ~= "" and stageVal.Value
+end
+
+-- Tetikli Bypass: Hile tespitini engellemek için hızı sıfırlar ve karakteri sabitler
+local function ApplyBypass(Char)
+    if not Config.BypassActive then return end
+    for _, part in pairs(Char:GetChildren()) do
+        if part:IsA("BasePart") then
+            part.Velocity = Vector3.new(0,0,0)
+            part.RotVelocity = Vector3.new(0,0,0)
+        end
+    end
+end
+
 -- ============================================================================== --
--- ANA FARM DÖNGÜSÜ
+-- ANA FARM MANTIĞI
 -- ============================================================================== --
 
 local function StartFarm()
+    if not Config.AutoFarm then return end
+    
     local Char = lp.Character or lp.CharacterAdded:Wait()
     local Root = Char:WaitForChild("HumanoidRootPart")
     
-    Notify("XenoHub", "Farm Başlatıldı - Hazineye Gidiliyor...")
-
     local isNewChar = false
     local conn
     conn = lp.CharacterAdded:Connect(function()
@@ -63,7 +75,6 @@ local function StartFarm()
         conn:Disconnect()
     end)
 
-    -- 1'den 10'a kadar olan tüm aşamaları (Stages) geç
     for i = 1, 10 do
         if not Config.AutoFarm or isNewChar then break end
         
@@ -72,73 +83,129 @@ local function StartFarm()
         
         if targetStage and targetStage:FindFirstChild("DarknessPart") then
             local targetPart = targetStage.DarknessPart
-            local teleporting = true
-
-            -- Teleport Mantığı (Hız Kesme Dahil)
+            
+            -- Dex Kontrollü Teleport (Hassas Konumlandırma)
+            local tween = TweenService:Create(Root, TweenInfo.new(Config.TeleportSpeed, Enum.EasingStyle.Linear), {
+                CFrame = targetPart.CFrame * CFrame.new(0, 50, 0)
+            })
+            tween:Play()
+            
+            -- Teleport sırasında bypass tetikle
+            local activeTp = true
             task.spawn(function()
-                while teleporting and not isNewChar do
-                    Root.CFrame = targetPart.CFrame
-                    for _, part in pairs(Char:GetChildren()) do
-                        if part:IsA("BasePart") then
-                            part.Velocity = Vector3.new(0,0,0)
-                            part.RotVelocity = Vector3.new(0,0,0)
-                        end
-                    end
+                while activeTp and not isNewChar do
+                    ApplyBypass(Char)
                     task.wait()
                 end
             end)
 
-            -- Hazine Kontrolü
+            tween.Completed:Wait()
+            activeTp = false
+
+            -- Hazine ve Claim İşlemleri
             if i == Config.ChestStage and Config.TouchChest then
-                task.spawn(function()
-                    -- Hazineyi karakterin yanına çek (Xeno Bypass)
-                    local oldCFrame = GoldenChestTrigger.CFrame
-                    GoldenChestTrigger.CFrame = Root.CFrame
-                    task.wait(0.5)
-                    GoldenChestTrigger.CFrame = oldCFrame
-                    
-                    ClaimStageReward()
-                    Notify("Başarılı", i .. ". Bölüm ve Hazine Alındı!")
-                end)
+                GoldenChestTrigger.CFrame = Root.CFrame
+                task.wait(0.2)
+                ClaimRemote:FireServer()
             else
-                ClaimStageReward()
+                ClaimRemote:FireServer()
             end
 
-            -- Bölümün sunucu tarafından onaylanmasını bekle (Anti-Ban/Anti-Cheat)
+            -- Dex Kontrolü: Bölümün onaylandığını doğrula
             if i < 10 then
                 repeat task.wait() until HasStage(i) or isNewChar
             end
-            
-            teleporting = false
-            task.wait(0.1) -- Küçük bir bekleme (Stabilite için)
         end
     end
 
-    -- Döngü Sonu: Karakteri sıfırla ki yeni tur başlasın
+    -- Tur Sonu Döngüsü
     if Config.AutoFarm and not isNewChar then
-        task.wait(2)
-        Notify("XenoHub", "Tur Tamamlandı. Yeniden Başlatılıyor...")
-        if lp.Character then
-            lp.Character:BreakJoints() -- Reset
-        end
+        task.wait(1.5)
+        if lp.Character then lp.Character:BreakJoints() end
     end
 end
 
 -- ============================================================================== --
--- OTOMATİK BAŞLATMA
+-- MODERN ARAYÜZ (UI)
 -- ============================================================================== --
 
-lp.CharacterAdded:Connect(function()
-    if Config.AutoFarm then
-        task.wait(1) -- Spawn koruması bekleme
-        StartFarm()
-    end
+if targetParent:FindFirstChild("XenoHubV2") then targetParent.XenoHubV2:Destroy() end
+local ScreenGui = Instance.new("ScreenGui", targetParent)
+ScreenGui.Name = "XenoHubV2"
+
+local Main = Instance.new("Frame", ScreenGui)
+Main.Size = UDim2.new(0, 240, 0, 280)
+Main.Position = UDim2.new(0.5, -120, 0.5, -140)
+Main.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
+Main.BorderSizePixel = 0
+Instance.new("UICorner", Main).CornerRadius = UDim.new(0, 10)
+
+local Title = Instance.new("TextLabel", Main)
+Title.Size = UDim2.new(1, 0, 0, 40)
+Title.Text = "XENOHUB V2"
+Title.TextColor3 = Color3.fromRGB(0, 170, 255)
+Title.Font = Enum.Font.GothamBold
+Title.TextSize = 16
+Title.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
+Instance.new("UICorner", Title)
+
+local BtnContainer = Instance.new("Frame", Main)
+BtnContainer.Position = UDim2.new(0, 10, 0, 50)
+BtnContainer.Size = UDim2.new(1, -20, 1, -60)
+BtnContainer.BackgroundTransparency = 1
+
+local function CreateToggle(text, pos, callback)
+    local btn = Instance.new("TextButton", BtnContainer)
+    btn.Size = UDim2.new(1, 0, 0, 35)
+    btn.Position = pos
+    btn.BackgroundColor3 = Color3.fromRGB(35, 35, 45)
+    btn.Text = text .. ": KAPALI"
+    btn.TextColor3 = Color3.new(1, 1, 1)
+    btn.Font = Enum.Font.Gotham
+    btn.TextSize = 12
+    Instance.new("UICorner", btn)
+    
+    local state = false
+    btn.MouseButton1Click:Connect(function()
+        state = not state
+        btn.Text = text .. ": " .. (state and "AÇIK" or "KAPALI")
+        btn.TextColor3 = state and Color3.fromRGB(0, 255, 127) or Color3.new(1, 1, 1)
+        callback(state)
+    end)
+end
+
+CreateToggle("Auto Farm", UDim2.new(0, 0, 0, 0), function(v)
+    Config.AutoFarm = v
+    if v then StartFarm() end
 end)
 
--- İlk çalıştırma
-if Config.AutoFarm then
-    StartFarm()
-end
+CreateToggle("Bypass Mode", UDim2.new(0, 0, 0, 45), function(v)
+    Config.BypassActive = v
+end)
 
--- UI Paneli (Gerekirse Kapatabilirsin)
-Notify("XenoHub V20", "Build A Boat Farm Aktif!")
+local ResetBtn = Instance.new("TextButton", BtnContainer)
+ResetBtn.Size = UDim2.new(1, 0, 0, 35)
+ResetBtn.Position = UDim2.new(0, 0, 0, 90)
+ResetBtn.BackgroundColor3 = Color3.fromRGB(255, 60, 60)
+ResetBtn.Text = "Karakteri Sıfırla"
+ResetBtn.TextColor3 = Color3.new(1, 1, 1)
+ResetBtn.Font = Enum.Font.GothamBold
+Instance.new("UICorner", ResetBtn)
+ResetBtn.MouseButton1Click:Connect(function() if lp.Character then lp.Character:BreakJoints() end end)
+
+-- Sürükleme Özelliği
+Main.Active = true
+Main.Draggable = true
+
+-- Kısayol: F tuşu menüyü gizler
+UserInputService.InputBegan:Connect(function(i, g)
+    if not g and i.KeyCode == Enum.KeyCode.F then Main.Visible = not Main.Visible end
+end)
+
+-- Spawn Kontrolü
+lp.CharacterAdded:Connect(function()
+    task.wait(1)
+    if Config.AutoFarm then StartFarm() end
+end)
+
+Notify("XenoHub V2", "Arayüz Yüklendi! (Aç/Kapat: F)")
