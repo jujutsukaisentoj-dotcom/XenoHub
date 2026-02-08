@@ -1,150 +1,116 @@
 -- =========================================================
--- BABFT ULTIMATE HYBRID: rqccc + W3RDHUB STYLE + DEX TRUE
+-- rqccc AUTO-LOADER + FULL DEX TRUE (NO BUTTON EDITION)
 -- =========================================================
 
-local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/xHeptc/Kavo-UI-Library/main/source.lua"))()
-local Window = Library.CreateLib("W3rdHub x rqccc - FULL EDITION", "Midnight")
-
--- SERVICES
+-- Services
 local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
 local LocalPlayer = Players.LocalPlayer
 local Data = LocalPlayer:WaitForChild("OtherData")
 local Claim = workspace:WaitForChild("ClaimRiverResultsGold")
 local Stages = workspace.BoatStages.NormalStages
-local GoldenChest = Stages.TheEnd.GoldenChest.Trigger
+local Chest = Stages.TheEnd.GoldenChest.Trigger
 
--- GLOBAL SETTINGS
-local AutoFarmActive = false
-local StartGold = LocalPlayer.Data.Gold.Value
-local Chests = 0
-local WS, JP = 16, 50
-local GodMode, Jesus, NoClip = false, false, false
-
--- 1. DEX TRUE & DOUBLE GOLD ENJECTOR
-local function ApplyFullDex()
+-- [1] DEX TRUE / GAMEPASS BYPASS (Hemen Çalışır)
+-- Bu kısım sana Double Gold ve VIP özelliklerini script açıldığı an verir.
+local function ApplyDexTrue()
     local passes = {"GoldPass", "VIP", "Member", "DoubleGold", "DoubleMoney", "ExtraBoatSlot"}
     for _, name in pairs(passes) do
-        local val = Instance.new("BoolValue", LocalPlayer)
-        val.Name = name
-        val.Value = true
+        if not LocalPlayer:FindFirstChild(name) then
+            local val = Instance.new("BoolValue", LocalPlayer)
+            val.Name = name
+            val.Value = true
+        end
     end
-    Library:Notify("DEX TRUE", "Double Gold ve Tüm Özelliklere Sahipsin!", "Success")
+    -- Oyun içi bildirim (Opsiyonel, temizlik için sadece print bırakabilirsin)
+    print("Dex: True Aktif! Double Gold ve Tüm Özelliklere Sahipsin.")
 end
 
--- UI TABS
-local FarmTab = Window:NewTab("Auto Farm")
-local PlayerTab = Window:NewTab("Player Mods")
-local FSec = FarmTab:NewSection("rqccc Teleport Logic")
-local PSec = PlayerTab:NewSection("God & Movement")
-
--- STATS LABELS (Videodaki gibi)
-local goldLabel = FSec:NewLabel("Current Gold: " .. StartGold)
-local gainedLabel = FSec:NewLabel("Gained Gold: 0")
-local chestLabel = FSec:NewLabel("Chests Collected: 0")
-
--- 2. rqccc TELEPORT LOGIC (FULL)
+-- [2] rqccc'S FUNCTIONS
 local function HasStage(Num)
-    return Data[`Stage{Num}`].Value ~= "" and Data[`Stage{Num}`].Value
+	return Data[`Stage{Num}`].Value ~= "" and Data[`Stage{Num}`].Value
 end
 
 local function ClaimStage(Num)
-    task.spawn(function()
-        local v = Data[`Stage{Num}`]
-        if not v then v:GetPropertyChangedSignal("Value"):Wait() end
-        Claim:FireServer()
-    end)
+	task.spawn(function()
+		local Value = Data[`Stage{Num}`]
+		if not Value then
+			Value:GetPropertyChangedSignal("Value"):Wait()
+		end
+		Claim:FireServer()
+	end)
 end
 
-local function ExecuteFarm()
-    while AutoFarmActive do
-        local Char = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
-        local Root = Char:WaitForChild("HumanoidRootPart")
-        local NewChar = false
-        local conn = LocalPlayer.CharacterAdded:Once(function() NewChar = true end)
+-- [3] MAIN AUTOMATIC FARM
+local function Farm()
+    -- Her tur başında Dex True kontrolü (Garantiye almak için)
+    ApplyDexTrue()
 
-        for i = 1, 10 do
-            if not AutoFarmActive or NewChar then break end
-            
-            local Target = Stages[`CaveStage{i}`].DarknessPart
-            local Teleporting = true
+	local Char = LocalPlayer.Character
+	if not Char then return end
 
-            -- rqccc Velocity Bypass (Savrulmayı önler)
-            task.spawn(function()
-                while Teleporting and AutoFarmActive do
-                    Root.CFrame = Target.CFrame
-                    Root.Velocity, Root.RotVelocity = Vector3.zero, Vector3.zero
-                    task.wait()
-                end
-            end)
+	local Root = Char:WaitForChild("HumanoidRootPart")
+	if not Root then return end
 
-            task.wait(4.8) -- En güvenli seri teleport hızı
-            if i ~= 10 then ClaimStage(i) end
-            repeat task.wait(0.5) until HasStage(i) or NewChar or not AutoFarmActive
-            Teleporting = false
-        end
+	local NewChar = false
+	task.spawn(function()
+		LocalPlayer.CharacterAdded:Once(function()
+			NewChar = true
+		end)
+	end)
 
-        -- Sandık Alma (11. Bölüm)
-        if AutoFarmActive and not NewChar then
-            Root.CFrame = GoldenChest.CFrame
-            task.wait(1)
-            GoldenChest.CFrame = Root.CFrame
-            task.wait(2.5)
-            Chests = Chests + 1
-            chestLabel:UpdateLabel("Chests Collected: " .. Chests)
-            Char:BreakJoints()
-            task.wait(8)
-        end
-        if conn then conn:Disconnect() end
-    end
+	for _ = 1, 10 do
+		local TargetPart = Stages[`CaveStage{_}`].DarknessPart
+		local Teleporting = true
+
+		task.spawn(function()
+			while Teleporting do
+				Root.CFrame = TargetPart.CFrame
+				for _, BodyPart in Char:GetChildren() do
+					if BodyPart:IsA("BasePart") then
+						BodyPart.Velocity = Vector3.zero
+						BodyPart.RotVelocity = Vector3.zero
+					end
+				end
+				task.wait()
+			end
+		end)
+
+		-- rqccc Orijinal Chest Mantığı (Stage 3)
+		if _ == 3 then
+			task.spawn(function()
+				Chest.CFrame = Root.CFrame
+				task.wait()
+				Chest.CFrame = CFrame.new(0, 9e9, 0)
+				task.wait(0.2)
+				ClaimStage(_)
+			end)
+		elseif _ ~= 10 then
+			ClaimStage(_)
+		end
+
+		if _ == 10 then
+            -- 10. Bölümde Reset Atar
+			Char:BreakJoints()
+			task.spawn(function()
+				task.wait(1)
+				Claim:FireServer()
+			end)
+		else
+            -- Stage onayı gelene kadar bekler (Bypass)
+			repeat task.wait(0.1) until HasStage(_) or NewChar
+		end
+
+		Teleporting = false
+	end
 end
 
--- 3. PLAYER MODS (FULL)
-RunService.Stepped:Connect(function()
-    local Char = LocalPlayer.Character
-    if Char and Char:FindFirstChild("Humanoid") then
-        Char.Humanoid.WalkSpeed = WS
-        Char.Humanoid.JumpPower = JP
-        if NoClip then
-            for _, p in pairs(Char:GetChildren()) do if p:IsA("BasePart") then p.CanCollide = false end end
-        end
-        if Jesus and workspace:FindFirstChild("Water") then
-            workspace.Water.CanCollide = true
-            workspace.Water.Size = Vector3.new(1000, 20, 1000)
-        end
-    end
+-- [4] SİSTEMİ BAŞLAT
+-- Scripti inject ettiğin an çalışır
+ApplyDexTrue()
+LocalPlayer.CharacterAdded:Connect(function()
+    task.wait(2) -- Karakterin tam doğmasını bekle
+    Farm()
 end)
 
--- BUTTONS & SLIDERS
-FSec:NewToggle("START FULL FARM", "Dex True + rqccc Teleport", function(state)
-    AutoFarmActive = state
-    if state then
-        ApplyFullDex()
-        task.spawn(ExecuteFarm)
-    end
-end)
-
-PSec:NewToggle("Suda Yürüme (Jesus)", "Suda ölmezsin", function(s) Jesus = s end)
-PSec:NewToggle("Duvarlardan Geçme (NoClip)", "Hoclip aktif", function(s) NoClip = s end)
-PSec:NewSlider("Hız (Speed)", "Miktar ayarla", 500, 16, function(s) WS = s end)
-PSec:NewSlider("Zıplama (Jump)", "Miktar ayarla", 500, 50, function(s) JP = s end)
-PSec:NewButton("God Mode (Ölümsüzlük)", "Canını doldurur", function()
-    if LocalPlayer.Character then LocalPlayer.Character.Humanoid.Health = 9e9 end
-end)
-
--- STATS UPDATE
-task.spawn(function()
-    while task.wait(1) do
-        local cur = LocalPlayer.Data.Gold.Value
-        goldLabel:UpdateLabel("Current Gold: " .. cur)
-        gainedLabel:UpdateLabel("Gained Gold: " .. (cur - StartGold))
-    end
-end)
-
--- MOBILE TOGGLE
-local ScreenGui = Instance.new("ScreenGui", game.CoreGui)
-local Btn = Instance.new("TextButton", ScreenGui)
-Btn.Size, Btn.Position = UDim2.new(0,80,0,30), UDim2.new(0,10,0,150)
-Btn.Text, Btn.BackgroundColor3 = "W3rdHub", Color3.fromRGB(255, 140, 0)
-Btn.Draggable = true
-Btn.MouseButton1Click:Connect(function() Library:ToggleUI() end)
+-- İlk çalıştırma
+Farm()
