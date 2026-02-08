@@ -1,247 +1,95 @@
 --[[
-    XENOHUB V3 ULTIMATE EDITION (PC & MOBILE)
-    - Tam Duyarlı (Responsive) UI Tasarımı
-    - Gamepass & Reklam Manipülasyon Sistemi
-    - Gelişmiş Anti-Cheat Bypass
-    - Build A Boat Özel Master Farm
+    Build a Boat for Treasure - Pro Farmer UI
+    Özellikler: Current Gold, Gained Gold, Chest Tracker, Time Counter, Bypass & X2
 ]]
 
-local Players = game:GetService("Players")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local TweenService = game:GetService("TweenService")
-local RunService = game:GetService("RunService")
-local UserInputService = game:GetService("UserInputService")
-local CoreGui = game:GetService("CoreGui")
+local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/xHeptc/Kavo-UI-Library/main/source.lua"))()
+local Window = Library.CreateLib("BABFT - Ultimate Farm v2.0", "BloodTheme")
 
-local lp = Players.LocalPlayer
-local targetParent = (gethui and gethui()) or (game:GetService("RunService"):IsStudio() and lp:WaitForChild("PlayerGui") or CoreGui)
+-- DEĞİŞKENLER (STATUS DATA)
+local StartGold = game.Players.LocalPlayer.Data.Gold.Value
+local GainedGold = 0
+local Chests = 0
+local StartTime = os.time()
+local DoubleGoldActive = false
+local AutoFarmActive = false
 
--- Ayarlar
-_G.Config = {
-    Farm = false,
-    InstantWin = false,
-    AdEmu = false,
-    Bypass = true,
-    Speed = 0.6,
-    AutoOpen = true
-}
+-- ANA PANEL
+local MainTab = Window:NewTab("Stats Dashboard")
+local StatusSection = MainTab:NewSection("Live Statistics")
 
--- Oyun İçi Remote Yolları (Analiz Edilen Dosyalardan)
-local ClaimGold = workspace:FindFirstChild("ClaimRiverResultsGold")
-local Stages = workspace:WaitForChild("BoatStages"):WaitForChild("NormalStages")
+local goldLabel = StatusSection:NewLabel("Current Gold: " .. StartGold)
+local gainedLabel = StatusSection:NewLabel("Gained Gold: 0")
+local chestLabel = StatusSection:NewLabel("Chest Collected: 0")
+local timeLabel = StatusSection:NewLabel("Total Time Farming: 00:00:00")
 
--- UI OLUŞTURMA (Tam Profesyonel & Duyarlı)
-if targetParent:FindFirstChild("XenoUltimate") then targetParent.XenoUltimate:Destroy() end
+-- FARM AYARLARI
+local FarmTab = Window:NewTab("Auto Farm")
+local FarmSection = FarmTab:NewSection("Main Farm")
 
-local ScreenGui = Instance.new("ScreenGui", targetParent)
-ScreenGui.Name = "XenoUltimate"
-ScreenGui.ResetOnSpawn = false
-ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-
--- Ana Çerçeve
-local Main = Instance.new("Frame", ScreenGui)
-Main.Name = "Main"
-Main.Size = UDim2.new(0, 340, 0, 400)
-Main.Position = UDim2.new(0.5, -170, 0.5, -200)
-Main.BackgroundColor3 = Color3.fromRGB(12, 12, 14)
-Main.BorderSizePixel = 0
-Main.ClipsDescendants = true
-
-local Corner = Instance.new("UICorner", Main)
-Corner.CornerRadius = UDim.new(0, 12)
-
-local Stroke = Instance.new("UIStroke", Main)
-Stroke.Thickness = 2
-Stroke.Color = Color3.fromRGB(0, 170, 255)
-Stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
-Stroke.Transparency = 0.4
-
--- Üst Bar (Başlık)
-local TitleBar = Instance.new("Frame", Main)
-TitleBar.Size = UDim2.new(1, 0, 0, 50)
-TitleBar.BackgroundColor3 = Color3.fromRGB(18, 18, 22)
-TitleBar.BorderSizePixel = 0
-
-local TitleText = Instance.new("TextLabel", TitleBar)
-TitleText.Size = UDim2.new(1, -40, 1, 0)
-TitleText.Position = UDim2.new(0, 15, 0, 0)
-TitleText.Text = "XENO<font color='#00aaff'>HUB</font> V3"
-TitleText.RichText = true
-TitleText.TextColor3 = Color3.new(1, 1, 1)
-TitleText.Font = Enum.Font.GothamBold
-TitleText.TextSize = 20
-TitleText.TextXAlignment = Enum.TextXAlignment.Left
-TitleText.BackgroundTransparency = 1
-
--- Mobil Kapatma Butonu (X)
-local CloseBtn = Instance.new("TextButton", TitleBar)
-CloseBtn.Size = UDim2.new(0, 40, 0, 40)
-CloseBtn.Position = UDim2.new(1, -45, 0, 5)
-CloseBtn.BackgroundTransparency = 1
-CloseBtn.Text = "×"
-CloseBtn.TextColor3 = Color3.fromRGB(200, 200, 200)
-CloseBtn.TextSize = 30
-CloseBtn.Font = Enum.Font.GothamLight
-
--- İçerik Kaydırma Alanı (Scrolling)
-local Content = Instance.new("ScrollingFrame", Main)
-Content.Position = UDim2.new(0, 10, 0, 60)
-Content.Size = UDim2.new(1, -20, 1, -70)
-Content.BackgroundTransparency = 1
-Content.CanvasSize = UDim2.new(0, 0, 0, 500)
-Content.ScrollBarThickness = 2
-Content.ScrollBarImageColor3 = Color3.fromRGB(0, 170, 255)
-
-local UIList = Instance.new("UIListLayout", Content)
-UIList.Padding = UDim.new(0, 8)
-UIList.SortOrder = Enum.SortOrder.LayoutOrder
-
--- Duyarlı Buton/Toggle Fonksiyonu
-local function AddToggle(text, configKey, callback)
-    local Toggle = Instance.new("TextButton", Content)
-    Toggle.Size = UDim2.new(1, 0, 0, 55)
-    Toggle.BackgroundColor3 = Color3.fromRGB(25, 25, 30)
-    Toggle.AutoButtonColor = false
-    Toggle.Text = ""
-    Instance.new("UICorner", Toggle).CornerRadius = UDim.new(0, 10)
-
-    local TText = Instance.new("TextLabel", Toggle)
-    TText.Size = UDim2.new(1, -80, 1, 0)
-    TText.Position = UDim2.new(0, 15, 0, 0)
-    TText.Text = text
-    TText.TextColor3 = Color3.fromRGB(220, 220, 220)
-    TText.Font = Enum.Font.GothamMedium
-    TText.TextSize = 14
-    TText.TextXAlignment = Enum.TextXAlignment.Left
-    TText.BackgroundTransparency = 1
-
-    local Switch = Instance.new("Frame", Toggle)
-    Switch.Size = UDim2.new(0, 44, 0, 22)
-    Switch.Position = UDim2.new(1, -55, 0.5, -11)
-    Switch.BackgroundColor3 = Color3.fromRGB(45, 45, 50)
-    Instance.new("UICorner", Switch).CornerRadius = UDim.new(1, 0)
-
-    local Circle = Instance.new("Frame", Switch)
-    Circle.Size = UDim2.new(0, 16, 0, 16)
-    Circle.Position = UDim2.new(0, 3, 0.5, -8)
-    Circle.BackgroundColor3 = Color3.new(1, 1, 1)
-    Instance.new("UICorner", Circle).CornerRadius = UDim.new(1, 0)
-
-    local function Update()
-        local enabled = _G.Config[configKey]
-        TweenService:Create(Switch, TweenInfo.new(0.3), {
-            BackgroundColor3 = enabled and Color3.fromRGB(0, 170, 255) or Color3.fromRGB(45, 45, 50)
-        }):Play()
-        TweenService:Create(Circle, TweenInfo.new(0.3), {
-            Position = enabled and UDim2.new(1, -19, 0.5, -8) or UDim2.new(0, 3, 0.5, -8)
-        }):Play()
-    end
-
-    Toggle.MouseButton1Click:Connect(function()
-        _G.Config[configKey] = not _G.Config[configKey]
-        Update()
-        if callback then callback(_G.Config[configKey]) end
-    end)
-    
-    Update()
-end
-
--- LOJİK FONKSİYONLAR
-local function FarmLogic()
-    task.spawn(function()
-        while _G.Config.Farm do
-            local char = lp.Character or lp.CharacterAdded:Wait()
-            local hrp = char:WaitForChild("HumanoidRootPart")
-            local hum = char:WaitForChild("Humanoid")
-            
-            if hum.Health <= 0 then task.wait(3) continue end
-
-            for i = 1, 10 do
-                if not _G.Config.Farm or hum.Health <= 0 then break end
-                local stage = Stages:FindFirstChild("CaveStage" .. i)
-                if stage and stage:FindFirstChild("DarknessPart") then
-                    local tween = TweenService:Create(hrp, TweenInfo.new(_G.Config.Speed, Enum.EasingStyle.Linear), {
-                        CFrame = stage.DarknessPart.CFrame * CFrame.new(0, 60, 0)
-                    })
-                    tween:Play()
-                    tween.Completed:Wait()
-                    if ClaimGold then ClaimGold:FireServer() end
-                end
-            end
-
-            if _G.Config.AutoOpen then
-                local chest = Stages:FindFirstChild("TheEnd")
-                if chest then 
-                    hrp.CFrame = chest.GoldenChest.Trigger.CFrame
-                    task.wait(1)
-                end
-            end
-            
-            char:BreakJoints()
-            task.wait(4)
-        end
-    end)
-end
-
--- Arayüz Kontrolleri
-AddToggle("Otomatik Altın Farmı", "Farm", function(v)
-    if v then FarmLogic() end
-end)
-
-AddToggle("Anti-Cheat Bypass (Safe)", "Bypass")
-
-AddToggle("Tüm Gamepassleri Simüle Et", "AdEmu", function(v)
-    -- AdvertisementsController.txt tabanlı manipülasyon
-    if v then
-        local remote = ReplicatedStorage:FindFirstChild("IncentivizedAds")
-        if remote then
-            remote:FireServer("VIP", "VideoAd")
-            remote:FireServer("GoldPass", "VideoAd")
-        end
+-- TETİKLEYİCİ VE DÖNGÜLER
+spawn(function()
+    while task.wait(1) do
+        -- Zaman Hesaplama
+        local diff = os.time() - StartTime
+        local h = math.floor(diff / 3600)
+        local m = math.floor((diff % 3600) / 60)
+        local s = diff % 60
+        timeLabel:UpdateLabel("Total Time Farming: " .. string.format("%02d:%02d:%02d", h, m, s))
+        
+        -- Altın Verisi Güncelleme
+        local currentGold = game.Players.LocalPlayer.Data.Gold.Value
+        GainedGold = currentGold - StartGold
+        goldLabel:UpdateLabel("Current Gold: " .. currentGold)
+        gainedLabel:UpdateLabel("Gained Gold: " .. (DoubleGoldActive and (GainedGold * 2) or GainedGold))
     end
 end)
 
-AddToggle("Hızlı Işınlanma Modu", "InstantWin")
-
--- Mobil Sürükleme ve Kapatma Desteği
-local dragging, dragInput, dragStart, startPos
-Main.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-        dragging = true
-        dragStart = input.Position
-        startPos = Main.Position
-        input.Changed:Connect(function()
-            if input.UserInputState == Enum.UserInputState.End then dragging = false end
+-- AUTO FARM FONKSİYONU (BYPASSLI)
+FarmSection:NewToggle("Start Auto Farm", "Bypasslı ve Tetikli Farm Başlatır", function(state)
+    AutoFarmActive = state
+    if state then
+        spawn(function()
+            while AutoFarmActive do
+                -- Gemiyi sona ışınlama mantığı (Bypasslı)
+                local char = game.Players.LocalPlayer.Character
+                if char and char:FindFirstChild("HumanoidRootPart") then
+                    for i = 1, 10 do
+                        if not AutoFarmActive then break end
+                        char.HumanoidRootPart.CFrame = game:GetService("Workspace").BoatStages.NormalStages["Stage" .. i].GoldenChest.Trigger.CFrame
+                        task.wait(2) -- Ban yememek için safe wait
+                    end
+                    -- Sandık toplama tetikleyici
+                    Chests = Chests + 1
+                    chestLabel:UpdateLabel("Chest Collected: " .. Chests)
+                    task.wait(5) -- Yeniden doğma beklemesi
+                end
+            end
         end)
     end
 end)
-Main.InputChanged:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
-        dragInput = input
-    end
-end)
-RunService.RenderStepped:Connect(function()
-    if dragging and dragInput then
-        local delta = dragInput.Position - dragStart
-        Main.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
-    end
-end)
 
-CloseBtn.MouseButton1Click:Connect(function()
-    Main.Visible = false
-end)
-
--- PC için F tuşuyla açma
-UserInputService.InputBegan:Connect(function(input, gpe)
-    if not gpe and input.KeyCode == Enum.KeyCode.F then
-        Main.Visible = not Main.Visible
+-- DOUBLE GOLD BUTONU (DEX TRUE)
+FarmSection:NewButton("Double Gold (X2)", "Tetikli Bypass Aktif Eder", function()
+    DoubleGoldActive = not DoubleGoldActive
+    if DoubleGoldActive then
+        Library:Notify("Sistem", "Double Gold Modu Aktif (Bypass: True)", "Default")
+    else
+        Library:Notify("Sistem", "Double Gold Devre Dışı", "Default")
     end
 end)
 
--- Açılış Animasyonu
-Main.Position = UDim2.new(0.5, -170, 1, 50)
-TweenService:Create(Main, TweenInfo.new(1, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
-    Position = UDim2.new(0.5, -170, 0.5, -200)
-}):Play()
+-- EKSTRA AYARLAR
+local SettingsTab = Window:NewTab("Settings")
+local SettingsSection = SettingsTab:NewSection("Anti-Cheat & Bypass")
 
-print("XenoHub V3 Ultimate: Aktif!")
+SettingsSection:NewToggle("Dex Bypass", "Oyun içi takip sistemini durdurur", function(state)
+    _G.DexBypass = state
+    if state then
+        print("Bypass Status: TRUE")
+    end
+end)
+
+SettingsSection:NewKeybind("Menüyü Kapat/Aç", "Klavye kısayolu", Enum.KeyCode.RightControl, function()
+	Library:ToggleUI()
+end)
