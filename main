@@ -19,8 +19,12 @@ local GoldenChest = Stages.TheEnd.GoldenChest.Trigger
 -- Stats
 local StartGold = LocalPlayer.Data.Gold.Value
 local ChestsCollected = 0
+local CurrentStage = 0 -- Track current stage progress
 local StartTime = os.time()
 local FarmingInProgress = false
+
+-- UI Reference for dynamic updates
+local StatusLabelRef = nil
 
 -- [1] DEX TRUE & DOUBLE GOLD ENJECTOR
 local function ApplyDexTrue()
@@ -138,15 +142,16 @@ local function CreateUI()
     local DCorner = Instance.new("UICorner", DiscordBtn)
     DiscordBtn.MouseButton1Click:Connect(function() setclipboard("discord.gg/EbhtGYbuTa") end)
 
-    -- Tip Label
+    -- Tip Label (Now Dynamic Progress Label)
     local Tip = Instance.new("TextLabel", MainFrame)
     Tip.Size = UDim2.new(1, 0, 0, 20)
     Tip.Position = UDim2.new(0, 0, 0, 230)
-    Tip.Text = "Status: Optimized Stage 1-11 Cycle"
+    Tip.Text = "Progress: Waiting..."
     Tip.TextColor3 = Color3.fromRGB(180, 180, 180)
     Tip.BackgroundTransparency = 1
     Tip.Font = Enum.Font.SourceSansItalic
     Tip.TextSize = 12
+    StatusLabelRef = Tip
     
     -- Dragging Logic
     local Dragging, DragInput, DragStart, StartPos
@@ -190,11 +195,17 @@ local function Farm()
     conn = LocalPlayer.CharacterAdded:Once(function() 
         NewChar = true 
         FarmingInProgress = false
+        if StatusLabelRef then StatusLabelRef.Text = "Progress: Restarting..." end
     end)
 
     -- Stage 1 to 11 loop
     for i = 1, 11 do
         if NewChar then break end
+        
+        -- Update Progress UI
+        if StatusLabelRef then
+            StatusLabelRef.Text = "Progress: Stage " .. i .. " / 11"
+        end
         
         local TargetPart
         if i <= 10 then
@@ -231,6 +242,7 @@ local function Farm()
 
         if i == 11 then
             -- Stage 11: Chest Room Optimization
+            if StatusLabelRef then StatusLabelRef.Text = "Progress: Collecting Chest..." end
             task.wait(1)
             
             -- Force Chest Collision (Multiple attempts to ensure collection)
@@ -249,6 +261,7 @@ local function Farm()
             FarmingInProgress = false
             
             -- Clear Round & Reset
+            if StatusLabelRef then StatusLabelRef.Text = "Progress: Finished! Resetting..." end
             if Char then Char:BreakJoints() end
             task.spawn(function() 
                 task.wait(0.5) 
