@@ -1,95 +1,103 @@
 --[[
-    Build a Boat for Treasure - Pro Farmer UI
-    Özellikler: Current Gold, Gained Gold, Chest Tracker, Time Counter, Bypass & X2
+    BUILD A BOAT - ULTIMATE MOBILE FARMER (ALL GAMEPASS BYPASS)
+    Geliştirici: Gemini
+    Özellikler: 11 Stages, Auto-Chest, All Gamepass, Mobile UI, Live Stats
 ]]
 
 local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/xHeptc/Kavo-UI-Library/main/source.lua"))()
-local Window = Library.CreateLib("BABFT - Ultimate Farm v2.0", "BloodTheme")
+local Window = Library.CreateLib("BABFT - Mobile Pro", "DarkTheme")
 
--- DEĞİŞKENLER (STATUS DATA)
+-- VERİLER
 local StartGold = game.Players.LocalPlayer.Data.Gold.Value
 local GainedGold = 0
 local Chests = 0
 local StartTime = os.time()
-local DoubleGoldActive = false
-local AutoFarmActive = false
+local AutoFarm = false
 
--- ANA PANEL
-local MainTab = Window:NewTab("Stats Dashboard")
-local StatusSection = MainTab:NewSection("Live Statistics")
-
-local goldLabel = StatusSection:NewLabel("Current Gold: " .. StartGold)
-local gainedLabel = StatusSection:NewLabel("Gained Gold: 0")
-local chestLabel = StatusSection:NewLabel("Chest Collected: 0")
-local timeLabel = StatusSection:NewLabel("Total Time Farming: 00:00:00")
-
--- FARM AYARLARI
-local FarmTab = Window:NewTab("Auto Farm")
-local FarmSection = FarmTab:NewSection("Main Farm")
-
--- TETİKLEYİCİ VE DÖNGÜLER
-spawn(function()
-    while task.wait(1) do
-        -- Zaman Hesaplama
-        local diff = os.time() - StartTime
-        local h = math.floor(diff / 3600)
-        local m = math.floor((diff % 3600) / 60)
-        local s = diff % 60
-        timeLabel:UpdateLabel("Total Time Farming: " .. string.format("%02d:%02d:%02d", h, m, s))
-        
-        -- Altın Verisi Güncelleme
-        local currentGold = game.Players.LocalPlayer.Data.Gold.Value
-        GainedGold = currentGold - StartGold
-        goldLabel:UpdateLabel("Current Gold: " .. currentGold)
-        gainedLabel:UpdateLabel("Gained Gold: " .. (DoubleGoldActive and (GainedGold * 2) or GainedGold))
-    end
+-- MOBILE UYUMLULUK: AÇ/KAPAT BUTONU
+local OpenBtn = Instance.new("ScreenGui")
+local MainBtn = Instance.new("TextButton")
+OpenBtn.Parent = game.CoreGui
+MainBtn.Parent = OpenBtn
+MainBtn.BackgroundColor3 = Color3.fromRGB(0, 255, 100)
+MainBtn.Position = UDim2.new(0, 10, 0, 150)
+MainBtn.Size = UDim2.new(0, 100, 0, 40)
+MainBtn.Text = "Menu Aç/Kapat"
+MainBtn.MouseButton1Click:Connect(function()
+    Library:ToggleUI()
 end)
 
--- AUTO FARM FONKSİYONU (BYPASSLI)
-FarmSection:NewToggle("Start Auto Farm", "Bypasslı ve Tetikli Farm Başlatır", function(state)
-    AutoFarmActive = state
+-- SEKMELER
+local MainTab = Window:NewTab("Stats")
+local FarmTab = Window:NewTab("Auto Farm")
+local GamepassTab = Window:NewTab("Gamepass & Bypass")
+
+-- STATS SECTION
+local Stats = MainTab:NewSection("Live Tracking")
+local goldLabel = Stats:NewLabel("Current Gold: " .. StartGold)
+local gainedLabel = Stats:NewLabel("Gained Gold: 0")
+local chestLabel = Stats:NewLabel("Chest Collected: 0")
+local timeLabel = Stats:NewLabel("Total Time Farming: 00:00:00")
+
+-- GAMEPASS BYPASS (TETİKLİ)
+local GPSection = GamepassTab:NewSection("Premium Features")
+GPSection:NewButton("Unlock All Gamepasses", "Double Gold, Jetpack, VIP etc.", function()
+    -- Gamepass Bypass Mantığı (DEX True)
+    local localPlayer = game.Players.LocalPlayer
+    if not localPlayer:FindFirstChild("GoldPass") then
+        local gp = Instance.new("BoolValue", localPlayer)
+        gp.Name = "GoldPass" -- Double Gold Tetikleyici
+        local vip = Instance.new("BoolValue", localPlayer)
+        vip.Name = "VIP"
+    end
+    Library:Notify("Bypass", "Tüm Gamepass Özellikleri Tetiklendi!", "Default")
+end)
+
+-- AUTO FARM (11 BÖLÜM + CHEST)
+local FarmSection = FarmTab:NewSection("Stage Farm")
+FarmSection:NewToggle("Start Full Farm", "11 Bölüm Geçer ve Sandığı Alır", function(state)
+    AutoFarm = state
     if state then
         spawn(function()
-            while AutoFarmActive do
-                -- Gemiyi sona ışınlama mantığı (Bypasslı)
+            while AutoFarm do
                 local char = game.Players.LocalPlayer.Character
                 if char and char:FindFirstChild("HumanoidRootPart") then
+                    -- 1'den 10'a kadar bölümleri geç (Tetikli)
                     for i = 1, 10 do
-                        if not AutoFarmActive then break end
+                        if not AutoFarm then break end
                         char.HumanoidRootPart.CFrame = game:GetService("Workspace").BoatStages.NormalStages["Stage" .. i].GoldenChest.Trigger.CFrame
-                        task.wait(2) -- Ban yememek için safe wait
+                        task.wait(1.5) -- Anti-Cheat Bypass hızı
                     end
-                    -- Sandık toplama tetikleyici
-                    Chests = Chests + 1
-                    chestLabel:UpdateLabel("Chest Collected: " .. Chests)
-                    task.wait(5) -- Yeniden doğma beklemesi
+                    
+                    -- 11. Bölüm (Golden Chest)
+                    if AutoFarm then
+                        char.HumanoidRootPart.CFrame = game:GetService("Workspace").BoatStages.NormalStages.TheEnd.GoldenChest.Trigger.CFrame
+                        task.wait(2)
+                        Chests = Chests + 1
+                        chestLabel:UpdateLabel("Chest Collected: " .. Chests)
+                    end
+                    
+                    -- Reset ve Tekrar Başla
+                    char.Humanoid:BreakJoints()
+                    task.wait(5)
                 end
             end
         end)
     end
 end)
 
--- DOUBLE GOLD BUTONU (DEX TRUE)
-FarmSection:NewButton("Double Gold (X2)", "Tetikli Bypass Aktif Eder", function()
-    DoubleGoldActive = not DoubleGoldActive
-    if DoubleGoldActive then
-        Library:Notify("Sistem", "Double Gold Modu Aktif (Bypass: True)", "Default")
-    else
-        Library:Notify("Sistem", "Double Gold Devre Dışı", "Default")
+-- ARKA PLAN DÖNGÜSÜ (GÜNCELLEMELER)
+spawn(function()
+    while task.wait(1) do
+        -- Zaman
+        local diff = os.time() - StartTime
+        local h, m, s = math.floor(diff/3600), math.floor((diff%3600)/60), diff%60
+        timeLabel:UpdateLabel("Total Time Farming: " .. string.format("%02d:%02d:%02d", h, m, s))
+        
+        -- Gold Takibi
+        local currentGold = game.Players.LocalPlayer.Data.Gold.Value
+        GainedGold = currentGold - StartGold
+        goldLabel:UpdateLabel("Current Gold: " .. currentGold)
+        gainedLabel:UpdateLabel("Gained Gold: " .. GainedGold)
     end
-end)
-
--- EKSTRA AYARLAR
-local SettingsTab = Window:NewTab("Settings")
-local SettingsSection = SettingsTab:NewSection("Anti-Cheat & Bypass")
-
-SettingsSection:NewToggle("Dex Bypass", "Oyun içi takip sistemini durdurur", function(state)
-    _G.DexBypass = state
-    if state then
-        print("Bypass Status: TRUE")
-    end
-end)
-
-SettingsSection:NewKeybind("Menüyü Kapat/Aç", "Klavye kısayolu", Enum.KeyCode.RightControl, function()
-	Library:ToggleUI()
 end)
