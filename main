@@ -1,6 +1,7 @@
 --[[ 
     XENOHUB - BUILD A BOAT FOR TREASURE (V2 PRO LOOP)
     Özellikler: Dex Kontrollü Teleport, Tetikli Bypass, Modern UI, Auto-Farm.
+    Kısayol: 'F' tuşu menüyü açar/kapatır.
 ]]
 
 local Players = game:GetService("Players")
@@ -14,15 +15,15 @@ local lp = Players.LocalPlayer
 local targetParent = (gethui and gethui()) or CoreGui
 
 -- ============================================================================== --
--- AYARLAR VE DURUM
+-- AYARLAR VE DURUM (CONFIG)
 -- ============================================================================== --
 local Config = {
     AutoFarm = false,
     TouchChest = true,
-    AutoClaim = true,
     ChestStage = 10,
-    TeleportSpeed = 0.5,
-    BypassActive = true
+    TeleportSpeed = 0.45, -- Daha düşük değer = Daha hızlı (Riskli)
+    BypassActive = true,
+    AntiAfk = true
 }
 
 local Stages = workspace:WaitForChild("BoatStages"):WaitForChild("NormalStages")
@@ -31,7 +32,7 @@ local GoldenChestTrigger = Stages:WaitForChild("TheEnd"):WaitForChild("GoldenChe
 local OtherData = lp:WaitForChild("OtherData")
 
 -- ============================================================================== --
--- YARDIMCI FONKSİYONLAR (BYPASS VE KONTROL)
+-- YARDIMCI SİSTEMLER (BYPASS & TELEPORT)
 -- ============================================================================== --
 
 local function Notify(title, text)
@@ -42,170 +43,206 @@ local function Notify(title, text)
     })
 end
 
+-- Dex Kontrolü: Bölümün geçilip geçilmediğini kontrol eder
 local function HasStage(Num)
     local stageVal = OtherData:FindFirstChild("Stage" .. Num)
     return stageVal and stageVal.Value ~= "" and stageVal.Value
 end
 
--- Tetikli Bypass: Hile tespitini engellemek için hızı sıfırlar ve karakteri sabitler
+-- Tetikli Bypass: Karakterin fiziksel verilerini sıfırlayarak hile korumasını atlatır
 local function ApplyBypass(Char)
     if not Config.BypassActive then return end
+    local hrp = Char:FindFirstChild("HumanoidRootPart")
+    if hrp then
+        hrp.Velocity = Vector3.new(0, 0, 0)
+        hrp.RotVelocity = Vector3.new(0, 0, 0)
+    end
+    -- Karakter parçalarının hızını sıfırla
     for _, part in pairs(Char:GetChildren()) do
         if part:IsA("BasePart") then
-            part.Velocity = Vector3.new(0,0,0)
-            part.RotVelocity = Vector3.new(0,0,0)
+            part.Velocity = Vector3.new(0, 0, 0)
         end
     end
 end
 
 -- ============================================================================== --
--- ANA FARM MANTIĞI
+-- ANA FARM DÖNGÜSÜ (CORE LOGIC)
 -- ============================================================================== --
 
 local function StartFarm()
-    if not Config.AutoFarm then return end
-    
-    local Char = lp.Character or lp.CharacterAdded:Wait()
-    local Root = Char:WaitForChild("HumanoidRootPart")
-    
-    local isNewChar = false
-    local conn
-    conn = lp.CharacterAdded:Connect(function()
-        isNewChar = true
-        conn:Disconnect()
-    end)
-
-    for i = 1, 10 do
-        if not Config.AutoFarm or isNewChar then break end
-        
-        local stageName = "CaveStage" .. i
-        local targetStage = Stages:FindFirstChild(stageName)
-        
-        if targetStage and targetStage:FindFirstChild("DarknessPart") then
-            local targetPart = targetStage.DarknessPart
+    task.spawn(function()
+        while Config.AutoFarm do
+            local Char = lp.Character or lp.CharacterAdded:Wait()
+            local Root = Char:WaitForChild("HumanoidRootPart")
+            local Hum = Char:WaitForChild("Humanoid")
             
-            -- Dex Kontrollü Teleport (Hassas Konumlandırma)
-            local tween = TweenService:Create(Root, TweenInfo.new(Config.TeleportSpeed, Enum.EasingStyle.Linear), {
-                CFrame = targetPart.CFrame * CFrame.new(0, 50, 0)
-            })
-            tween:Play()
-            
-            -- Teleport sırasında bypass tetikle
-            local activeTp = true
-            task.spawn(function()
-                while activeTp and not isNewChar do
-                    ApplyBypass(Char)
-                    task.wait()
-                end
+            local isDead = false
+            local deathConn
+            deathConn = Hum.Died:Connect(function()
+                isDead = true
+                deathConn:Disconnect()
             end)
 
-            tween.Completed:Wait()
-            activeTp = false
+            for i = 1, 10 do
+                if not Config.AutoFarm or isDead then break end
+                
+                local stageName = "CaveStage" .. i
+                local targetStage = Stages:FindFirstChild(stageName)
+                
+                if targetStage and targetStage:FindFirstChild("DarknessPart") then
+                    local targetPart = targetStage.DarknessPart
+                    
+                    -- Dex Kontrollü Teleport (Tween ile Yumuşak Geçiş)
+                    local tween = TweenService:Create(Root, TweenInfo.new(Config.TeleportSpeed, Enum.EasingStyle.Linear), {
+                        CFrame = targetPart.CFrame * CFrame.new(0, 55, 0)
+                    })
+                    
+                    -- Teleport sırasında bypass tetikle (Döngüsel)
+                    local tpActive = true
+                    task.spawn(function()
+                        while tpActive and not isDead do
+                            ApplyBypass(Char)
+                            task.wait()
+                        end
+                    end)
 
-            -- Hazine ve Claim İşlemleri
-            if i == Config.ChestStage and Config.TouchChest then
-                GoldenChestTrigger.CFrame = Root.CFrame
-                task.wait(0.2)
-                ClaimRemote:FireServer()
-            else
-                ClaimRemote:FireServer()
+                    tween:Play()
+                    tween.Completed:Wait()
+                    tpActive = false
+
+                    -- Claim ve Hazine Kontrolü
+                    if i == Config.ChestStage and Config.TouchChest then
+                        GoldenChestTrigger.CFrame = Root.CFrame
+                        task.wait(0.25)
+                        ClaimRemote:FireServer()
+                    else
+                        ClaimRemote:FireServer()
+                    end
+
+                    -- Bölüm Doğrulama (Dex Sync)
+                    if i < 10 then
+                        local timeout = 0
+                        repeat 
+                            task.wait(0.1) 
+                            timeout = timeout + 1
+                        until HasStage(i) or isDead or timeout > 20
+                    end
+                end
             end
 
-            -- Dex Kontrolü: Bölümün onaylandığını doğrula
-            if i < 10 then
-                repeat task.wait() until HasStage(i) or isNewChar
+            -- Tur Sonu İşlemleri
+            if Config.AutoFarm and not isDead then
+                task.wait(1)
+                Char:BreakJoints()
             end
+            
+            repeat task.wait() until lp.Character and lp.Character:FindFirstChild("HumanoidRootPart")
+            task.wait(1.5) -- Spawn bekleme süresi
         end
-    end
-
-    -- Tur Sonu Döngüsü
-    if Config.AutoFarm and not isNewChar then
-        task.wait(1.5)
-        if lp.Character then lp.Character:BreakJoints() end
-    end
-end
-
--- ============================================================================== --
--- MODERN ARAYÜZ (UI)
--- ============================================================================== --
-
-if targetParent:FindFirstChild("XenoHubV2") then targetParent.XenoHubV2:Destroy() end
-local ScreenGui = Instance.new("ScreenGui", targetParent)
-ScreenGui.Name = "XenoHubV2"
-
-local Main = Instance.new("Frame", ScreenGui)
-Main.Size = UDim2.new(0, 240, 0, 280)
-Main.Position = UDim2.new(0.5, -120, 0.5, -140)
-Main.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
-Main.BorderSizePixel = 0
-Instance.new("UICorner", Main).CornerRadius = UDim.new(0, 10)
-
-local Title = Instance.new("TextLabel", Main)
-Title.Size = UDim2.new(1, 0, 0, 40)
-Title.Text = "XENOHUB V2"
-Title.TextColor3 = Color3.fromRGB(0, 170, 255)
-Title.Font = Enum.Font.GothamBold
-Title.TextSize = 16
-Title.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
-Instance.new("UICorner", Title)
-
-local BtnContainer = Instance.new("Frame", Main)
-BtnContainer.Position = UDim2.new(0, 10, 0, 50)
-BtnContainer.Size = UDim2.new(1, -20, 1, -60)
-BtnContainer.BackgroundTransparency = 1
-
-local function CreateToggle(text, pos, callback)
-    local btn = Instance.new("TextButton", BtnContainer)
-    btn.Size = UDim2.new(1, 0, 0, 35)
-    btn.Position = pos
-    btn.BackgroundColor3 = Color3.fromRGB(35, 35, 45)
-    btn.Text = text .. ": KAPALI"
-    btn.TextColor3 = Color3.new(1, 1, 1)
-    btn.Font = Enum.Font.Gotham
-    btn.TextSize = 12
-    Instance.new("UICorner", btn)
-    
-    local state = false
-    btn.MouseButton1Click:Connect(function()
-        state = not state
-        btn.Text = text .. ": " .. (state and "AÇIK" or "KAPALI")
-        btn.TextColor3 = state and Color3.fromRGB(0, 255, 127) or Color3.new(1, 1, 1)
-        callback(state)
     end)
 end
 
-CreateToggle("Auto Farm", UDim2.new(0, 0, 0, 0), function(v)
+-- ============================================================================== --
+-- MODERN ARAYÜZ TASARIMI (UI)
+-- ============================================================================== --
+
+if targetParent:FindFirstChild("XenoHub_UI") then targetParent.XenoHub_UI:Destroy() end
+
+local ScreenGui = Instance.new("ScreenGui", targetParent)
+ScreenGui.Name = "XenoHub_UI"
+
+local Main = Instance.new("Frame", ScreenGui)
+Main.Name = "Main"
+Main.Size = UDim2.new(0, 260, 0, 300)
+Main.Position = UDim2.new(0.5, -130, 0.5, -150)
+Main.BackgroundColor3 = Color3.fromRGB(15, 15, 20)
+Main.BorderSizePixel = 0
+Instance.new("UICorner", Main).CornerRadius = UDim.new(0, 12)
+
+local Header = Instance.new("Frame", Main)
+Header.Size = UDim2.new(1, 0, 0, 45)
+Header.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
+Header.BorderSizePixel = 0
+Instance.new("UICorner", Header)
+
+local Title = Instance.new("TextLabel", Header)
+Title.Size = UDim2.new(1, 0, 1, 0)
+Title.BackgroundTransparency = 1
+Title.Text = "XENOHUB • BAB V2"
+Title.TextColor3 = Color3.fromRGB(0, 180, 255)
+Title.Font = Enum.Font.GothamBold
+Title.TextSize = 16
+
+local Container = Instance.new("Frame", Main)
+Container.Position = UDim2.new(0, 10, 0, 55)
+Container.Size = UDim2.new(1, -20, 1, -65)
+Container.BackgroundTransparency = 1
+
+local UIList = Instance.new("UIListLayout", Container)
+UIList.Padding = UDim.new(0, 8)
+UIList.SortOrder = Enum.SortOrder.LayoutOrder
+
+local function AddToggle(text, callback)
+    local btn = Instance.new("TextButton", Container)
+    btn.Size = UDim2.new(1, 0, 0, 40)
+    btn.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
+    btn.Text = "  " .. text .. ": KAPALI"
+    btn.TextColor3 = Color3.new(0.8, 0.8, 0.8)
+    btn.Font = Enum.Font.Gotham
+    btn.TextSize = 13
+    btn.TextXAlignment = Enum.TextXAlignment.Left
+    Instance.new("UICorner", btn)
+    
+    local enabled = false
+    btn.MouseButton1Click:Connect(function()
+        enabled = not enabled
+        btn.Text = "  " .. text .. ": " .. (enabled and "AÇIK" or "KAPALI")
+        btn.TextColor3 = enabled and Color3.fromRGB(0, 255, 150) or Color3.new(0.8, 0.8, 0.8)
+        btn.BackgroundColor3 = enabled and Color3.fromRGB(35, 45, 40) or Color3.fromRGB(30, 30, 40)
+        callback(enabled)
+    end)
+end
+
+AddToggle("Otomatik Farm", function(v)
     Config.AutoFarm = v
     if v then StartFarm() end
 end)
 
-CreateToggle("Bypass Mode", UDim2.new(0, 0, 0, 45), function(v)
+AddToggle("Bypass Sistemi", function(v)
     Config.BypassActive = v
 end)
 
-local ResetBtn = Instance.new("TextButton", BtnContainer)
-ResetBtn.Size = UDim2.new(1, 0, 0, 35)
-ResetBtn.Position = UDim2.new(0, 0, 0, 90)
-ResetBtn.BackgroundColor3 = Color3.fromRGB(255, 60, 60)
+AddToggle("Hazineye Dokun", function(v)
+    Config.TouchChest = v
+end)
+
+local ResetBtn = Instance.new("TextButton", Container)
+ResetBtn.Size = UDim2.new(1, 0, 0, 40)
+ResetBtn.BackgroundColor3 = Color3.fromRGB(60, 20, 20)
 ResetBtn.Text = "Karakteri Sıfırla"
-ResetBtn.TextColor3 = Color3.new(1, 1, 1)
+ResetBtn.TextColor3 = Color3.new(1, 0.4, 0.4)
 ResetBtn.Font = Enum.Font.GothamBold
+ResetBtn.TextSize = 13
 Instance.new("UICorner", ResetBtn)
 ResetBtn.MouseButton1Click:Connect(function() if lp.Character then lp.Character:BreakJoints() end end)
 
--- Sürükleme Özelliği
+-- Sürükleme ve Kısayol
 Main.Active = true
 Main.Draggable = true
 
--- Kısayol: F tuşu menüyü gizler
-UserInputService.InputBegan:Connect(function(i, g)
-    if not g and i.KeyCode == Enum.KeyCode.F then Main.Visible = not Main.Visible end
+UserInputService.InputBegan:Connect(function(input, processed)
+    if not processed and input.KeyCode == Enum.KeyCode.F then
+        Main.Visible = not Main.Visible
+    end
 end)
 
--- Spawn Kontrolü
-lp.CharacterAdded:Connect(function()
-    task.wait(1)
-    if Config.AutoFarm then StartFarm() end
-end)
+-- Anti-AFK
+if Config.AntiAfk then
+    lp.Idled:Connect(function()
+        game:GetService("VirtualUser"):Button2Down(Vector2.new(0,0), workspace.CurrentCamera.CFrame)
+        task.wait(1)
+        game:GetService("VirtualUser"):Button2Up(Vector2.new(0,0), workspace.CurrentCamera.CFrame)
+    end)
+end
 
-Notify("XenoHub V2", "Arayüz Yüklendi! (Aç/Kapat: F)")
+Notify("XenoHub V2", "Başarıyla Yüklendi! Kapatmak için 'F' basın.")
