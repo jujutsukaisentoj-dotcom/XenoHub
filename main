@@ -1,13 +1,12 @@
 -- =========================================================
 -- W31rd.Hub - Gold Farming V1.2 (rqccc & Dex True Edition)
--- IMPROVED LOOP & AUTO-RESET WARNING
+-- IMPROVED LOOP, STAGE 1-11, & JESUS MODE
 -- =========================================================
 
 -- Services
 local Players = game:GetService("Players")
 local CoreGui = game:GetService("CoreGui")
 local RunService = game:GetService("RunService")
-local TeleportService = game:GetService("TeleportService")
 
 -- Variables
 local LocalPlayer = Players.LocalPlayer
@@ -34,7 +33,22 @@ local function ApplyDexTrue()
     end
 end
 
--- [2] W31RD.HUB PANEL UI
+-- [2] JESUS MODE (Suda Yürüme)
+-- Bu fonksiyon suyun üzerine görünmez bir katman ekleyerek ölmeni engeller
+local function EnableJesusMode()
+    task.spawn(function()
+        while true do
+            if workspace:FindFirstChild("Water") then
+                workspace.Water.CanCollide = true
+                workspace.Water.Transparency = 0.5 -- Görsel geri bildirim
+                workspace.Water.Size = Vector3.new(2000, 20, 2000) -- Tüm haritayı kaplar
+            end
+            task.wait(5)
+        end
+    end)
+end
+
+-- [3] W31RD.HUB PANEL UI
 local function CreateUI()
     if CoreGui:FindFirstChild("W3rdHubGui") then CoreGui.W3rdHubGui:Destroy() end
     
@@ -42,7 +56,7 @@ local function CreateUI()
     ScreenGui.Name = "W3rdHubGui"
     
     local MainFrame = Instance.new("Frame", ScreenGui)
-    MainFrame.Size = UDim2.new(0, 300, 0, 260) -- Slightly larger for the new button
+    MainFrame.Size = UDim2.new(0, 300, 0, 260)
     MainFrame.Position = UDim2.new(0.5, -150, 0.4, -130)
     MainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
     MainFrame.BorderSizePixel = 0
@@ -98,7 +112,7 @@ local function CreateUI()
         end
     end)
     
-    -- [NEW] RESET INFO BUTTON (Left Side)
+    -- RESET INFO BUTTON
     local ResetBtn = Instance.new("TextButton", MainFrame)
     ResetBtn.Size = UDim2.new(0.43, 0, 0, 35)
     ResetBtn.Position = UDim2.new(0.05, 0, 0, 185)
@@ -110,15 +124,14 @@ local function CreateUI()
     local RCorner = Instance.new("UICorner", ResetBtn)
     
     ResetBtn.MouseButton1Click:Connect(function()
-        -- User friendly message for stuck situations
         local hint = Instance.new("Message", workspace)
-        hint.Text = "If you are stuck or bugged, please RESET your character to fix the loop!"
+        hint.Text = "If you are stuck, please RESET your character to fix the loop!"
         task.wait(4)
         hint:Destroy()
         if LocalPlayer.Character then LocalPlayer.Character:BreakJoints() end
     end)
 
-    -- Discord Button (Right Side)
+    -- Discord Button
     local DiscordBtn = Instance.new("TextButton", MainFrame)
     DiscordBtn.Size = UDim2.new(0.43, 0, 0, 35)
     DiscordBtn.Position = UDim2.new(0.52, 0, 0, 185)
@@ -134,7 +147,7 @@ local function CreateUI()
     local Tip = Instance.new("TextLabel", MainFrame)
     Tip.Size = UDim2.new(1, 0, 0, 20)
     Tip.Position = UDim2.new(0, 0, 0, 230)
-    Tip.Text = "Reset character if farming stops unexpectedly."
+    Tip.Text = "Jesus Mode (Water Walk) is Active."
     Tip.TextColor3 = Color3.fromRGB(180, 180, 180)
     Tip.BackgroundTransparency = 1
     Tip.Font = Enum.Font.SourceSansItalic
@@ -156,7 +169,7 @@ local function CreateUI()
     end)
 end
 
--- [3] CORE FARM LOGIC
+-- [4] CORE FARM LOGIC (1 to 11)
 local function HasStage(Num)
     return Data[`Stage{Num}`].Value ~= "" and Data[`Stage{Num}`].Value
 end
@@ -184,13 +197,19 @@ local function Farm()
         FarmingInProgress = false
     end)
 
-    for i = 1, 10 do
+    -- Stage 1 to 11 loop
+    for i = 1, 11 do
         if NewChar then break end
         
-        local TargetPart = Stages[`CaveStage{i}`].DarknessPart
+        -- Stage 11 is the End/Chest Stage
+        local TargetPart
+        if i <= 10 then
+            TargetPart = Stages[`CaveStage{i}`].DarknessPart
+        else
+            TargetPart = Stages.TheEnd.GoldenChest.Trigger
+        end
+        
         local Teleporting = true
-
-        -- Safety task to prevent getting stuck in a loop
         task.spawn(function()
             while Teleporting and not NewChar do
                 Root.CFrame = TargetPart.CFrame
@@ -200,47 +219,40 @@ local function Farm()
             end
         end)
 
-        -- Optimized Timing for Bypass
-        if i == 3 then
-            task.spawn(function()
-                GoldenChest.CFrame = Root.CFrame
-                task.wait()
-                GoldenChest.CFrame = CFrame.new(0, 9e9, 0)
-                task.wait(0.2)
-                ClaimStage(i)
-            end)
-        elseif i ~= 10 then
+        -- Claim Logics
+        if i <= 10 then
             ClaimStage(i)
         end
 
-        if i == 10 then
-            task.wait(1.5)
+        if i == 11 then
+            -- Chest Room Logic
+            task.wait(2)
+            GoldenChest.CFrame = Root.CFrame
+            task.wait(1)
             ChestsCollected = ChestsCollected + 1
             FarmingInProgress = false
             Char:BreakJoints()
             task.spawn(function() task.wait(1) Claim:FireServer() end)
         else
-            -- Check for stage validation or timeout
             local timeout = 0
             repeat 
                 task.wait(0.1) 
                 timeout = timeout + 0.1
-            until HasStage(i) or NewChar or timeout > 8
+            until HasStage(i) or NewChar or timeout > 7
         end
         Teleporting = false
     end
     if conn then conn:Disconnect() end
 end
 
--- [4] STARTUP & INFINITE LOOP
+-- [5] STARTUP & INFINITE LOOP
 ApplyDexTrue()
+EnableJesusMode()
 CreateUI()
 
--- Auto-restart on spawn
 LocalPlayer.CharacterAdded:Connect(function()
-    task.wait(3) -- Wait for world to load
+    task.wait(3)
     Farm()
 end)
 
--- Initial Start
 task.spawn(Farm)
