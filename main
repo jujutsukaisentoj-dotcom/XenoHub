@@ -1,238 +1,213 @@
 --[[
-	ULTIMATE BUILD A BOAT AUTO FARM
-	Geliştirilmiş Sürüm: v2.0
-	Özellikler:
-	- Modern UI (Orion Library)
-	- Tween (Kayarak) Farm (Anti-Kick korumalı)
-	- Otomatik Engel ve Su Silici
-	- Anti-AFK
-	- Otomatik Sandık Açma
+    W31rd.Hub - Gold Farming V1.2 (FIXED)
+    Oyun: Build A Boat For Treasure
+    Özellikler: Otomatik Altın Kasma, UI Takibi, Bypass Entegrasyonu
 ]]
 
-local OrionLib = loadstring(game:HttpGet(('https://raw.githubusercontent.com/shlexware/Orion/main/source')))()
-local Window = OrionLib:MakeWindow({Name = "BaBft Ultimate Farm - Gelişmiş", HidePremium = false, SaveConfig = true, ConfigFolder = "BaBftConfig"})
+-- UI'ı yerleştirecek en güvenli yeri bul
+local targetParent = nil
+local success, err = pcall(function()
+    targetParent = game:GetService("CoreGui")
+end)
+if not success or not targetParent then
+    targetParent = game:GetService("Players").LocalPlayer:WaitForChild("PlayerGui")
+end
 
--- ================================
--- Değişkenler
--- ================================
+-- Mevcut UI'ı temizle
+if targetParent:FindFirstChild("W31rdHubGui") then
+    targetParent.W31rdHubGui:Destroy()
+end
+
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
-local Workspace = game:GetService("Workspace")
 local TweenService = game:GetService("TweenService")
 local RunService = game:GetService("RunService")
 
-local farming = false
-local autoBuyCommon = false
-local autoBuyRare = false
+-- Global Değişkenler
+_G.AutoFarm = true
+local ChestsCollected = 0
+local StartGold = 0
+local StartTime = os.time()
 
--- ================================
--- Yardımcı Fonksiyonlar
--- ================================
+-- Oyun verilerinin yüklenmesini bekle
+repeat task.wait() until LocalPlayer:FindFirstChild("Data") and LocalPlayer.Data:FindFirstChild("gold")
+StartGold = LocalPlayer.Data.gold.Value
 
--- Engelleri ve Suyu Temizle (Ölmemek için)
-local function ClearObstacles()
-    pcall(function()
-        local stages = Workspace:WaitForChild("BoatStages"):WaitForChild("NormalStages")
-        for _, stage in pairs(stages:GetChildren()) do
-            if stage:FindFirstChild("DarknessPart") then
-                stage.DarknessPart:Destroy()
-            end
-        end
-    end)
-    -- İsteğe bağlı su silme (görsel olarak kötü durabilir ama güvenlidir)
-    -- Workspace.Water:Destroy() 
+-- UI Oluşturma
+local ScreenGui = Instance.new("ScreenGui")
+local MainFrame = Instance.new("Frame")
+local UIStroke = Instance.new("UIStroke")
+local Title = Instance.new("TextLabel")
+local Divider = Instance.new("Frame")
+local CurrentGoldLabel = Instance.new("TextLabel")
+local GainedGoldLabel = Instance.new("TextLabel")
+local ChestsLabel = Instance.new("TextLabel")
+local TimeLabel = Instance.new("TextLabel")
+local WebhookLink = Instance.new("TextLabel")
+local DiscordBtn = Instance.new("TextButton")
+
+-- UI Ayarları
+ScreenGui.Name = "W31rdHubGui"
+ScreenGui.Parent = targetParent
+ScreenGui.ResetOnSpawn = false
+ScreenGui.IgnoreGuiInset = true -- Ekranın en üstüne kadar çıkabilmesi için
+
+MainFrame.Name = "MainFrame"
+MainFrame.Parent = ScreenGui
+MainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 20)
+MainFrame.Position = UDim2.new(0.5, -130, 0.5, -160) -- İlk açılışta ekranın tam ortasında olması için
+MainFrame.Size = UDim2.new(0, 260, 0, 320)
+MainFrame.BorderSizePixel = 0
+MainFrame.Active = true
+MainFrame.Draggable = true
+
+local corner = Instance.new("UICorner")
+corner.CornerRadius = UDim.new(0, 12)
+corner.Parent = MainFrame
+
+UIStroke.Parent = MainFrame
+UIStroke.Thickness = 2
+UIStroke.Color = Color3.fromRGB(80, 160, 255)
+UIStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+
+Title.Parent = MainFrame
+Title.Size = UDim2.new(1, 0, 0, 45)
+Title.Text = "W31rd.Hub • Gold Farming • V1.2"
+Title.TextColor3 = Color3.fromRGB(80, 160, 255)
+Title.BackgroundTransparency = 1
+Title.TextSize = 15
+Title.Font = Enum.Font.GothamBold
+
+Divider.Parent = MainFrame
+Divider.Size = UDim2.new(0.9, 0, 0, 1)
+Divider.Position = UDim2.new(0.05, 0, 0, 45)
+Divider.BackgroundColor3 = Color3.fromRGB(80, 160, 255)
+Divider.BorderSizePixel = 0
+
+-- Veri Güncelleme Fonksiyonu
+local function updateLabels()
+    local currentGold = LocalPlayer.Data.gold.Value
+    CurrentGoldLabel.Text = "Current Gold: " .. string.format("%, d", currentGold)
+    GainedGoldLabel.Text = "Gained Gold: " .. string.format("%, d", currentGold - StartGold)
+    ChestsLabel.Text = "Chests Collected: " .. tostring(ChestsCollected)
+    
+    local diff = os.difftime(os.time(), StartTime)
+    local hours = math.floor(diff / 3600)
+    local mins = math.floor((diff % 3600) / 60)
+    local secs = diff % 60
+    TimeLabel.Text = string.format("Total Time Farming: %02d:%02d:%02d", hours, mins, secs)
 end
 
--- Karakteri Hazırla (Yerçekimini kapatır, çarpışmayı kapatır)
-local function SetupCharacter()
-    local char = LocalPlayer.Character
-    if not char then return end
-    local root = char:WaitForChild("HumanoidRootPart")
-    
-    -- Havada durmasını sağla
-    local bv = Instance.new("BodyVelocity")
-    bv.Name = "FlyVelocity"
-    bv.Velocity = Vector3.new(0,0,0)
-    bv.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
-    bv.Parent = root
-    
-    -- Çarpışmaları kapat (Noclip)
-    for _, part in pairs(char:GetDescendants()) do
-        if part:IsA("BasePart") then
-            part.CanCollide = false
-        end
+-- Label Oluşturucu
+local function createLabel(text, color, pos)
+    local lbl = Instance.new("TextLabel")
+    lbl.Parent = MainFrame
+    lbl.Position = pos
+    lbl.Size = UDim2.new(1, -30, 0, 35)
+    lbl.BackgroundTransparency = 1
+    lbl.Text = text
+    lbl.TextColor3 = color
+    lbl.TextXAlignment = Enum.TextXAlignment.Left
+    lbl.Font = Enum.Font.GothamBold
+    lbl.TextSize = 17
+    return lbl
+end
+
+CurrentGoldLabel = createLabel("Current Gold: 0", Color3.fromRGB(255, 215, 0), UDim2.new(0, 15, 0, 60))
+GainedGoldLabel = createLabel("Gained Gold: 0", Color3.fromRGB(50, 255, 100), UDim2.new(0, 15, 0, 100))
+ChestsLabel = createLabel("Chests Collected: 0", Color3.fromRGB(255, 165, 0), UDim2.new(0, 15, 0, 140))
+TimeLabel = createLabel("Total Time Farming: 00:00:00", Color3.fromRGB(120, 210, 255), UDim2.new(0, 15, 0, 180))
+
+WebhookLink.Parent = MainFrame
+WebhookLink.Position = UDim2.new(0, 15, 0, 225)
+WebhookLink.Size = UDim2.new(1, -30, 0, 20)
+WebhookLink.Text = "Webhook: https://discord.gg/bQnXYAYTzF"
+WebhookLink.TextColor3 = Color3.fromRGB(255, 80, 80)
+WebhookLink.TextSize = 11
+WebhookLink.BackgroundTransparency = 1
+WebhookLink.Font = Enum.Font.SourceSans
+WebhookLink.TextXAlignment = Enum.TextXAlignment.Center
+
+DiscordBtn.Parent = MainFrame
+DiscordBtn.Position = UDim2.new(0.05, 0, 0.82, 0)
+DiscordBtn.Size = UDim2.new(0.9, 0, 0, 45)
+DiscordBtn.BackgroundColor3 = Color3.fromRGB(60, 130, 255)
+DiscordBtn.Text = "Copy Discord Link"
+DiscordBtn.TextColor3 = Color3.new(1, 1, 1)
+DiscordBtn.Font = Enum.Font.GothamBold
+DiscordBtn.TextSize = 18
+DiscordBtn.AutoButtonColor = true
+
+local btnCorner = Instance.new("UICorner")
+btnCorner.CornerRadius = UDim.new(0, 8)
+btnCorner.Parent = DiscordBtn
+
+DiscordBtn.MouseButton1Click:Connect(function()
+    if setclipboard then
+        setclipboard("https://discord.gg/bQnXYAYTzF")
+        DiscordBtn.Text = "Copied!"
+        task.wait(2)
+        DiscordBtn.Text = "Copy Discord Link"
     end
+end)
+
+-- Teleport Fonksiyonu
+local function teleportTo(targetPos)
+    if not LocalPlayer.Character or not LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then return end
+    local hrp = LocalPlayer.Character.HumanoidRootPart
+    local tween = TweenService:Create(hrp, TweenInfo.new(1.2, Enum.EasingStyle.Linear), {CFrame = targetPos})
+    tween:Play()
+    tween.Completed:Wait()
 end
 
--- ================================
--- Farm Mantığı
--- ================================
-
-local function StartFarm()
-    task.spawn(function()
-        while farming do
-            local char = LocalPlayer.Character
-            if not char or not char:FindFirstChild("HumanoidRootPart") then
-                LocalPlayer.CharacterAdded:Wait()
-                task.wait(1)
-                char = LocalPlayer.Character
-            end
-
-            local root = char:WaitForChild("HumanoidRootPart")
-            
-            -- 1. Hazırlık
-            SetupCharacter()
-            ClearObstacles()
-
-            -- 2. Hedef Bölgeler (Stages)
-            -- Oyunun sonundaki sandığa kadar olan yol
-            local endZone = Workspace.BoatStages.NormalStages.TheEnd.GoldenChest.Trigger
-            local checkPoints = {
-                CFrame.new(-55, 65, 1365), -- Başlangıçtan çıkış
-                CFrame.new(-55, 65, 8605), -- Son etabın önü
-                endZone.CFrame             -- Hazine
-            }
-
-            -- 3. Hareket (Tween)
-            for i, targetCF in ipairs(checkPoints) do
-                if not farming or not char or not char.Parent then break end
+-- Otomatik Farm Döngüsü
+task.spawn(function()
+    while _G.AutoFarm do
+        pcall(function()
+            if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+                local hrp = LocalPlayer.Character.HumanoidRootPart
+                hrp.Anchored = true
                 
-                local distance = (root.Position - targetCF.Position).Magnitude
-                -- Hızı ayarla (Çok hızlı olursa oyun atar, 300 ideal bir hız çarpanıdır)
-                local speed = 300 
-                local duration = distance / speed
-
-                local info = TweenInfo.new(duration, Enum.EasingStyle.Linear)
-                local tween = TweenService:Create(root, info, {CFrame = targetCF})
+                local stagesFolder = workspace:FindFirstChild("BoatStages")
+                if stagesFolder then
+                    local normalStages = stagesFolder:FindFirstChild("NormalStages")
+                    if normalStages then
+                        for i = 1, 10 do
+                            local stage = normalStages:FindFirstChild("CaveStage" .. i)
+                            if stage then
+                                local target = stage:FindFirstChild("DarknessPart")
+                                if target then
+                                    teleportTo(target.CFrame * CFrame.new(0, 70, 0))
+                                    task.wait(0.05)
+                                end
+                            end
+                        end
+                    end
+                    
+                    local retardZone = stagesFolder:FindFirstChild("RetardZone")
+                    if retardZone then
+                        local finalPart = retardZone:FindFirstChild("FinalPart")
+                        if finalPart then
+                            teleportTo(finalPart.CFrame * CFrame.new(0, -15, 0))
+                            task.wait(3.5)
+                            ChestsCollected = ChestsCollected + 1
+                        end
+                    end
+                end
                 
-                tween:Play()
-                tween.Completed:Wait()
-            end
-
-            -- 4. Sandığı Al
-            if farming and char and char:FindFirstChild("HumanoidRootPart") then
-                -- Sandığın tam üstüne in
-                root.CFrame = endZone.CFrame
-                task.wait(0.5)
-                -- Sandık alma animasyonu ve sunucu onayı için bekle
-                task.wait(10) 
-            end
-
-            -- 5. Reset ve Tekrar
-            if farming then
-                LocalPlayer.Character:BreakJoints() -- Öl ve başa dön
-                task.wait(4) -- Respawn süresi
-            end
-        end
-        
-        -- Farm bittiğinde BodyVelocity'i temizle
-        if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") and LocalPlayer.Character.HumanoidRootPart:FindFirstChild("FlyVelocity") then
-            LocalPlayer.Character.HumanoidRootPart.FlyVelocity:Destroy()
-        end
-    end)
-end
-
--- ================================
--- UI Sekmeleri ve Butonlar
--- ================================
-
-local FarmTab = Window:MakeTab({
-	Name = "Auto Farm",
-	Icon = "rbxassetid://4483345998",
-	PremiumOnly = false
-})
-
-local MiscTab = Window:MakeTab({
-	Name = "Ekstra",
-	Icon = "rbxassetid://4483345998",
-	PremiumOnly = false
-})
-
--- Farm Kontrolleri
-FarmTab:AddToggle({
-	Name = "Otomatik Farm Başlat",
-	Default = false,
-	Callback = function(Value)
-		farming = Value
-		if farming then
-			StartFarm()
-            OrionLib:MakeNotification({
-                Name = "Farm Başladı",
-                Content = "Engeller siliniyor ve yola çıkılıyor...",
-                Image = "rbxassetid://4483345998",
-                Time = 5
-            })
-		else
-            -- Durdurma işlemi
-            local char = LocalPlayer.Character
-            if char and char:FindFirstChild("HumanoidRootPart") then
-                 if char.HumanoidRootPart:FindFirstChild("FlyVelocity") then
-                    char.HumanoidRootPart.FlyVelocity:Destroy()
-                 end
-                 -- Hareketi durdur
-                 TweenService:Create(char.HumanoidRootPart, TweenInfo.new(0.1), {CFrame = char.HumanoidRootPart.CFrame}):Play()
-            end
-        end
-	end    
-})
-
-FarmTab:AddButton({
-	Name = "Siyah Duvarları Sil (Manuel)",
-	Callback = function()
-      	ClearObstacles()
-        OrionLib:MakeNotification({
-            Name = "Temizlendi",
-            Content = "Stage bariyerleri kaldırıldı.",
-            Image = "rbxassetid://4483345998",
-            Time = 3
-        })
-  	end    
-})
-
--- Ekstra Kontroller
-MiscTab:AddToggle({
-	Name = "Anti-AFK",
-	Default = true,
-	Callback = function(Value)
-		if Value then
-            local vu = game:GetService("VirtualUser")
-            game:GetService("Players").LocalPlayer.Idled:Connect(function()
-                vu:Button2Down(Vector2.new(0,0),workspace.CurrentCamera.CFrame)
-                wait(1)
-                vu:Button2Up(Vector2.new(0,0),workspace.CurrentCamera.CFrame)
-            end)
-        end
-	end    
-})
-
-MiscTab:AddToggle({
-	Name = "Otomatik Ortak Sandık Al (Common)",
-	Default = false,
-	Callback = function(Value)
-        autoBuyCommon = Value
-        task.spawn(function()
-            while autoBuyCommon do
-                workspace.ItemBoughtFromShop:FireServer("Common Chest", 1)
-                task.wait(3)
+                LocalPlayer.Character:BreakJoints()
+                task.wait(5.5)
             end
         end)
-	end    
-})
-
--- ================================
--- Başlatma
--- ================================
-
-OrionLib:Init()
-
--- Anti-Kick Önlemi (Basit)
-local mt = getrawmetatable(game)
-local old = mt.__namecall
-setreadonly(mt, false)
-mt.__namecall = newcclosure(function(self, ...)
-    local method = getnamecallmethod()
-    if method == "Kick" then
-        return nil -- Kick komutunu engellemeye çalışır (bazı client kick'ler için)
+        task.wait(0.5)
     end
-    return old(self, ...)
 end)
+
+-- UI Güncelleme Döngüsü
+RunService.RenderStepped:Connect(function()
+    if MainFrame.Visible then
+        updateLabels()
+    end
+end)
+
+print("W31rd.Hub (Arayüz Fixlendi) Başarıyla Çalıştırıldı!")
