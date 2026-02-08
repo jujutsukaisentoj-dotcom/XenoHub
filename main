@@ -1,49 +1,42 @@
 -- =========================================================
--- BABFT - FULL TETİKLİ DEX: TRUE & rqccc PRO (V10)
+-- rqccc x Gemini Hybrid: FULL DEX TRUE & AUTO FARM
 -- =========================================================
 
 local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/xHeptc/Kavo-UI-Library/main/source.lua"))()
-local Window = Library.CreateLib("BABFT - Ultra Dex True v10", "Midnight")
+local Window = Library.CreateLib("BABFT - rqccc Ultimate Edition", "Midnight")
 
--- SERVICES & DATA
+-- SERVICES
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 local Data = LocalPlayer:WaitForChild("OtherData")
 local Claim = workspace:WaitForChild("ClaimRiverResultsGold")
 local Stages = workspace.BoatStages.NormalStages
-local GoldenChest = Stages.TheEnd.GoldenChest.Trigger
+local Chest = Stages.TheEnd.GoldenChest.Trigger
 
--- CONFIG & VARS
+-- CONFIG
 local StartGold = LocalPlayer.Data.Gold.Value
 local ChestCount = 0
-local StartTime = os.time()
 local AutoFarmActive = false
 
--- FULL DEX: TRUE & GAMEPASS ENJECTOR
-local function ApplyUltimateDex()
-    local passes = {"GoldPass", "VIP", "Member", "ExtraBoatSlot", "DoubleGold", "DoubleMoney"}
-    for _, name in pairs(passes) do
-        if not LocalPlayer:FindFirstChild(name) then
-            local val = Instance.new("BoolValue", LocalPlayer)
-            val.Name = name
-            val.Value = true
-        end
+-- DEX TRUE: TÜM OYUN ÖZELLİKLERİ (TETİKLİ)
+local function ApplyAllGamepasses()
+    local features = {"GoldPass", "VIP", "Member", "DoubleGold", "DoubleMoney", "ExtraBoatSlot"}
+    for _, name in pairs(features) do
+        local val = Instance.new("BoolValue", LocalPlayer)
+        val.Name = name
+        val.Value = true
     end
-    -- İSTEDİĞİN O ÖZEL BİLDİRİM
-    Library:Notify("SİSTEM AKTİF", "Tüm Gamepass'lara Sahipsin!", "Success")
+    Library:Notify("SİSTEM", "Tüm özelliklere sahipsin! (Dex: True)", "Success")
 end
 
--- UI TABS
+-- UI SETUP
 local MainTab = Window:NewTab("Farming")
-local StatusSection = MainTab:NewSection("Pro Stats (Tetikli)")
+local Stats = MainTab:NewSection("rqccc Logic & Stats")
+local goldLabel = Stats:NewLabel("Altın: " .. StartGold)
+local chestLabel = Stats:NewLabel("Toplanan Sandık: 0")
+local statusLabel = Stats:NewLabel("Durum: Bekleniyor...")
 
--- LABELS
-local goldLabel = StatusSection:NewLabel("Mevcut Altın: " .. StartGold)
-local gainedLabel = StatusSection:NewLabel("Kazanç: 0")
-local chestLabel = StatusSection:NewLabel("Toplanan Sandık: 0")
-local stageLabel = StatusSection:NewLabel("Durum: Bekleniyor...")
-
--- rqccc LOGIC FUNCTIONS
+-- rqccc FUNCTIONS
 local function HasStage(Num)
     return Data[`Stage{Num}`].Value ~= "" and Data[`Stage{Num}`].Value
 end
@@ -58,93 +51,96 @@ local function ClaimStage(Num)
     end)
 end
 
--- MAIN FARM FUNCTION (rqccc + SLOW & FULL TETİKLİ)
-local function StartFarm()
-    while AutoFarmActive do
-        local Char = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
-        local Root = Char:WaitForChild("HumanoidRootPart")
+-- rqccc ORIGINAL FARM LOGIC (INTEGRATED)
+local function Farm()
+    if not AutoFarmActive then return end
+    
+    local Char = LocalPlayer.Character
+    if not Char then return end
+    local Root = Char:WaitForChild("HumanoidRootPart")
+
+    local NewChar = false
+    local conn
+    conn = LocalPlayer.CharacterAdded:Once(function() NewChar = true end)
+
+    for i = 1, 10 do
+        if not AutoFarmActive or NewChar then break end
         
-        local NewChar = false
-        local connection
-        connection = LocalPlayer.CharacterAdded:Once(function() NewChar = true end)
+        statusLabel:UpdateLabel("Bölüm Geçiliyor: " .. i)
+        local TargetPart = Stages[`CaveStage{i}`].DarknessPart
+        local Teleporting = true
 
-        -- 1'DEN 10'A YAVAŞ GEÇİŞ
-        for i = 1, 10 do
-            if not AutoFarmActive or NewChar then break end
-            
-            stageLabel:UpdateLabel("İlerleme: Bölüm " .. i .. " / 11")
-            local TargetPart = Stages[`CaveStage{i}`].DarknessPart
-            local Teleporting = true
-
-            -- rqccc's Pro Teleport (Anti-Kick)
-            task.spawn(function()
-                while Teleporting and AutoFarmActive do
-                    Root.CFrame = TargetPart.CFrame
-                    for _, Part in Char:GetChildren() do
-                        if Part:IsA("BasePart") then
-                            Part.Velocity = Vector3.zero
-                            Part.RotVelocity = Vector3.zero
-                        end
+        -- rqccc's Precision Teleport
+        task.spawn(function()
+            while Teleporting and AutoFarmActive do
+                Root.CFrame = TargetPart.CFrame
+                for _, Part in Char:GetChildren() do
+                    if Part:IsA("BasePart") then
+                        Part.Velocity = Vector3.zero
+                        Part.RotVelocity = Vector3.zero
                     end
-                    task.wait()
                 end
-            end)
+                task.wait()
+            end
+        end)
 
-            task.wait(5) -- FULL YAVAŞ GÜVENLİK
+        -- GÜVENLİK İÇİN YAVAŞLATILMIŞ BEKLEME (TETİKLİ)
+        task.wait(4.5) 
+        
+        if i ~= 10 then
             ClaimStage(i)
-            
-            -- Stage Onay Tetikleyici
-            repeat task.wait(0.5) until HasStage(i) or NewChar or not AutoFarmActive
-            Teleporting = false
         end
 
-        -- 11. BÖLÜM: FINAL SANDIĞI (TETİKLİ)
-        if AutoFarmActive and not NewChar then
-            stageLabel:UpdateLabel("Durum: SANDIK ALINIYOR...")
-            Root.CFrame = GoldenChest.CFrame
-            task.wait(1.5)
-            
-            GoldenChest.CFrame = Root.CFrame
-            task.wait(2.5)
-            
-            ChestCount = ChestCount + 1
-            chestLabel:UpdateLabel("Toplanan Sandık: " .. ChestCount)
-            
-            stageLabel:UpdateLabel("Durum: Başarıyla Alındı! Resetleniyor...")
-            Char:BreakJoints()
-            task.wait(8) 
-        end
-        if connection then connection:Disconnect() end
+        -- Stage Onayını Bekle
+        repeat task.wait(0.5) until HasStage(i) or NewChar or not AutoFarmActive
+        Teleporting = false
     end
+
+    -- STAGE 11: THE END
+    if AutoFarmActive and not NewChar then
+        statusLabel:UpdateLabel("Sandık Alınıyor...")
+        Root.CFrame = Chest.CFrame
+        task.wait(1)
+        Chest.CFrame = Root.CFrame
+        task.wait(2)
+        
+        ChestCount = ChestCount + 1
+        chestLabel:UpdateLabel("Toplanan Sandık: " .. ChestCount)
+        
+        Char:BreakJoints() -- Reset for next loop
+    end
+    if conn then conn:Disconnect() end
 end
 
 -- UI CONTROLS
-StatusSection:NewToggle("AUTO FARM BAŞLAT", "Basınca Dex: True ve Farm Tetiklenir", function(state)
+Stats:NewToggle("AUTO FARM (rqccc MANTIĞI)", "Tetikli & Yavaş Farm", function(state)
     AutoFarmActive = state
     if state then
-        ApplyUltimateDex() -- "Tüm Gamepasslara Sahipsin" burada tetiklenir
-        task.spawn(StartFarm)
-    else
-        stageLabel:UpdateLabel("Durum: DURDURULDU")
+        ApplyAllGamepasses() -- DEX TRUE BURADA TETİKLENİR
+        Farm()
     end
 end)
 
--- LIVE DATA UPDATER
+-- AUTO RESTART ON DEATH
+LocalPlayer.CharacterAdded:Connect(function()
+    if AutoFarmActive then
+        task.wait(5)
+        Farm()
+    end
+end)
+
+-- STATS UPDATE
 task.spawn(function()
     while task.wait(1) do
-        local cur = LocalPlayer.Data.Gold.Value
-        goldLabel:UpdateLabel("Mevcut Altın: " .. cur)
-        gainedLabel:UpdateLabel("Kazanç: " .. (cur - StartGold))
+        goldLabel:UpdateLabel("Mevcut Altın: " .. LocalPlayer.Data.Gold.Value)
     end
 end)
 
--- MOBILE UI TOGGLE
+-- MOBILE BUTTON
 local ScreenGui = Instance.new("ScreenGui", game.CoreGui)
-local ToggleBtn = Instance.new("TextButton", ScreenGui)
-ToggleBtn.Size = UDim2.new(0, 80, 0, 35)
-ToggleBtn.Position = UDim2.new(0, 15, 0, 150)
-ToggleBtn.Text = "MENU"
-ToggleBtn.BackgroundColor3 = Color3.fromRGB(0, 120, 255)
-ToggleBtn.TextColor3 = Color3.new(1,1,1)
-ToggleBtn.Draggable = true
-ToggleBtn.MouseButton1Click:Connect(function() Library:ToggleUI() end)
+local Btn = Instance.new("TextButton", ScreenGui)
+Btn.Size, Btn.Position = UDim2.new(0,80,0,35), UDim2.new(0,10,0,150)
+Btn.Text = "MENU"
+Btn.BackgroundColor3 = Color3.fromRGB(30,30,30)
+Btn.TextColor3 = Color3.new(1,1,1)
+Btn.MouseButton1Click:Connect(function() Library:ToggleUI() end)
