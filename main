@@ -1,25 +1,23 @@
 -- =========================================================
--- W31rd.Hub - Gold Farming V1.6 (TURBO SPEED EDITION)
+-- W31rd.Hub - Gold Farming V1.7 (FX & TREASURE EDITION)
 -- NO WAIT, NO STUCK, INSTANT STAGE PROGRESSION
--- FORCED CHEST COLLECTION & AUTO-RESET
+-- INTEGRATED TREASURE EFFECTS & AUTO-COLLECT
 -- =========================================================
 
 -- Services
 local Players = game:GetService("Players")
 local CoreGui = game:GetService("CoreGui")
 local RunService = game:GetService("RunService")
+local TweenService = game:GetService("TweenService")
+local Debris = game:GetService("Debris")
 
 -- Variables
 local LocalPlayer = Players.LocalPlayer
 local Data = LocalPlayer:WaitForChild("OtherData")
 local Claim = workspace:WaitForChild("ClaimRiverResultsGold")
 local Stages = workspace.BoatStages.NormalStages
-local GoldenChest = Stages.TheEnd.GoldenChest.Trigger
-
--- Config
-local ChestStage = 11
-local TouchChest = true
-local AutoClaim = true
+local GoldenChestModel = Stages.TheEnd.GoldenChest
+local GoldenChestTrigger = GoldenChestModel.Trigger
 
 -- Stats
 local StartGold = LocalPlayer.Data.Gold.Value
@@ -42,7 +40,7 @@ local function ApplyDexTrue()
     end
 end
 
--- [2] JESUS MODE (Anti-Fall & Water Walk)
+-- [2] JESUS MODE
 local function EnableJesusMode()
     task.spawn(function()
         while true do
@@ -72,10 +70,9 @@ local function CreateUI()
     local Corner = Instance.new("UICorner", MainFrame)
     Corner.CornerRadius = UDim.new(0, 10)
     
-    -- Title
     local Title = Instance.new("TextLabel", MainFrame)
     Title.Size = UDim2.new(1, 0, 0, 40)
-    Title.Text = "W31rd.Hub • Gold Farming • V1.6"
+    Title.Text = "W31rd.Hub • Gold Farming • V1.7"
     Title.TextColor3 = Color3.fromRGB(130, 180, 255)
     Title.BackgroundTransparency = 1
     Title.Font = Enum.Font.SourceSansBold
@@ -87,7 +84,6 @@ local function CreateUI()
     Line.BackgroundColor3 = Color3.fromRGB(50, 100, 255)
     Line.BorderSizePixel = 0
     
-    -- Labels
     local function CreateStatLabel(text, pos, color)
         local Label = Instance.new("TextLabel", MainFrame)
         Label.Size = UDim2.new(1, -30, 0, 25)
@@ -106,14 +102,12 @@ local function CreateUI()
     local ChestsL = CreateStatLabel("Gold Blocks: 0", 115, Color3.fromRGB(255, 170, 50))
     local TimeL = CreateStatLabel("Total Time: 00:00:00", 145, Color3.fromRGB(150, 200, 255))
     
-    -- Status Update Loop
     task.spawn(function()
         while task.wait(1) do
             if LocalPlayer:FindFirstChild("Data") and LocalPlayer.Data:FindFirstChild("Gold") then
                 local current = LocalPlayer.Data.Gold.Value
                 local diff = os.time() - StartTime
                 local h, m, s = math.floor(diff/3600), math.floor((diff%3600)/60), diff%60
-                
                 CurGoldL.Text = "Current Gold: " .. current
                 GainGoldL.Text = "Gained Gold: " .. (current - StartGold)
                 ChestsL.Text = "Gold Blocks: " .. ChestsCollected
@@ -122,18 +116,16 @@ local function CreateUI()
         end
     end)
     
-    -- Progress Label
     local Tip = Instance.new("TextLabel", MainFrame)
     Tip.Size = UDim2.new(1, 0, 0, 20)
     Tip.Position = UDim2.new(0, 0, 0, 230)
-    Tip.Text = "Status: Turbo Mode Active"
+    Tip.Text = "Status: Treasure FX Active"
     Tip.TextColor3 = Color3.fromRGB(255, 255, 255)
     Tip.BackgroundTransparency = 1
     Tip.Font = Enum.Font.SourceSansItalic
     Tip.TextSize = 13
     StatusLabelRef = Tip
 
-    -- Dragging
     local Dragging, DragStart, StartPos
     MainFrame.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 then Dragging = true DragStart = input.Position StartPos = MainFrame.Position end
@@ -149,14 +141,66 @@ local function CreateUI()
     end)
 end
 
--- [4] CORE FARM LOGIC (TURBO)
-local function ClaimStage(Num)
-    if not AutoClaim then return end
-    task.spawn(function()
-        Claim:FireServer()
-    end)
+-- [4] TREASURE EFFECT INTEGRATION (From EndTreasureScript)
+local function TriggerTreasureFX(Root)
+    if StatusLabelRef then StatusLabelRef.Text = "FX: Starting Animation..." end
+    
+    -- Effect Start
+    TweenService:Create(game.Lighting, TweenInfo.new(0.3, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut), {
+        ClockTime = 3.7;
+        FogEnd = 100;
+        FogStart = 20;
+    }):Play()
+
+    task.wait(0.2)
+    
+    -- Light FX
+    if GoldenChestModel:FindFirstChild("LightPart") then
+        TweenService:Create(GoldenChestModel.LightPart.PointLight, TweenInfo.new(1, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut), {
+            Brightness = 1.5;
+        }):Play()
+    end
+
+    -- Clone Gold Anim
+    if StatusLabelRef then StatusLabelRef.Text = "FX: Spawning Prizes..." end
+    for _ = 1, 5 do -- Reduced count for turbo speed but keeps effect
+        task.wait(0.05)
+        local bar = GoldenChestModel.DisplayPrizes.GoldBar:Clone()
+        bar.Transparency = 0
+        bar.Parent = GoldenChestModel.DisplayPrizesTemp
+        bar.Position = GoldenChestModel.Base.GoldSpawn.Position
+        TweenService:Create(bar, TweenInfo.new(0.5, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut), {
+            Position = GoldenChestModel.Base.GoldSpawn.Position + Vector3.new(math.random(-6, 6), math.random(4, 8), math.random(-6, 6));
+        }):Play()
+    end
+
+    local block = GoldenChestModel.DisplayPrizes.GoldBlock:Clone()
+    block.Transparency = 0
+    block.Parent = GoldenChestModel.DisplayPrizesTemp
+    block.Position = GoldenChestModel.Base.GoldSpawn.Position
+    TweenService:Create(block, TweenInfo.new(0.5, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut), {
+        Position = GoldenChestModel.Base.GoldSpawn.Position + Vector3.new(0, 7, 0);
+    }):Play()
+
+    task.wait(0.5)
+
+    -- Collect Anim (Forcing items to player root)
+    if StatusLabelRef then StatusLabelRef.Text = "FX: Collecting Rewards..." end
+    for _, v in pairs(GoldenChestModel.DisplayPrizesTemp:GetChildren()) do
+        task.spawn(function()
+            TweenService:Create(v, TweenInfo.new(0.2, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut), {
+                CFrame = Root.CFrame;
+            }):Play()
+            task.wait(0.2)
+            if v:FindFirstChild("Sound") then v.Sound:Play() end
+            v.Transparency = 1
+            Debris:AddItem(v, 1)
+        end)
+    end
+    task.wait(0.5)
 end
 
+-- [5] CORE FARM LOGIC
 local function Farm()
     if FarmingInProgress then return end
     FarmingInProgress = true
@@ -172,19 +216,12 @@ local function Farm()
         FarmingInProgress = false
     end)
 
-    -- Stage 1 to 11 (Turbo Progression)
     for _ = 1, 11 do
         if NewChar then break end
         if StatusLabelRef then StatusLabelRef.Text = "TURBO: Stage " .. _ .. " / 11" end
 
-        local TargetPart
-        if _ <= 10 then
-            TargetPart = Stages[`CaveStage{_}`].DarknessPart
-        else
-            TargetPart = GoldenChest
-        end
+        local TargetPart = (_ <= 10) and Stages[`CaveStage{_}`].DarknessPart or GoldenChestTrigger
 
-        -- Instant Teleport Loop for each stage
         local Teleporting = true
         task.spawn(function()
             while Teleporting and not NewChar do
@@ -202,49 +239,41 @@ local function Farm()
             end
         end)
 
-        if _ == ChestStage and TouchChest then
-            -- Stage 11: Instant Chest Force
-            if StatusLabelRef then StatusLabelRef.Text = "TURBO: TAKING GOLD BLOCK..." end
-            
-            -- Force touch multiple times rapidly
-            for i = 1, 15 do
-                if Root and GoldenChest then
-                    GoldenChest.CFrame = Root.CFrame
-                end
-                task.wait(0.05)
+        if _ == 11 then
+            -- Initial Touch
+            for i = 1, 5 do
+                GoldenChestTrigger.CFrame = Root.CFrame
+                task.wait(0.1)
             end
+            
+            -- Run original effects logic to ensure server rewards
+            TriggerTreasureFX(Root)
             
             ChestsCollected = ChestsCollected + 1
             FarmingInProgress = false
             
-            -- Instant Reset and finish
             if Char then Char:BreakJoints() end
-            task.spawn(function()
-                Claim:FireServer()
-            end)
+            task.spawn(function() Claim:FireServer() end)
             break
         else
-            -- Normal Stages: No waiting for Data.Value, just move and claim
-            ClaimStage(_)
-            task.wait(0.3) -- Minimum delay to ensure server registration
+            Claim:FireServer()
+            task.wait(0.35) 
         end
         Teleporting = false
     end
     if conn then conn:Disconnect() end
 end
 
--- [5] INITIALIZATION
+-- [6] INITIALIZATION
 ApplyDexTrue()
 EnableJesusMode()
 CreateUI()
 
--- Auto-Run on spawn
 LocalPlayer.CharacterAdded:Connect(function()
-    task.wait(1.5) -- Fast start
+    task.wait(1.5)
     Farm()
 end)
 
--- Loop Guard
 task.spawn(function()
     while true do
         if not FarmingInProgress then
