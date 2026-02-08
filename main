@@ -1,6 +1,6 @@
 -- =========================================================
--- W31rd.Hub - Gold Farming V1.9 (DELAYED MODE)
--- STEP-BY-STEP PROGRESSION WITH WAITING
+-- W31rd.Hub - Gold Farming V2.0 (BALANCED DELAY)
+-- 2 SECONDS DELAY BETWEEN STAGES
 -- INTEGRATED TREASURE EFFECTS & AUTO-COLLECT
 -- =========================================================
 
@@ -72,7 +72,7 @@ local function CreateUI()
     
     local Title = Instance.new("TextLabel", MainFrame)
     Title.Size = UDim2.new(1, 0, 0, 40)
-    Title.Text = "W31rd.Hub • Gold Farming • V1.9"
+    Title.Text = "W31rd.Hub • Gold Farming • V2.0"
     Title.TextColor3 = Color3.fromRGB(130, 180, 255)
     Title.BackgroundTransparency = 1
     Title.Font = Enum.Font.SourceSansBold
@@ -119,8 +119,8 @@ local function CreateUI()
     local Tip = Instance.new("TextLabel", MainFrame)
     Tip.Size = UDim2.new(1, 0, 0, 20)
     Tip.Position = UDim2.new(0, 0, 0, 230)
-    Tip.Text = "Durum: Beklemeli Mod Aktif"
-    Tip.TextColor3 = Color3.fromRGB(200, 200, 255)
+    Tip.Text = "Durum: Dengeli Bekleme (2sn)"
+    Tip.TextColor3 = Color3.fromRGB(255, 255, 255)
     Tip.BackgroundTransparency = 1
     Tip.Font = Enum.Font.SourceSansItalic
     Tip.TextSize = 13
@@ -145,28 +145,28 @@ end
 local function TriggerTreasureFX(Root)
     if StatusLabelRef then StatusLabelRef.Text = "FX: Animasyon Başlıyor..." end
     
-    TweenService:Create(game.Lighting, TweenInfo.new(0.5, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut), {
+    TweenService:Create(game.Lighting, TweenInfo.new(0.4, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut), {
         ClockTime = 3.7;
         FogEnd = 100;
         FogStart = 20;
     }):Play()
 
-    task.wait(0.5)
+    task.wait(0.3)
     
     if GoldenChestModel:FindFirstChild("LightPart") then
-        TweenService:Create(GoldenChestModel.LightPart.PointLight, TweenInfo.new(1.2, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut), {
+        TweenService:Create(GoldenChestModel.LightPart.PointLight, TweenInfo.new(1, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut), {
             Brightness = 1.5;
         }):Play()
     end
 
-    for _ = 1, 8 do 
-        task.wait(0.1)
+    for _ = 1, 6 do 
+        task.wait(0.05)
         local bar = GoldenChestModel.DisplayPrizes.GoldBar:Clone()
         bar.Transparency = 0
         bar.Parent = GoldenChestModel.DisplayPrizesTemp
         bar.Position = GoldenChestModel.Base.GoldSpawn.Position
-        TweenService:Create(bar, TweenInfo.new(0.7, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut), {
-            Position = GoldenChestModel.Base.GoldSpawn.Position + Vector3.new(math.random(-6, 6), math.random(4, 10), math.random(-6, 6));
+        TweenService:Create(bar, TweenInfo.new(0.5, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut), {
+            Position = GoldenChestModel.Base.GoldSpawn.Position + Vector3.new(math.random(-5, 5), math.random(4, 9), math.random(-5, 5));
         }):Play()
     end
 
@@ -174,27 +174,27 @@ local function TriggerTreasureFX(Root)
     block.Transparency = 0
     block.Parent = GoldenChestModel.DisplayPrizesTemp
     block.Position = GoldenChestModel.Base.GoldSpawn.Position
-    TweenService:Create(block, TweenInfo.new(1, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut), {
+    TweenService:Create(block, TweenInfo.new(0.8, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut), {
         Position = GoldenChestModel.Base.GoldSpawn.Position + Vector3.new(0, 7, 0);
     }):Play()
 
-    task.wait(1)
+    task.wait(0.8)
 
     for _, v in pairs(GoldenChestModel.DisplayPrizesTemp:GetChildren()) do
         task.spawn(function()
-            TweenService:Create(v, TweenInfo.new(0.4, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut), {
+            TweenService:Create(v, TweenInfo.new(0.3, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut), {
                 CFrame = Root.CFrame;
             }):Play()
-            task.wait(0.4)
+            task.wait(0.3)
             if v:FindFirstChild("Sound") then v.Sound:Play() end
             v.Transparency = 1
             Debris:AddItem(v, 1)
         end)
     end
-    task.wait(1)
+    task.wait(0.5)
 end
 
--- [5] CORE FARM LOGIC (DELAYED PROGRESSION)
+-- [5] CORE FARM LOGIC (2 SECONDS DELAY)
 local function Farm()
     if FarmingInProgress then return end
     FarmingInProgress = true
@@ -213,7 +213,6 @@ local function Farm()
     for _ = 1, 11 do
         if NewChar then break end
         
-        -- Bölüm Geçme Bildirimi
         if StatusLabelRef then StatusLabelRef.Text = "İşlem: Bölüm " .. _ .. " Geçiliyor..." end
 
         local TargetPart = (_ <= 10) and Stages[`CaveStage{_}`].DarknessPart or GoldenChestTrigger
@@ -238,32 +237,32 @@ local function Farm()
 
         if _ == 11 then
             -- Sandık Bölümü
-            for i = 1, 8 do
+            for i = 1, 6 do
                 GoldenChestTrigger.CFrame = Root.CFrame
-                task.wait(0.2)
+                task.wait(0.15)
             end
             
             TriggerTreasureFX(Root)
             ChestsCollected = ChestsCollected + 1
             FarmingInProgress = false
             
-            task.wait(1)
+            task.wait(0.5)
             if Char then Char:BreakJoints() end
             task.spawn(function() Claim:FireServer() end)
             break
         else
-            -- Normal Bölüm: Önce Claim at
+            -- Normal Bölüm
             Claim:FireServer()
-            task.wait(1) -- Işınlanma sonrası kısa bekleme
-            Teleporting = false -- Işınlanmayı durdur
+            task.wait(0.5) -- Işınlanma sabitleme süresi
+            Teleporting = false
             
-            -- BÖLÜMLER ARASI BEKLEME (1 bölüm geçti, şimdi bekliyor)
-            for waitSec = 5, 1, -1 do
-                if NewChar then break end
-                if StatusLabelRef then 
-                    StatusLabelRef.Text = "Bölüm " .. _ .. " Tamam. " .. waitSec .. " sn sonra Bölüm " .. (_+1) .. "..." 
+            -- 2 SANİYE BEKLEME (İstediğin süre)
+            if not NewChar then
+                for i = 2, 1, -1 do
+                    if NewChar then break end
+                    if StatusLabelRef then StatusLabelRef.Text = "Bölüm " .. _ .. " Tamam. " .. i .. "sn Bekleniyor..." end
+                    task.wait(1)
                 end
-                task.wait(1)
             end
         end
         Teleporting = false
@@ -277,7 +276,7 @@ EnableJesusMode()
 CreateUI()
 
 LocalPlayer.CharacterAdded:Connect(function()
-    task.wait(3)
+    task.wait(2)
     Farm()
 end)
 
@@ -289,6 +288,6 @@ task.spawn(function()
                 Farm()
             end
         end
-        task.wait(2)
+        task.wait(1)
     end
 end)
