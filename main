@@ -1,6 +1,7 @@
 -- =========================================================
 -- W31rd.Hub - Gold Farming V1.2 (rqccc & Dex True Edition)
 -- IMPROVED LOOP, STAGE 1-11, & JESUS MODE
+-- FIXED STAGE 11 STICKING ISSUE
 -- =========================================================
 
 -- Services
@@ -33,15 +34,14 @@ local function ApplyDexTrue()
     end
 end
 
--- [2] JESUS MODE (Suda Yürüme)
--- Bu fonksiyon suyun üzerine görünmez bir katman ekleyerek ölmeni engeller
+-- [2] JESUS MODE (Water Walk)
 local function EnableJesusMode()
     task.spawn(function()
         while true do
             if workspace:FindFirstChild("Water") then
                 workspace.Water.CanCollide = true
-                workspace.Water.Transparency = 0.5 -- Görsel geri bildirim
-                workspace.Water.Size = Vector3.new(2000, 20, 2000) -- Tüm haritayı kaplar
+                workspace.Water.Transparency = 0.5
+                workspace.Water.Size = Vector3.new(4000, 20, 4000)
             end
             task.wait(5)
         end
@@ -124,10 +124,6 @@ local function CreateUI()
     local RCorner = Instance.new("UICorner", ResetBtn)
     
     ResetBtn.MouseButton1Click:Connect(function()
-        local hint = Instance.new("Message", workspace)
-        hint.Text = "If you are stuck, please RESET your character to fix the loop!"
-        task.wait(4)
-        hint:Destroy()
         if LocalPlayer.Character then LocalPlayer.Character:BreakJoints() end
     end)
 
@@ -147,7 +143,7 @@ local function CreateUI()
     local Tip = Instance.new("TextLabel", MainFrame)
     Tip.Size = UDim2.new(1, 0, 0, 20)
     Tip.Position = UDim2.new(0, 0, 0, 230)
-    Tip.Text = "Jesus Mode (Water Walk) is Active."
+    Tip.Text = "Farming Stage 1-11 | Jesus Mode: ON"
     Tip.TextColor3 = Color3.fromRGB(180, 180, 180)
     Tip.BackgroundTransparency = 1
     Tip.Font = Enum.Font.SourceSansItalic
@@ -201,44 +197,55 @@ local function Farm()
     for i = 1, 11 do
         if NewChar then break end
         
-        -- Stage 11 is the End/Chest Stage
         local TargetPart
         if i <= 10 then
             TargetPart = Stages[`CaveStage{i}`].DarknessPart
         else
-            TargetPart = Stages.TheEnd.GoldenChest.Trigger
+            -- Stage 11 is the Golden Chest
+            TargetPart = GoldenChest
         end
         
         local Teleporting = true
         task.spawn(function()
             while Teleporting and not NewChar do
-                Root.CFrame = TargetPart.CFrame
-                Root.Velocity = Vector3.zero
-                Root.RotVelocity = Vector3.zero
+                if Root and TargetPart then
+                    Root.CFrame = TargetPart.CFrame
+                    Root.Velocity = Vector3.zero
+                    Root.RotVelocity = Vector3.zero
+                end
                 task.wait()
             end
         end)
 
-        -- Claim Logics
+        -- Stage Claims
         if i <= 10 then
             ClaimStage(i)
         end
 
         if i == 11 then
-            -- Chest Room Logic
-            task.wait(2)
-            GoldenChest.CFrame = Root.CFrame
-            task.wait(1)
+            -- Chest Room Logic - Anti-Stuck
+            task.wait(1.5)
+            -- Force touch chest
+            if Root then
+                GoldenChest.CFrame = Root.CFrame
+                task.wait(0.5)
+                GoldenChest.CFrame = CFrame.new(0, 9e9, 0) -- Move away after touch
+            end
+            
+            task.wait(2) -- Wait for server to process gold
             ChestsCollected = ChestsCollected + 1
             FarmingInProgress = false
-            Char:BreakJoints()
+            
+            -- End the round
+            if Char then Char:BreakJoints() end
             task.spawn(function() task.wait(1) Claim:FireServer() end)
         else
+            -- Normal Stage Timeout
             local timeout = 0
             repeat 
                 task.wait(0.1) 
                 timeout = timeout + 0.1
-            until HasStage(i) or NewChar or timeout > 7
+            until HasStage(i) or NewChar or timeout > 6
         end
         Teleporting = false
     end
@@ -255,4 +262,12 @@ LocalPlayer.CharacterAdded:Connect(function()
     Farm()
 end)
 
-task.spawn(Farm)
+-- Initial Execution
+task.spawn(function()
+    while true do
+        if not FarmingInProgress then
+            Farm()
+        end
+        task.wait(5)
+    end
+end)
