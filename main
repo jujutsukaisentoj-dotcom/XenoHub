@@ -1,9 +1,9 @@
 -- =========================================================
--- BABFT GOD MODE + rqccc ULTRA FARM (V12 FINAL)
+-- rqccc CORE - GOD MODE & DEX TRUE HYBRID (V13)
 -- =========================================================
 
 local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/xHeptc/Kavo-UI-Library/main/source.lua"))()
-local Window = Library.CreateLib("BABFT - God & Farm Hub", "Midnight")
+local Window = Library.CreateLib("BABFT - rqccc God Hub", "Midnight")
 
 -- SERVICES
 local Players = game:GetService("Players")
@@ -12,149 +12,154 @@ local LocalPlayer = Players.LocalPlayer
 local Data = LocalPlayer:WaitForChild("OtherData")
 local Claim = workspace:WaitForChild("ClaimRiverResultsGold")
 local Stages = workspace.BoatStages.NormalStages
-local GoldenChest = Stages.TheEnd.GoldenChest.Trigger
+local Chest = Stages.TheEnd.GoldenChest.Trigger
 
--- SETTINGS
-local AutoFarmActive = false
-local GodModeActive = false
-local WaterWalkActive = false
-local NoClipActive = false
-local WalkSpeedValue = 16
-local JumpPowerValue = 50
+-- CONFIGS
+local AutoFarmEnabled = false
+local WaterWalk = false
+local NoClip = false
+local WS = 16
+local JP = 50
 
--- DEX TRUE & NOTIFICATION
-local function ApplyUltimateDex()
-    local passes = {"GoldPass", "VIP", "Member", "DoubleGold", "DoubleMoney", "ExtraBoatSlot"}
-    for _, name in pairs(passes) do
-        if not LocalPlayer:FindFirstChild(name) then
-            local val = Instance.new("BoolValue", LocalPlayer)
-            val.Name = name
-            val.Value = true
-        end
+-- DEX TRUE ENJECTOR (Tüm Özellikler)
+local function InjectDex()
+    local p = {"GoldPass", "VIP", "Member", "DoubleGold", "DoubleMoney", "ExtraBoatSlot"}
+    for _, n in pairs(p) do
+        local v = Instance.new("BoolValue", LocalPlayer)
+        v.Name = n
+        v.Value = true
     end
-    Library:Notify("SİSTEM", "Tüm özelliklere sahipsin! Dex: True Aktif.", "Success")
+    Library:Notify("SİSTEM", "Tüm Gamepasslar Aktif! (Dex: True)", "Success")
 end
 
 -- TABS
-local FarmTab = Window:NewTab("Auto Farm")
-local PlayerTab = Window:NewTab("Player Mods")
-local FarmSection = FarmTab:NewSection("rqccc Pro Farm")
-local ModSection = PlayerTab:NewSection("God & Movement")
+local Main = Window:NewTab("Farm & Dex")
+local Player = Window:NewTab("Player Mods")
+local FarmSec = Main:NewSection("rqccc Farm Control")
+local ModSec = Player:NewSection("God & Movement")
 
--- [PLAYER MODS] - SUDA YÜRÜME VE HASARSIZLIK
-task.spawn(function()
-    RunService.Stepped:Connect(function()
-        local Char = LocalPlayer.Character
-        if not Char then return end
-        
-        -- Suda Yürüme & Hasar Engelleme (Water Walk/God Mode)
-        if WaterWalkActive or GodModeActive then
-            if workspace:FindFirstChild("Water") then
-                workspace.Water.CanCollide = WaterWalkActive
-                workspace.Water.Size = WaterWalkActive and Vector3.new(1000, 20, 1000) or Vector3.new(0,0,0) -- Suyu platform yapar
-            end
-            if Char:FindFirstChild("Humanoid") then
-                Char.Humanoid:SetStateEnabled(Enum.HumanoidStateType.Swimming, not WaterWalkActive)
-            end
-        end
+-- =========================================================
+-- rqccc's ORIGINAL FARM LOGIC (INTEGRATED INTO BUTTON)
+-- =========================================================
+local function ExecuteRQCCCFarm()
+    if not AutoFarmEnabled then return end
+    
+    local Char = LocalPlayer.Character
+    if not Char then return end
+    local Root = Char:WaitForChild("HumanoidRootPart")
 
-        -- NoClip (Hoclip)
-        if NoClipActive then
-            for _, Part in pairs(Char:GetChildren()) do
-                if Part:IsA("BasePart") then
-                    Part.CanCollide = false
-                end
-            end
-        end
-
-        -- Hız ve Zıplama Güncelleme
-        if Char:FindFirstChild("Humanoid") then
-            Char.Humanoid.WalkSpeed = WalkSpeedValue
-            Char.Humanoid.JumpPower = JumpPowerValue
-        end
-    end)
-end)
-
--- [FARM LOGIC]
-local function HasStage(Num)
-    return Data[`Stage{Num}`].Value ~= "" and Data[`Stage{Num}`].Value
-end
-
-local function ClaimStage(Num)
+    local NewChar = false
     task.spawn(function()
-        local Value = Data[`Stage{Num}`]
-        if not Value then Value:GetPropertyChangedSignal("Value"):Wait() end
-        Claim:FireServer()
+        LocalPlayer.CharacterAdded:Once(function() NewChar = true end)
     end)
-end
 
-local function StartFarm()
-    while AutoFarmActive do
-        local Char = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
-        local Root = Char:WaitForChild("HumanoidRootPart")
-        local NewChar = false
-        local conn = LocalPlayer.CharacterAdded:Once(function() NewChar = true end)
+    -- 1'den 10'a rqccc Döngüsü
+    for _ = 1, 10 do
+        if not AutoFarmEnabled or NewChar then break end
+        
+        local TargetPart = Stages[`CaveStage{_}`].DarknessPart
+        local Teleporting = true
 
-        for i = 1, 10 do
-            if not AutoFarmActive or NewChar then break end
-            local TargetPart = Stages[`CaveStage{i}`].DarknessPart
-            local Teleporting = true
+        task.spawn(function()
+            while Teleporting and AutoFarmEnabled do
+                Root.CFrame = TargetPart.CFrame
+                for _, BodyPart in Char:GetChildren() do
+                    if BodyPart:IsA("BasePart") then
+                        BodyPart.Velocity = Vector3.zero
+                        BodyPart.RotVelocity = Vector3.zero
+                    end
+                end
+                task.wait()
+            end
+        end)
 
+        -- rqccc Special Chest Stage Check
+        if _ == 3 then -- Orijinal kodundaki ChestStage = 3
             task.spawn(function()
-                while Teleporting and AutoFarmActive do
-                    Root.CFrame = TargetPart.CFrame
-                    Root.Velocity = Vector3.zero
-                    Root.RotVelocity = Vector3.zero
-                    task.wait()
+                Chest.CFrame = Root.CFrame
+                task.wait()
+                Chest.CFrame = CFrame.new(0, 9e9, 0)
+                task.wait(0.2)
+                if AutoFarmEnabled then
+                    local val = Data[`Stage{_}`]
+                    if not val then val:GetPropertyChangedSignal("Value"):Wait() end
+                    Claim:FireServer()
                 end
             end)
-
-            task.wait(4.5) 
-            ClaimStage(i)
-            repeat task.wait(0.5) until HasStage(i) or NewChar or not AutoFarmActive
-            Teleporting = false
+        elseif _ ~= 10 then
+            local val = Data[`Stage{_}`]
+            if not val then val:GetPropertyChangedSignal("Value"):Wait() end
+            Claim:FireServer()
         end
 
-        if AutoFarmActive and not NewChar then
-            Root.CFrame = GoldenChest.CFrame
-            task.wait(1)
-            GoldenChest.CFrame = Root.CFrame
-            task.wait(2)
+        if _ == 10 then
             Char:BreakJoints()
-            task.wait(8)
+            task.spawn(function()
+                task.wait(1)
+                Claim:FireServer()
+            end)
+        else
+            repeat task.wait(0.5) until (Data[`Stage{_}`].Value ~= "" and Data[`Stage{_}`].Value) or NewChar or not AutoFarmEnabled
         end
-        if conn then conn:Disconnect() end
+        Teleporting = false
     end
 end
 
--- [UI CONTROLS]
-FarmSection:NewToggle("AUTO FARM BAŞLAT", "rqccc Pro Farm + Dex True", function(state)
-    AutoFarmActive = state
+-- UI CONTROLS
+FarmSec:NewToggle("AUTO FARM (rqccc)", "Dex True + rqccc Logic", function(state)
+    AutoFarmEnabled = state
     if state then
-        ApplyUltimateDex()
-        task.spawn(StartFarm)
+        InjectDex()
+        ExecuteRQCCCFarm()
     end
 end)
 
-ModSection:NewToggle("Suda Yürüme (Jesus Mode)", "Su üstünde yürürsün", function(state) WaterWalkActive = state end)
-ModSection:NewToggle("NoClip (Hoclip)", "Duvarların içinden geçersin", function(state) NoClipActive = state end)
-ModSection:NewSlider("WalkSpeed (Hız)", "Karakter hızını ayarla", 500, 16, function(s) WalkSpeedValue = s end)
-ModSection:NewSlider("JumpPower (Zıplama)", "Zıplama gücünü ayarla", 500, 50, function(s) JumpPowerValue = s end)
-
-ModSection:NewButton("God Mode (Hasar Engelleme)", "Suda ve engellerde hasar almazsın", function()
+-- PLAYER MODS LOGIC
+RunService.Stepped:Connect(function()
     local Char = LocalPlayer.Character
     if Char and Char:FindFirstChild("Humanoid") then
-        Char.Humanoid.MaxHealth = 999999
-        Char.Humanoid.Health = 999999
-        Library:Notify("God Mode", "Canın Maksimum Yapıldı!", "Success")
+        Char.Humanoid.WalkSpeed = WS
+        Char.Humanoid.JumpPower = JP
+        
+        if NoClip then
+            for _, p in pairs(Char:GetChildren()) do
+                if p:IsA("BasePart") then p.CanCollide = false end
+            end
+        end
+        
+        if WaterWalk and workspace:FindFirstChild("Water") then
+            workspace.Water.CanCollide = true
+            workspace.Water.Size = Vector3.new(1000, 20, 1000)
+        end
+    end
+end)
+
+ModSec:NewToggle("Suda Yürüme", "Su seni öldürmez, üstünde yürürsün", function(s) WaterWalk = s end)
+ModSec:NewToggle("Hoclip (NoClip)", "Duvarlardan geç", function(s) NoClip = s end)
+ModSec:NewSlider("Hız (Speed)", "Hız ayarı", 500, 16, function(s) WS = s end)
+ModSec:NewSlider("Zıplama (Jump)", "Zıplama ayarı", 500, 50, function(s) JP = s end)
+
+ModSec:NewButton("God Mode", "Ölümsüzlük (Can Yeniler)", function()
+    if LocalPlayer.Character then
+        LocalPlayer.Character.Humanoid.MaxHealth = 100000
+        LocalPlayer.Character.Humanoid.Health = 100000
+    end
+end)
+
+-- AUTO-RESTART
+LocalPlayer.CharacterAdded:Connect(function()
+    if AutoFarmEnabled then
+        task.wait(5)
+        ExecuteRQCCCFarm()
     end
 end)
 
 -- MOBILE TOGGLE
 local ScreenGui = Instance.new("ScreenGui", game.CoreGui)
 local Btn = Instance.new("TextButton", ScreenGui)
-Btn.Size, Btn.Position = UDim2.new(0,80,0,35), UDim2.new(0,20,0,200)
+Btn.Size, Btn.Position = UDim2.new(0,80,0,30), UDim2.new(0,10,0,150)
 Btn.Text = "MENU"
-Btn.BackgroundColor3 = Color3.fromRGB(0, 255, 150)
+Btn.BackgroundColor3 = Color3.fromRGB(45,45,45)
+Btn.TextColor3 = Color3.new(1,1,1)
 Btn.Draggable = true
 Btn.MouseButton1Click:Connect(function() Library:ToggleUI() end)
