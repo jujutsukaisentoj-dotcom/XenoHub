@@ -1,6 +1,6 @@
 -- =========================================================
--- W31rd.Hub - Gold Farming V2.1 (INSTANT MODE)
--- NO DELAY BETWEEN STAGES - MAXIMUM SPEED
+-- W31rd.Hub - Gold Farming V2.2 (STEP-BY-STEP MODE)
+-- 2 SECONDS DELAY AFTER EACH STAGE
 -- INTEGRATED TREASURE EFFECTS & AUTO-COLLECT
 -- =========================================================
 
@@ -72,7 +72,7 @@ local function CreateUI()
     
     local Title = Instance.new("TextLabel", MainFrame)
     Title.Size = UDim2.new(1, 0, 0, 40)
-    Title.Text = "W31rd.Hub • Gold Farming • V2.1"
+    Title.Text = "W31rd.Hub • Gold Farming • V2.2"
     Title.TextColor3 = Color3.fromRGB(130, 180, 255)
     Title.BackgroundTransparency = 1
     Title.Font = Enum.Font.SourceSansBold
@@ -119,7 +119,7 @@ local function CreateUI()
     local Tip = Instance.new("TextLabel", MainFrame)
     Tip.Size = UDim2.new(1, 0, 0, 20)
     Tip.Position = UDim2.new(0, 0, 0, 230)
-    Tip.Text = "Durum: Full Hız (Bekleme Yok)"
+    Tip.Text = "Durum: Adım Adım (2sn Bekleme)"
     Tip.TextColor3 = Color3.fromRGB(255, 255, 255)
     Tip.BackgroundTransparency = 1
     Tip.Font = Enum.Font.SourceSansItalic
@@ -188,7 +188,7 @@ local function TriggerTreasureFX(Root)
     end
 end
 
--- [5] CORE FARM LOGIC (INSTANT)
+-- [5] CORE FARM LOGIC (2 SEC DELAY PER STAGE)
 local function Farm()
     if FarmingInProgress then return end
     FarmingInProgress = true
@@ -206,11 +206,11 @@ local function Farm()
 
     for _ = 1, 11 do
         if NewChar then break end
-        if StatusLabelRef then StatusLabelRef.Text = "Bölüm " .. _ .. " / 11" end
+        if StatusLabelRef then StatusLabelRef.Text = "Hedef: Bölüm " .. _ .. " / 11" end
 
         local TargetPart = (_ <= 10) and Stages[`CaveStage{_}`].DarknessPart or GoldenChestTrigger
 
-        -- Bölüme Işınlan (Saniye yok, direkt hedef)
+        -- Bölüme Işınlan
         local Teleporting = true
         task.spawn(function()
             while Teleporting and not NewChar do
@@ -244,10 +244,14 @@ local function Farm()
             task.spawn(function() Claim:FireServer() end)
             break
         else
-            -- Normal Bölüm (Bekleme kaldırıldı)
-            Claim:FireServer()
-            task.wait(0.35) -- Minimum stabilizasyon süresi
+            -- Bölümü Tamamla
+            task.wait(0.3) -- Kararlılık için kısa bekleme
             Teleporting = false
+            Claim:FireServer()
+            
+            -- BÖLÜMLER ARASI 2 SANİYE BEKLEME
+            if StatusLabelRef then StatusLabelRef.Text = "Bölüm " .. _ .. " Tamam. 2sn Bekleniyor..." end
+            task.wait(2)
         end
     end
     if conn then conn:Disconnect() end
@@ -271,6 +275,6 @@ task.spawn(function()
                 Farm()
             end
         end
-        task.wait(0.5)
+        task.wait(1)
     end
 end)
