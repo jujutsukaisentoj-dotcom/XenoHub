@@ -1,9 +1,3 @@
--- =========================================================
--- W31rd.Hub - Gold Farming V2.4 (ENGLISH VERSION)
--- 2 SECONDS DELAY + POSITION LOCK
--- INTEGRATED TREASURE EFFECTS & AUTO-COLLECT
--- =========================================================
-
 -- Services
 local Players = game:GetService("Players")
 local CoreGui = game:GetService("CoreGui")
@@ -54,12 +48,12 @@ local function EnableJesusMode()
     end)
 end
 
--- [3] W31RD.HUB PANEL UI
+-- [3] XENO.HUB PANEL UI
 local function CreateUI()
     if CoreGui:FindFirstChild("W3rdHubGui") then CoreGui.W3rdHubGui:Destroy() end
     
     local ScreenGui = Instance.new("ScreenGui", CoreGui)
-    ScreenGui.Name = "W3rdHubGui"
+    ScreenGui.Name = "XenoHubGui"
     
     local MainFrame = Instance.new("Frame", ScreenGui)
     MainFrame.Size = UDim2.new(0, 300, 0, 260)
@@ -72,7 +66,7 @@ local function CreateUI()
     
     local Title = Instance.new("TextLabel", MainFrame)
     Title.Size = UDim2.new(1, 0, 0, 40)
-    Title.Text = "W31rd.Hub • Gold Farming • V2.4"
+    Title.Text = "Xeno.Hub • Gold Farming • V2.4"
     Title.TextColor3 = Color3.fromRGB(130, 180, 255)
     Title.BackgroundTransparency = 1
     Title.Font = Enum.Font.SourceSansBold
