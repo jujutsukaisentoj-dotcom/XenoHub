@@ -30,7 +30,7 @@ end
 
 -- [2] W31RD.HUB PANEL UI (Videodaki Tasarım)
 local function CreateUI()
-    if CoreGui:FindFirstChild("W3rdHubGui") then CoreGui.W3rdHubGui:Destroy() end
+    if CoreGui:FindFirstChild("XenoHubGui") then CoreGui.W3rdHubGui:Destroy() end
     
     local ScreenGui = Instance.new("ScreenGui", CoreGui)
     ScreenGui.Name = "XenoHubGui"
@@ -103,7 +103,7 @@ local function CreateUI()
     Btn.Font = Enum.Font.SourceSansBold
     Btn.TextSize = 18
     local BtnCorner = Instance.new("UICorner", Btn)
-    Btn.MouseButton1Click:Connect(function() setclipboard("discord.gg/EbhtGYbuTa") end)
+    Btn.MouseButton1Click:Connect(function() setclipboard("discord.gg/VaqUrur89H") end)
     
     -- Dragging
     local Dragging, DragInput, DragStart, StartPos
