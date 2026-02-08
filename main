@@ -1,11 +1,11 @@
 -- =========================================================
--- W3rdHub Style - rqccc PRO & FULL DEX TRUE (V11)
+-- rqccc TETİKLİ (STEP-BY-STEP) FARM & DEX: TRUE
 -- =========================================================
 
 local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/xHeptc/Kavo-UI-Library/main/source.lua"))()
-local Window = Library.CreateLib("W3rdHub - Gold Farming v1.2", "Midnight")
+local Window = Library.CreateLib("BABFT - rqccc Tetikli Panel", "Midnight")
 
--- SERVICES
+-- SERVICES & DATA
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 local Data = LocalPlayer:WaitForChild("OtherData")
@@ -13,36 +13,31 @@ local Claim = workspace:WaitForChild("ClaimRiverResultsGold")
 local Stages = workspace.BoatStages.NormalStages
 local GoldenChest = Stages.TheEnd.GoldenChest.Trigger
 
--- STATS (Videodaki Panel İçin)
+-- STATS
 local StartGold = LocalPlayer.Data.Gold.Value
-local ChestsCollected = 0
-local StartTime = os.time()
-local AutoFarmActive = false
+local ChestCount = 0
+local FarmingInProgress = false
 
--- DEX TRUE: TÜM GAMEPASS ÖZELLİKLERİ
-local function ActivateAllPasses()
-    local passes = {"GoldPass", "VIP", "Member", "DoubleGold", "DoubleMoney", "ExtraBoatSlot"}
+-- DEX TRUE ENJECTOR
+local function ApplyDexTrue()
+    local passes = {"GoldPass", "VIP", "Member", "DoubleGold", "DoubleMoney"}
     for _, name in pairs(passes) do
-        if not LocalPlayer:FindFirstChild(name) then
-            local v = Instance.new("BoolValue", LocalPlayer)
-            v.Name = name
-            v.Value = true
-        end
+        local val = Instance.new("BoolValue", LocalPlayer)
+        val.Name = name
+        val.Value = true
     end
-    Library:Notify("W3rdHub", "Tüm Gamepasslar ve Dex Özellikleri Aktif!", "Success")
+    Library:Notify("SİSTEM", "Tüm özelliklere sahipsin! (Dex: True)", "Success")
 end
 
--- UI TAB & SECTION
-local MainTab = Window:NewTab("Farming")
-local HubSection = MainTab:NewSection("Gold Farming Panel")
+-- UI SETUP
+local MainTab = Window:NewTab("Farm")
+local Section = MainTab:NewSection("Bölüm Bölüm Tetikleyici")
 
--- VIDEODAKİ GİBİ STATS LABELLARI
-local curGoldLabel = HubSection:NewLabel("Current Gold: " .. StartGold)
-local gainedGoldLabel = HubSection:NewLabel("Gained Gold: 0")
-local chestsLabel = HubSection:NewLabel("Chests Collected: 0")
-local timeLabel = HubSection:NewLabel("Total Time Farming: 00:00:00")
+local goldLabel = Section:NewLabel("Mevcut Altın: " .. StartGold)
+local chestLabel = Section:NewLabel("Sandık Sayısı: 0")
+local statusLabel = Section:NewLabel("Statü: Beklemede...")
 
--- rqccc BYPASS FUNCTIONS
+-- rqccc FUNCTIONS
 local function HasStage(Num)
     return Data[`Stage{Num}`].Value ~= "" and Data[`Stage{Num}`].Value
 end
@@ -55,94 +50,80 @@ local function ClaimStage(Num)
     end)
 end
 
--- MAIN FARM LOOP (rqccc Logic + W3rdHub Display)
-local function ExecuteFarm()
-    while AutoFarmActive do
-        local Char = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
-        local Root = Char:WaitForChild("HumanoidRootPart")
+-- STEP BY STEP FARM (TETİKLİ)
+local function StartTetikliFarm()
+    if FarmingInProgress then return end
+    FarmingInProgress = true
+    
+    local Char = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+    local Root = Char:WaitForChild("HumanoidRootPart")
+
+    -- 1'DEN 10'A KADAR SIRAYLA (HER BÖLÜM BEKLEYEREK)
+    for i = 1, 10 do
+        statusLabel:UpdateLabel("Durum: Bölüm " .. i .. " Geçiliyor...")
         
-        local NewChar = false
-        local conn = LocalPlayer.CharacterAdded:Once(function() NewChar = true end)
+        local TargetPart = Stages[`CaveStage{i}`].DarknessPart
+        local Teleporting = true
 
-        for i = 1, 10 do
-            if not AutoFarmActive or NewChar then break end
-            
-            local TargetPart = Stages[`CaveStage{i}`].DarknessPart
-            local Teleporting = true
-
-            -- rqccc Velocity Bypass (Videodaki Akıcılık)
-            task.spawn(function()
-                while Teleporting and AutoFarmActive do
-                    Root.CFrame = TargetPart.CFrame
-                    for _, Part in Char:GetChildren() do
-                        if Part:IsA("BasePart") then
-                            Part.Velocity = Vector3.zero
-                            Part.RotVelocity = Vector3.zero
-                        end
+        -- rqccc Velocity Bypass Loop
+        task.spawn(function()
+            while Teleporting do
+                Root.CFrame = TargetPart.CFrame
+                for _, Part in Char:GetChildren() do
+                    if Part:IsA("BasePart") then
+                        Part.Velocity = Vector3.zero
+                        Part.RotVelocity = Vector3.zero
                     end
-                    task.wait()
                 end
-            end)
+                task.wait()
+            end
+        end)
 
-            task.wait(4.8) -- Güvenli Bekleme
-            ClaimStage(i)
-            repeat task.wait(0.5) until HasStage(i) or NewChar or not AutoFarmActive
-            Teleporting = false
-        end
-
-        -- FINAL CHEST (Stage 11)
-        if AutoFarmActive and not NewChar then
-            Root.CFrame = GoldenChest.CFrame
-            task.wait(1.5)
-            GoldenChest.CFrame = Root.CFrame
-            task.wait(2)
-            
-            ChestsCollected = ChestsCollected + 1
-            chestsLabel:UpdateLabel("Chests Collected: " .. ChestsCollected)
-            
-            Char:BreakJoints() -- Reset
-            task.wait(8)
-        end
-        if conn then conn:Disconnect() end
+        -- BÖLÜM ARASI BEKLEME (TETİKLEME SÜRESİ)
+        task.wait(5) 
+        ClaimStage(i)
+        
+        -- Sunucu Onayı Bekle
+        repeat task.wait(0.5) until HasStage(i)
+        Teleporting = false
+        statusLabel:UpdateLabel("Durum: Bölüm " .. i .. " Tamam!")
+        task.wait(1)
     end
+
+    -- 11. BÖLÜM (SON SANDIK)
+    statusLabel:UpdateLabel("Durum: SON SANDIK ALINIYOR...")
+    Root.CFrame = GoldenChest.CFrame
+    task.wait(1)
+    GoldenChest.CFrame = Root.CFrame
+    task.wait(2)
+    
+    ChestCount = ChestCount + 1
+    chestLabel:UpdateLabel("Sandık Sayısı: " .. ChestCount)
+    statusLabel:UpdateLabel("Durum: Tur Bitti!")
+    
+    task.wait(2)
+    Char:BreakJoints()
+    FarmingInProgress = false
 end
 
--- CONTROLS
-HubSection:NewToggle("Start Auto Farm", "Videodaki gibi istatistikleri tutar", function(state)
-    AutoFarmActive = state
-    if state then
-        ActivateAllPasses()
-        task.spawn(ExecuteFarm)
-    end
+-- UI BUTTONS
+Section:NewButton("FARM BAŞLAT (1-11 Sırayla)", "Basınca bölümleri sırayla geçer", function()
+    ApplyDexTrue()
+    task.spawn(StartTetikliFarm)
 end)
 
-HubSection:NewButton("Copy Discord Link", "Discord linkini kopyalar", function()
-    setclipboard("discord.gg/EbhtGYbuTa")
-    Library:Notify("W3rdHub", "Link Kopyalandı!", "Default")
-end)
-
--- PANEL UPDATER (Saniyelik Güncelleme)
+-- STATS UPDATER
 task.spawn(function()
     while task.wait(1) do
-        -- Zaman Sayacı
-        local diff = os.time() - StartTime
-        local h, m, s = math.floor(diff/3600), math.floor((diff%3600)/60), diff%60
-        timeLabel:UpdateLabel("Total Time Farming: " .. string.format("%02d:%02d:%02d", h, m, s))
-        
-        -- Altın Sayacı
-        local current = LocalPlayer.Data.Gold.Value
-        curGoldLabel:UpdateLabel("Current Gold: " .. current)
-        gainedGoldLabel:UpdateLabel("Gained Gold: " .. (current - StartGold))
+        goldLabel:UpdateLabel("Mevcut Altın: " .. LocalPlayer.Data.Gold.Value)
     end
 end)
 
--- MOBILE UI BUTTON
+-- MOBILE MENU
 local ScreenGui = Instance.new("ScreenGui", game.CoreGui)
-local ToggleBtn = Instance.new("TextButton", ScreenGui)
-ToggleBtn.Size = UDim2.new(0, 90, 0, 35)
-ToggleBtn.Position = UDim2.new(0, 20, 0, 200)
-ToggleBtn.Text = "W3rdHub"
-ToggleBtn.BackgroundColor3 = Color3.fromRGB(255, 170, 0) -- Turuncu
-ToggleBtn.TextColor3 = Color3.new(0,0,0)
-ToggleBtn.Draggable = true
-ToggleBtn.MouseButton1Click:Connect(function() Library:ToggleUI() end)
+local Btn = Instance.new("TextButton", ScreenGui)
+Btn.Size, Btn.Position = UDim2.new(0,80,0,35), UDim2.new(0,10,0,150)
+Btn.Text = "MENU"
+Btn.BackgroundColor3 = Color3.fromRGB(255, 85, 0)
+Btn.TextColor3 = Color3.new(1,1,1)
+Btn.MouseButton1Click:Connect(function() Library:ToggleUI() end)
