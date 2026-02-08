@@ -4,7 +4,11 @@
     Özellikler: Otomatik Altın Kasma, UI Takibi, Bypass Entegrasyonu
 ]]
 
-local Lib = {}
+-- Mevcut UI'ı temizle (Üst üste binmemesi için)
+if game.CoreGui:FindFirstChild("W31rdHubGui") then
+    game.CoreGui.W31rdHubGui:Destroy()
+end
+
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 local TweenService = game:GetService("TweenService")
@@ -12,48 +16,69 @@ local RunService = game:GetService("RunService")
 
 -- Global Değişkenler
 _G.AutoFarm = true
-local GainedGold = 0
 local ChestsCollected = 0
-local StartGold = LocalPlayer.Data.gold.Value
+local StartGold = 0
 local StartTime = os.time()
+
+-- Altın verisinin yüklenmesini bekle
+repeat wait() until LocalPlayer:FindFirstChild("Data") and LocalPlayer.Data:FindFirstChild("gold")
+StartGold = LocalPlayer.Data.gold.Value
 
 -- UI Oluşturma
 local ScreenGui = Instance.new("ScreenGui")
 local MainFrame = Instance.new("Frame")
+local UIStroke = Instance.new("UIStroke")
 local Title = Instance.new("TextLabel")
-local StatsFrame = Instance.new("Frame")
+local Divider = Instance.new("Frame")
 local CurrentGoldLabel = Instance.new("TextLabel")
 local GainedGoldLabel = Instance.new("TextLabel")
 local ChestsLabel = Instance.new("TextLabel")
 local TimeLabel = Instance.new("TextLabel")
+local WebhookLink = Instance.new("TextLabel")
 local DiscordBtn = Instance.new("TextButton")
 
--- UI Ayarları (Görseldeki gibi koyu tema)
+-- UI Ayarları
+ScreenGui.Name = "W31rdHubGui"
 ScreenGui.Parent = game.CoreGui
-MainFrame.Name = "W31rdHub"
+ScreenGui.ResetOnSpawn = false
+
+MainFrame.Name = "MainFrame"
 MainFrame.Parent = ScreenGui
-MainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
-MainFrame.Position = UDim2.new(0.8, 0, 0.4, 0)
-MainFrame.Size = UDim2.new(0, 250, 0, 300)
+MainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 20)
+MainFrame.Position = UDim2.new(0.82, 0, 0.35, 0)
+MainFrame.Size = UDim2.new(0, 260, 0, 320)
 MainFrame.BorderSizePixel = 0
+MainFrame.Active = true
+MainFrame.Draggable = true -- UI'ı sürükleyebilirsin
 
 local corner = Instance.new("UICorner")
-corner.CornerRadius = UDim.new(0, 10)
+corner.CornerRadius = UDim.new(0, 12)
 corner.Parent = MainFrame
 
-Title.Parent = MainFrame
-Title.Size = UDim2.new(1, 0, 0, 40)
-Title.Text = "W31rd.Hub • Gold Farming • V1.2"
-Title.TextColor3 = Color3.fromRGB(80, 150, 255)
-Title.BackgroundTransparency = 1
-Title.TextSize = 16
-Title.Font = Enum.Font.SourceSansBold
+UIStroke.Parent = MainFrame
+UIStroke.Thickness = 2
+UIStroke.Color = Color3.fromRGB(40, 40, 50)
+UIStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
 
--- Veri Güncelleme Fonksiyonları
+Title.Parent = MainFrame
+Title.Size = UDim2.new(1, 0, 0, 45)
+Title.Text = "W31rd.Hub • Gold Farming • V1.2"
+Title.TextColor3 = Color3.fromRGB(80, 160, 255)
+Title.BackgroundTransparency = 1
+Title.TextSize = 17
+Title.Font = Enum.Font.GothamBold
+
+Divider.Parent = MainFrame
+Divider.Size = UDim2.new(0.9, 0, 0, 1)
+Divider.Position = UDim2.new(0.05, 0, 0, 45)
+Divider.BackgroundColor3 = Color3.fromRGB(80, 160, 255)
+Divider.BorderSizePixel = 0
+
+-- Veri Güncelleme Fonksiyonu
 local function updateLabels()
     local currentGold = LocalPlayer.Data.gold.Value
-    CurrentGoldLabel.Text = "Current Gold: " .. tostring(currentGold)
-    GainedGoldLabel.Text = "Gained Gold: " .. tostring(currentGold - StartGold)
+    CurrentGoldLabel.Text = "Current Gold: " .. string.format("%, d", currentGold)
+    GainedGoldLabel.Text = "Gained Gold: " .. string.format("%, d", currentGold - StartGold)
     ChestsLabel.Text = "Chests Collected: " .. tostring(ChestsCollected)
     
     local diff = os.difftime(os.time(), StartTime)
@@ -63,102 +88,111 @@ local function updateLabels()
     TimeLabel.Text = string.format("Total Time Farming: %02d:%02d:%02d", hours, mins, secs)
 end
 
--- UI Elemanlarını Oluştur (Basitleştirilmiş Liste)
+-- Label Oluşturucu
 local function createLabel(text, color, pos)
     local lbl = Instance.new("TextLabel")
     lbl.Parent = MainFrame
     lbl.Position = pos
-    lbl.Size = UDim2.new(1, -20, 0, 30)
+    lbl.Size = UDim2.new(1, -30, 0, 35)
     lbl.BackgroundTransparency = 1
     lbl.Text = text
     lbl.TextColor3 = color
     lbl.TextXAlignment = Enum.TextXAlignment.Left
-    lbl.Font = Enum.Font.SourceSansBold
-    lbl.TextSize = 18
+    lbl.Font = Enum.Font.GothamBold
+    lbl.TextSize = 19
     return lbl
 end
 
-CurrentGoldLabel = createLabel("Current Gold: 0", Color3.fromRGB(255, 255, 0), UDim2.new(0, 10, 0, 50))
-GainedGoldLabel = createLabel("Gained Gold: 0", Color3.fromRGB(0, 255, 0), UDim2.new(0, 10, 0, 90))
-ChestsLabel = createLabel("Chests Collected: 0", Color3.fromRGB(255, 150, 0), UDim2.new(0, 10, 0, 130))
-TimeLabel = createLabel("Total Time Farming: 00:00:00", Color3.fromRGB(100, 200, 255), UDim2.new(0, 10, 0, 170))
+CurrentGoldLabel = createLabel("Current Gold: 0", Color3.fromRGB(255, 215, 0), UDim2.new(0, 15, 0, 60))
+GainedGoldLabel = createLabel("Gained Gold: 0", Color3.fromRGB(50, 255, 100), UDim2.new(0, 15, 0, 100))
+ChestsLabel = createLabel("Chests Collected: 0", Color3.fromRGB(255, 165, 0), UDim2.new(0, 15, 0, 140))
+TimeLabel = createLabel("Total Time Farming: 00:00:00", Color3.fromRGB(120, 210, 255), UDim2.new(0, 15, 0, 180))
+
+WebhookLink.Parent = MainFrame
+WebhookLink.Position = UDim2.new(0, 15, 0, 220)
+WebhookLink.Size = UDim2.new(1, -30, 0, 25)
+WebhookLink.Text = "Webhook: https://discord.gg/bQnXYAYTzF"
+WebhookLink.TextColor3 = Color3.fromRGB(255, 80, 80)
+WebhookLink.TextSize = 12
+WebhookLink.BackgroundTransparency = 1
+WebhookLink.Font = Enum.Font.SourceSans
+WebhookLink.TextXAlignment = Enum.TextXAlignment.Center
 
 DiscordBtn.Parent = MainFrame
-DiscordBtn.Position = UDim2.new(0.05, 0, 0.8, 0)
-DiscordBtn.Size = UDim2.new(0.9, 0, 0, 40)
-DiscordBtn.BackgroundColor3 = Color3.fromRGB(60, 120, 255)
+DiscordBtn.Position = UDim2.new(0.05, 0, 0.82, 0)
+DiscordBtn.Size = UDim2.new(0.9, 0, 0, 45)
+DiscordBtn.BackgroundColor3 = Color3.fromRGB(60, 130, 255)
 DiscordBtn.Text = "Copy Discord Link"
 DiscordBtn.TextColor3 = Color3.new(1, 1, 1)
-DiscordBtn.Font = Enum.Font.SourceSansBold
+DiscordBtn.Font = Enum.Font.GothamBold
 DiscordBtn.TextSize = 18
-Instance.new("UICorner", DiscordBtn).CornerRadius = UDim.new(0, 8)
+DiscordBtn.AutoButtonColor = true
+
+local btnCorner = Instance.new("UICorner")
+btnCorner.CornerRadius = UDim.new(0, 8)
+btnCorner.Parent = DiscordBtn
 
 DiscordBtn.MouseButton1Click:Connect(function()
-    setclipboard("https://discord.gg/bQnXYAYTzF")
-    DiscordBtn.Text = "Copied!"
-    wait(2)
-    DiscordBtn.Text = "Copy Discord Link"
+    if setclipboard then
+        setclipboard("https://discord.gg/bQnXYAYTzF")
+        DiscordBtn.Text = "Copied!"
+        wait(2)
+        DiscordBtn.Text = "Copy Discord Link"
+    end
 end)
 
--- Farm Mantığı
-local function getStages()
-    local stages = {}
-    for i = 1, 10 do
-        local folder = workspace:FindFirstChild("Stage" .. i)
-        if folder then
-            table.insert(stages, folder)
-        end
-    end
-    return stages
-end
-
+-- Teleport Fonksiyonu (Bypass İçin)
 local function teleportTo(targetPos)
     if not LocalPlayer.Character or not LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then return end
-    local tween = TweenService:Create(LocalPlayer.Character.HumanoidRootPart, TweenInfo.new(2, Enum.EasingStyle.Linear), {CFrame = targetPos})
+    local hrp = LocalPlayer.Character.HumanoidRootPart
+    local tween = TweenService:Create(hrp, TweenInfo.new(1.5, Enum.EasingStyle.Linear), {CFrame = targetPos})
     tween:Play()
     tween.Completed:Wait()
 end
 
--- Ana Döngü
+-- Otomatik Farm Döngüsü
 spawn(function()
     while _G.AutoFarm do
         pcall(function()
             if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
-                -- Karakteri sabitle (su ve engellerden ölmemek için)
-                LocalPlayer.Character.HumanoidRootPart.Anchored = true
+                local hrp = LocalPlayer.Character.HumanoidRootPart
+                hrp.Anchored = true
                 
-                -- Bölümleri Geç
+                -- Stage Geçişleri
+                local stages = workspace:WaitForChild("BoatStages"):WaitForChild("NormalStages")
                 for i = 1, 10 do
-                    local stageFolder = workspace.BoatStages.NormalStages:FindFirstChild("CaveStage" .. i)
-                    if stageFolder then
-                        local part = stageFolder:FindFirstChild("DarknessPart") or stageFolder:FindFirstChildOfClass("Part")
-                        if part then
-                            teleportTo(part.CFrame * CFrame.new(0, 50, 0)) -- Yüksekten geçerek bypass
+                    local stage = stages:FindFirstChild("CaveStage" .. i)
+                    if stage then
+                        local target = stage:FindFirstChild("DarknessPart")
+                        if target then
+                            teleportTo(target.CFrame * CFrame.new(0, 60, 0)) -- Yüksekten uçarak engellere çarpmaz
                             wait(0.1)
                         end
                     end
                 end
                 
-                -- Hazineye Git
-                local endZone = workspace:FindFirstChild("BoatStages"):FindFirstChild("RetardZone")
-                if endZone then
-                    teleportTo(endZone.CFrame * CFrame.new(0, -10, 0))
-                    wait(2)
+                -- Sandık Alanı
+                local finalPart = workspace.BoatStages.RetardZone:FindFirstChild("FinalPart")
+                if finalPart then
+                    teleportTo(finalPart.CFrame * CFrame.new(0, -10, 0))
+                    wait(3) -- Sandığı alması için süre
                     ChestsCollected = ChestsCollected + 1
                 end
                 
-                -- Reset at ve bekle
+                -- Başa dönmek için karakteri yenile
                 LocalPlayer.Character:BreakJoints()
-                wait(6) -- Yeniden doğma süresi
+                wait(6) -- Respawn bekleme
             end
         end)
-        wait(1)
+        wait(0.5)
     end
 end)
 
--- UI Güncelleme Döngüsü
+-- UI Güncelleme
 RunService.RenderStepped:Connect(function()
-    updateLabels()
+    if MainFrame.Visible then
+        updateLabels()
+    end
 end)
 
-print("W31rd.Hub yüklendi!")
+print("W31rd.Hub Başarıyla Çalıştırıldı!")
