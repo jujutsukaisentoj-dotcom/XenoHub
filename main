@@ -1,6 +1,6 @@
 -- =========================================================
--- W31rd.Hub - Gold Farming V1.5 (CHEST FOCUS EDITION)
--- IMPROVED LOOP, STAGE 1-11, & JESUS MODE
+-- W31rd.Hub - Gold Farming V1.6 (TURBO SPEED EDITION)
+-- NO WAIT, NO STUCK, INSTANT STAGE PROGRESSION
 -- FORCED CHEST COLLECTION & AUTO-RESET
 -- =========================================================
 
@@ -16,7 +16,7 @@ local Claim = workspace:WaitForChild("ClaimRiverResultsGold")
 local Stages = workspace.BoatStages.NormalStages
 local GoldenChest = Stages.TheEnd.GoldenChest.Trigger
 
--- Config (Based on rqccc structure)
+-- Config
 local ChestStage = 11
 local TouchChest = true
 local AutoClaim = true
@@ -42,16 +42,16 @@ local function ApplyDexTrue()
     end
 end
 
--- [2] JESUS MODE
+-- [2] JESUS MODE (Anti-Fall & Water Walk)
 local function EnableJesusMode()
     task.spawn(function()
         while true do
             if workspace:FindFirstChild("Water") then
                 workspace.Water.CanCollide = true
                 workspace.Water.Transparency = 0.5
-                workspace.Water.Size = Vector3.new(5000, 20, 5000)
+                workspace.Water.Size = Vector3.new(10000, 20, 10000)
             end
-            task.wait(5)
+            task.wait(2)
         end
     end)
 end
@@ -75,7 +75,7 @@ local function CreateUI()
     -- Title
     local Title = Instance.new("TextLabel", MainFrame)
     Title.Size = UDim2.new(1, 0, 0, 40)
-    Title.Text = "W31rd.Hub • Gold Farming • V1.5"
+    Title.Text = "W31rd.Hub • Gold Farming • V1.6"
     Title.TextColor3 = Color3.fromRGB(130, 180, 255)
     Title.BackgroundTransparency = 1
     Title.Font = Enum.Font.SourceSansBold
@@ -122,19 +122,19 @@ local function CreateUI()
         end
     end)
     
-    -- Dynamic Progress Label
+    -- Progress Label
     local Tip = Instance.new("TextLabel", MainFrame)
     Tip.Size = UDim2.new(1, 0, 0, 20)
     Tip.Position = UDim2.new(0, 0, 0, 230)
-    Tip.Text = "Progress: Initializing..."
-    Tip.TextColor3 = Color3.fromRGB(180, 180, 180)
+    Tip.Text = "Status: Turbo Mode Active"
+    Tip.TextColor3 = Color3.fromRGB(255, 255, 255)
     Tip.BackgroundTransparency = 1
     Tip.Font = Enum.Font.SourceSansItalic
-    Tip.TextSize = 12
+    Tip.TextSize = 13
     StatusLabelRef = Tip
 
-    -- Dragging Logic
-    local Dragging, DragInput, DragStart, StartPos
+    -- Dragging
+    local Dragging, DragStart, StartPos
     MainFrame.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 then Dragging = true DragStart = input.Position StartPos = MainFrame.Position end
     end)
@@ -149,16 +149,10 @@ local function CreateUI()
     end)
 end
 
--- [4] CORE FARM LOGIC
-local function HasStage(Num)
-    return Data[`Stage{Num}`].Value ~= "" and Data[`Stage{Num}`].Value
-end
-
+-- [4] CORE FARM LOGIC (TURBO)
 local function ClaimStage(Num)
     if not AutoClaim then return end
     task.spawn(function()
-        local Value = Data[`Stage{Num}`]
-        if not Value then Value:GetPropertyChangedSignal("Value"):Wait() end
         Claim:FireServer()
     end)
 end
@@ -178,10 +172,10 @@ local function Farm()
         FarmingInProgress = false
     end)
 
-    -- Stage 1 to 11
+    -- Stage 1 to 11 (Turbo Progression)
     for _ = 1, 11 do
         if NewChar then break end
-        if StatusLabelRef then StatusLabelRef.Text = "Progress: Stage " .. _ .. " / 11" end
+        if StatusLabelRef then StatusLabelRef.Text = "TURBO: Stage " .. _ .. " / 11" end
 
         local TargetPart
         if _ <= 10 then
@@ -190,16 +184,17 @@ local function Farm()
             TargetPart = GoldenChest
         end
 
+        -- Instant Teleport Loop for each stage
         local Teleporting = true
         task.spawn(function()
             while Teleporting and not NewChar do
                 if Root and TargetPart then
                     Root.CFrame = TargetPart.CFrame
-                    for _, BodyPart in pairs(Char:GetChildren()) do
-                        if BodyPart:IsA("BasePart") then
-                            BodyPart.Velocity = Vector3.zero
-                            BodyPart.RotVelocity = Vector3.zero
-                            BodyPart.CanCollide = false
+                    for _, v in pairs(Char:GetChildren()) do
+                        if v:IsA("BasePart") then
+                            v.Velocity = Vector3.zero
+                            v.RotVelocity = Vector3.zero
+                            v.CanCollide = false
                         end
                     end
                 end
@@ -207,52 +202,49 @@ local function Farm()
             end
         end)
 
-        -- Handle Stage 11 (Chest)
         if _ == ChestStage and TouchChest then
-            if StatusLabelRef then StatusLabelRef.Text = "Progress: COLLECTING GOLD BLOCK..." end
-            task.wait(1.5)
+            -- Stage 11: Instant Chest Force
+            if StatusLabelRef then StatusLabelRef.Text = "TURBO: TAKING GOLD BLOCK..." end
             
-            -- Force Chest Collision
-            for i = 1, 10 do
-                GoldenChest.CFrame = Root.CFrame
-                task.wait(0.1)
+            -- Force touch multiple times rapidly
+            for i = 1, 15 do
+                if Root and GoldenChest then
+                    GoldenChest.CFrame = Root.CFrame
+                end
+                task.wait(0.05)
             end
-            GoldenChest.CFrame = CFrame.new(0, 9e9, 0)
             
-            task.wait(3)
             ChestsCollected = ChestsCollected + 1
             FarmingInProgress = false
             
+            -- Instant Reset and finish
             if Char then Char:BreakJoints() end
             task.spawn(function()
-                task.wait(0.5)
                 Claim:FireServer()
             end)
+            break
         else
-            -- Normal Stages 1-10
+            -- Normal Stages: No waiting for Data.Value, just move and claim
             ClaimStage(_)
-            local timeout = 0
-            repeat 
-                task.wait(0.1) 
-                timeout = timeout + 0.1
-            until HasStage(_) or NewChar or timeout > 5
+            task.wait(0.3) -- Minimum delay to ensure server registration
         end
-
         Teleporting = false
     end
     if conn then conn:Disconnect() end
 end
 
--- [5] STARTUP
+-- [5] INITIALIZATION
 ApplyDexTrue()
 EnableJesusMode()
 CreateUI()
 
+-- Auto-Run on spawn
 LocalPlayer.CharacterAdded:Connect(function()
-    task.wait(3)
+    task.wait(1.5) -- Fast start
     Farm()
 end)
 
+-- Loop Guard
 task.spawn(function()
     while true do
         if not FarmingInProgress then
@@ -261,6 +253,6 @@ task.spawn(function()
                 Farm()
             end
         end
-        task.wait(2)
+        task.wait(1)
     end
 end)
