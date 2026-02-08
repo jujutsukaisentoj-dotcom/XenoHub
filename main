@@ -1,103 +1,113 @@
---[[
-    BUILD A BOAT - ULTIMATE MOBILE FARMER (ALL GAMEPASS BYPASS)
-    Geliştirici: Gemini
-    Özellikler: 11 Stages, Auto-Chest, All Gamepass, Mobile UI, Live Stats
-]]
+-- =========================================================
+-- BUILD A BOAT - ULTIMATE HYBRID FARMER (MOBILE & PC)
+-- =========================================================
 
 local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/xHeptc/Kavo-UI-Library/main/source.lua"))()
-local Window = Library.CreateLib("Xeno - Mobile Pro", "DarkTheme")
+local Window = Library.CreateLib("Gemini & rqccc Hybrid Farm", "Midnight")
 
--- VERİLER
-local StartGold = game.Players.LocalPlayer.Data.Gold.Value
+-- DEĞİŞKENLER (DATA)
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+local Data = LocalPlayer:WaitForChild("OtherData")
+local Claim = workspace:WaitForChild("ClaimRiverResultsGold")
+local StartGold = LocalPlayer.Data.Gold.Value
 local GainedGold = 0
 local Chests = 0
 local StartTime = os.time()
-local AutoFarm = false
+local AutoFarmActive = true
 
--- MOBILE UYUMLULUK: AÇ/KAPAT BUTONU
-local OpenBtn = Instance.new("ScreenGui")
-local MainBtn = Instance.new("TextButton")
-OpenBtn.Parent = game.CoreGui
-MainBtn.Parent = OpenBtn
-MainBtn.BackgroundColor3 = Color3.fromRGB(0, 255, 100)
-MainBtn.Position = UDim2.new(0, 10, 0, 150)
-MainBtn.Size = UDim2.new(0, 100, 0, 40)
-MainBtn.Text = "Menu Aç/Kapat"
-MainBtn.MouseButton1Click:Connect(function()
-    Library:ToggleUI()
-end)
+-- MOBILE UI AÇ/KAPAT BUTONU
+local ScreenGui = Instance.new("ScreenGui", game.CoreGui)
+local ToggleBtn = Instance.new("TextButton", ScreenGui)
+ToggleBtn.Size = UDim2.new(0, 100, 0, 40)
+ToggleBtn.Position = UDim2.new(0, 10, 0, 200)
+ToggleBtn.Text = "Menü Aç/Kapat"
+ToggleBtn.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
+ToggleBtn.TextColor3 = Color3.new(1,1,1)
+ToggleBtn.MouseButton1Click:Connect(function() Library:ToggleUI() end)
 
--- SEKMELER
-local MainTab = Window:NewTab("Stats")
-local FarmTab = Window:NewTab("Auto Farm")
-local GamepassTab = Window:NewTab("Gamepass & Bypass")
+-- UI SEKMELERİ
+local MainTab = Window:NewTab("Stats & Farm")
+local GPSection = MainTab:NewSection("Premium & Stats")
 
--- STATS SECTION
-local Stats = MainTab:NewSection("Live Tracking")
-local goldLabel = Stats:NewLabel("Current Gold: " .. StartGold)
-local gainedLabel = Stats:NewLabel("Gained Gold: 0")
-local chestLabel = Stats:NewLabel("Chest Collected: 0")
-local timeLabel = Stats:NewLabel("Total Time Farming: 00:00:00")
+-- SAYAÇLAR (TETİKLİ)
+local goldLabel = GPSection:NewLabel("Current Gold: " .. StartGold)
+local gainedLabel = GPSection:NewLabel("Gained Gold: 0")
+local chestLabel = GPSection:NewLabel("Chest Collected: 0")
+local timeLabel = GPSection:NewLabel("Total Time: 00:00:00")
 
--- GAMEPASS BYPASS (TETİKLİ)
-local GPSection = GamepassTab:NewSection("Premium Features")
-GPSection:NewButton("Unlock All Gamepasses", "Double Gold, Jetpack, VIP etc.", function()
-    -- Gamepass Bypass Mantığı (DEX True)
-    local localPlayer = game.Players.LocalPlayer
-    if not localPlayer:FindFirstChild("GoldPass") then
-        local gp = Instance.new("BoolValue", localPlayer)
-        gp.Name = "GoldPass" -- Double Gold Tetikleyici
-        local vip = Instance.new("BoolValue", localPlayer)
-        vip.Name = "VIP"
+-- GAMEPASS BYPASS (DEX TRUE)
+GPSection:NewButton("Unlock All Gamepasses (X2 Gold)", "Tetikli Bypass", function()
+    if not LocalPlayer:FindFirstChild("GoldPass") then
+        local g = Instance.new("BoolValue", LocalPlayer); g.Name = "GoldPass"
+        local v = Instance.new("BoolValue", LocalPlayer); v.Name = "VIP"
     end
-    Library:Notify("Bypass", "Tüm Gamepass Özellikleri Tetiklendi!", "Default")
+    Library:Notify("Sistem", "Bypass Aktif: X2 Altın Tetiklendi!", "Default")
 end)
 
--- AUTO FARM (11 BÖLÜM + CHEST)
-local FarmSection = FarmTab:NewSection("Stage Farm")
-FarmSection:NewToggle("Start Full Farm", "11 Bölüm Geçer ve Sandığı Alır", function(state)
-    AutoFarm = state
-    if state then
-        spawn(function()
-            while AutoFarm do
-                local char = game.Players.LocalPlayer.Character
-                if char and char:FindFirstChild("HumanoidRootPart") then
-                    -- 1'den 10'a kadar bölümleri geç (Tetikli)
-                    for i = 1, 10 do
-                        if not AutoFarm then break end
-                        char.HumanoidRootPart.CFrame = game:GetService("Workspace").BoatStages.NormalStages["Stage" .. i].GoldenChest.Trigger.CFrame
-                        task.wait(1.5) -- Anti-Cheat Bypass hızı
-                    end
-                    
-                    -- 11. Bölüm (Golden Chest)
-                    if AutoFarm then
-                        char.HumanoidRootPart.CFrame = game:GetService("Workspace").BoatStages.NormalStages.TheEnd.GoldenChest.Trigger.CFrame
-                        task.wait(2)
-                        Chests = Chests + 1
-                        chestLabel:UpdateLabel("Chest Collected: " .. Chests)
-                    end
-                    
-                    -- Reset ve Tekrar Başla
-                    char.Humanoid:BreakJoints()
-                    task.wait(5)
-                end
-            end
-        end)
+-- ANA FARM FONKSİYONU (ATTIĞIN SCRIPTİN GELİŞMİŞ HALİ)
+local function HasStage(Num)
+    return Data[`Stage{Num}`].Value ~= "" and Data[`Stage{Num}`].Value
+end
+
+local function Farm()
+    if not AutoFarmActive then return end
+    local Char = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+    local Root = Char:WaitForChild("HumanoidRootPart")
+    local Stages = workspace.BoatStages.NormalStages
+    
+    -- 1'den 10'a kadar olan gizli bölgeleri geç
+    for i = 1, 10 do
+        if not AutoFarmActive then break end
+        local Target = Stages[`CaveStage{i}`].DarknessPart
+        
+        -- Bypass Işınlanma
+        Root.CFrame = Target.CFrame
+        task.wait(0.5)
+        Claim:FireServer() -- Bölüm ödülünü tetikle
+        
+        repeat task.wait() until HasStage(i) or not AutoFarmActive
+    end
+
+    -- 11. BÖLÜM (GOLDEN CHEST) - SENİN İSTEDİĞİN FULL KISIM
+    if AutoFarmActive then
+        local FinalChest = Stages.TheEnd.GoldenChest.Trigger
+        Root.CFrame = FinalChest.CFrame
+        task.wait(1)
+        
+        -- Chest Tetikleyici (Bypasslı)
+        FinalChest.CFrame = Root.CFrame
+        task.wait(0.5)
+        
+        -- İstatistikleri Güncelle
+        Chests = Chests + 1
+        chestLabel:UpdateLabel("Chest Collected: " .. Chests)
+        
+        -- Reset ve Döngü
+        Char:BreakJoints()
+    end
+end
+
+-- TETİKLEYİCİLER
+LocalPlayer.CharacterAdded:Connect(function()
+    if AutoFarmActive then
+        task.wait(2)
+        Farm()
     end
 end)
 
--- ARKA PLAN DÖNGÜSÜ (GÜNCELLEMELER)
+-- CANLI TAKİP DÖNGÜSÜ
 spawn(function()
     while task.wait(1) do
-        -- Zaman
         local diff = os.time() - StartTime
         local h, m, s = math.floor(diff/3600), math.floor((diff%3600)/60), diff%60
-        timeLabel:UpdateLabel("Total Time Farming: " .. string.format("%02d:%02d:%02d", h, m, s))
+        timeLabel:UpdateLabel("Total Time: " .. string.format("%02d:%02d:%02d", h, m, s))
         
-        -- Gold Takibi
-        local currentGold = game.Players.LocalPlayer.Data.Gold.Value
-        GainedGold = currentGold - StartGold
+        local currentGold = LocalPlayer.Data.Gold.Value
         goldLabel:UpdateLabel("Current Gold: " .. currentGold)
-        gainedLabel:UpdateLabel("Gained Gold: " .. GainedGold)
+        gainedLabel:UpdateLabel("Gained Gold: " .. (currentGold - StartGold))
     end
 end)
+
+-- BAŞLAT
+Farm()
