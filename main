@@ -1,7 +1,7 @@
 -- =========================================================
--- W31rd.Hub - Gold Farming V1.3 (ULTIMATE EDITION)
+-- W31rd.Hub - Gold Farming V1.4 (FORCED PROGRESSION)
 -- IMPROVED LOOP, STAGE 1-11, & JESUS MODE
--- FIXED STAGE 10/11 STICKING & GOLD BLOCK COLLECTION
+-- FIXED STAGE 10/11 STICKING & FORCED STAGE PROGRESSION
 -- =========================================================
 
 -- Services
@@ -19,14 +19,14 @@ local GoldenChest = Stages.TheEnd.GoldenChest.Trigger
 -- Stats
 local StartGold = LocalPlayer.Data.Gold.Value
 local ChestsCollected = 0
-local CurrentStage = 0 -- Track current stage progress
+local CurrentStage = 0 
 local StartTime = os.time()
 local FarmingInProgress = false
 
 -- UI Reference for dynamic updates
 local StatusLabelRef = nil
 
--- [1] DEX TRUE & DOUBLE GOLD ENJECTOR
+-- [1] DEX TRUE & DOUBLE GOLD ENJECTOR (FORCED CHECK)
 local function ApplyDexTrue()
     local passes = {"GoldPass", "VIP", "Member", "DoubleGold", "DoubleMoney", "ExtraBoatSlot"}
     for _, name in pairs(passes) do
@@ -45,7 +45,7 @@ local function EnableJesusMode()
             if workspace:FindFirstChild("Water") then
                 workspace.Water.CanCollide = true
                 workspace.Water.Transparency = 0.5
-                workspace.Water.Size = Vector3.new(4000, 20, 4000)
+                workspace.Water.Size = Vector3.new(5000, 20, 5000)
             end
             task.wait(5)
         end
@@ -71,7 +71,7 @@ local function CreateUI()
     -- Title
     local Title = Instance.new("TextLabel", MainFrame)
     Title.Size = UDim2.new(1, 0, 0, 40)
-    Title.Text = "W31rd.Hub • Gold Farming • V1.3"
+    Title.Text = "W31rd.Hub • Gold Farming • V1.4"
     Title.TextColor3 = Color3.fromRGB(130, 180, 255)
     Title.BackgroundTransparency = 1
     Title.Font = Enum.Font.SourceSansBold
@@ -105,14 +105,16 @@ local function CreateUI()
     -- Status Update Loop
     task.spawn(function()
         while task.wait(1) do
-            local current = LocalPlayer.Data.Gold.Value
-            local diff = os.time() - StartTime
-            local h, m, s = math.floor(diff/3600), math.floor((diff%3600)/60), diff%60
-            
-            CurGoldL.Text = "Current Gold: " .. current
-            GainGoldL.Text = "Gained Gold: " .. (current - StartGold)
-            ChestsL.Text = "Gold Blocks: " .. ChestsCollected
-            TimeL.Text = "Total Time: " .. string.format("%02d:%02d:%02d", h, m, s)
+            if LocalPlayer:FindFirstChild("Data") and LocalPlayer.Data:FindFirstChild("Gold") then
+                local current = LocalPlayer.Data.Gold.Value
+                local diff = os.time() - StartTime
+                local h, m, s = math.floor(diff/3600), math.floor((diff%3600)/60), diff%60
+                
+                CurGoldL.Text = "Current Gold: " .. current
+                GainGoldL.Text = "Gained Gold: " .. (current - StartGold)
+                ChestsL.Text = "Gold Blocks: " .. ChestsCollected
+                TimeL.Text = "Total Time: " .. string.format("%02d:%02d:%02d", h, m, s)
+            end
         end
     end)
     
@@ -142,11 +144,11 @@ local function CreateUI()
     local DCorner = Instance.new("UICorner", DiscordBtn)
     DiscordBtn.MouseButton1Click:Connect(function() setclipboard("discord.gg/EbhtGYbuTa") end)
 
-    -- Tip Label (Now Dynamic Progress Label)
+    -- Dynamic Progress Label
     local Tip = Instance.new("TextLabel", MainFrame)
     Tip.Size = UDim2.new(1, 0, 0, 20)
     Tip.Position = UDim2.new(0, 0, 0, 230)
-    Tip.Text = "Progress: Waiting..."
+    Tip.Text = "Progress: Initializing..."
     Tip.TextColor3 = Color3.fromRGB(180, 180, 180)
     Tip.BackgroundTransparency = 1
     Tip.Font = Enum.Font.SourceSansItalic
@@ -186,7 +188,9 @@ local function Farm()
     if FarmingInProgress then return end
     FarmingInProgress = true
     
+    -- Forced Dex Check at start of cycle
     ApplyDexTrue()
+    
     local Char = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
     local Root = Char:WaitForChild("HumanoidRootPart")
 
@@ -195,24 +199,34 @@ local function Farm()
     conn = LocalPlayer.CharacterAdded:Once(function() 
         NewChar = true 
         FarmingInProgress = false
-        if StatusLabelRef then StatusLabelRef.Text = "Progress: Restarting..." end
+        if StatusLabelRef then StatusLabelRef.Text = "Progress: Spawning..." end
     end)
 
     -- Stage 1 to 11 loop
     for i = 1, 11 do
         if NewChar then break end
         
-        -- Update Progress UI
+        -- Forced Stage UI Update
         if StatusLabelRef then
-            StatusLabelRef.Text = "Progress: Stage " .. i .. " / 11"
+            StatusLabelRef.Text = "Progress: Stage " .. i .. " / 11 (FORCING)"
         end
         
         local TargetPart
         if i <= 10 then
-            TargetPart = Stages[`CaveStage{i}`].DarknessPart
+            -- Find the correct stage part even if it lags
+            local StageFolder = Stages:FindFirstChild(`CaveStage{i}`)
+            if StageFolder then
+                TargetPart = StageFolder:FindFirstChild("DarknessPart")
+            end
         else
-            -- Stage 11 is the Golden Chest
+            -- Stage 11: The End
             TargetPart = GoldenChest
+        end
+        
+        if not TargetPart then
+            -- Fallback anti-stuck if target part is missing
+            task.wait(1)
+            continue
         end
         
         local Teleporting = true
@@ -223,11 +237,12 @@ local function Farm()
                     Root.Velocity = Vector3.zero
                     Root.RotVelocity = Vector3.zero
                     
-                    -- Anti-physics freeze
+                    -- Anti-physics freeze forced
                     for _, v in pairs(Char:GetChildren()) do
                         if v:IsA("BasePart") then
-                            v.Velocity = Vector3.new(0, 0, 0)
-                            v.RotVelocity = Vector3.new(0, 0, 0)
+                            v.Velocity = Vector3.zero
+                            v.RotVelocity = Vector3.zero
+                            v.CanCollide = false -- Ghost mode for speed
                         end
                     end
                 end
@@ -235,45 +250,44 @@ local function Farm()
             end
         end)
 
-        -- Claim Stages 1-10
+        -- Claim Logics
         if i <= 10 then
             ClaimStage(i)
         end
 
         if i == 11 then
-            -- Stage 11: Chest Room Optimization
-            if StatusLabelRef then StatusLabelRef.Text = "Progress: Collecting Chest..." end
-            task.wait(1)
+            -- Stage 11: Final Force
+            if StatusLabelRef then StatusLabelRef.Text = "Progress: FORCING GOLD BLOCK..." end
+            task.wait(1.5)
             
-            -- Force Chest Collision (Multiple attempts to ensure collection)
-            for touch_attempt = 1, 5 do
+            -- High-Speed Chest Injection
+            for touch_attempt = 1, 10 do
                 if Root and GoldenChest then
                     GoldenChest.CFrame = Root.CFrame
-                    task.wait(0.2)
+                    task.wait(0.1)
                 end
             end
             
-            -- Move chest away to trigger server-side reward
-            GoldenChest.CFrame = CFrame.new(0, 9e9, 0)
-            
-            task.wait(3) -- Sufficient time for Gold Block & Gold processing
+            task.wait(2.5) -- Confirm server receipt
             ChestsCollected = ChestsCollected + 1
             FarmingInProgress = false
             
-            -- Clear Round & Reset
-            if StatusLabelRef then StatusLabelRef.Text = "Progress: Finished! Resetting..." end
+            -- Immediate Reset to prevent getting stuck in the room
+            if StatusLabelRef then StatusLabelRef.Text = "Progress: DONE! NEW CYCLE..." end
             if Char then Char:BreakJoints() end
             task.spawn(function() 
                 task.wait(0.5) 
                 Claim:FireServer() 
             end)
         else
-            -- Normal Stage Timeout with Anti-Stuck
+            -- Aggressive Timeout for Stage 10/11 transitions
             local timeout = 0
+            local max_wait = (i >= 9) and 4 or 5.5 -- Force faster skip for late stages
+            
             repeat 
                 task.wait(0.1) 
                 timeout = timeout + 0.1
-            until HasStage(i) or NewChar or timeout > 5.5
+            until HasStage(i) or NewChar or timeout > max_wait
         end
         Teleporting = false
     end
@@ -285,18 +299,22 @@ ApplyDexTrue()
 EnableJesusMode()
 CreateUI()
 
--- Auto-restart logic
+-- Auto-restart with Dex Verification
 LocalPlayer.CharacterAdded:Connect(function()
-    task.wait(3.5) -- Faster restart
+    ApplyDexTrue()
+    task.wait(3) 
     Farm()
 end)
 
--- Main execution guard
+-- Background Guard for absolute loop continuity
 task.spawn(function()
     while true do
-        if not FarmingInProgress and (not LocalPlayer.Character or LocalPlayer.Character.Humanoid.Health > 0) then
-            Farm()
+        if not FarmingInProgress then
+            local char = LocalPlayer.Character
+            if char and char:FindFirstChild("Humanoid") and char.Humanoid.Health > 0 then
+                Farm()
+            end
         end
-        task.wait(3)
+        task.wait(2)
     end
 end)
