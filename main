@@ -1,7 +1,7 @@
 -- =========================================================
 -- W31rd.Hub - Gold Farming V1.2 (rqccc & Dex True Edition)
 -- IMPROVED LOOP, STAGE 1-11, & JESUS MODE
--- FIXED STAGE 11 STICKING ISSUE
+-- FIXED STAGE 11 CHEST COLLECTION & AUTO-RESET
 -- =========================================================
 
 -- Services
@@ -223,22 +223,29 @@ local function Farm()
         end
 
         if i == 11 then
-            -- Chest Room Logic - Anti-Stuck
+            -- Chest Room Logic - Forced Collection
             task.wait(1.5)
-            -- Force touch chest
+            
+            -- Sandığı karakterin üzerine ışınla (Dokunma garantisi)
             if Root then
                 GoldenChest.CFrame = Root.CFrame
-                task.wait(0.5)
-                GoldenChest.CFrame = CFrame.new(0, 9e9, 0) -- Move away after touch
+                task.wait(0.8)
+                -- Sandık alındıktan sonra uzaklaştır (Hata önleyici)
+                GoldenChest.CFrame = CFrame.new(0, 9e9, 0)
             end
             
-            task.wait(2) -- Wait for server to process gold
+            task.wait(2.5) -- Altının işlenmesi için güvenli bekleme
             ChestsCollected = ChestsCollected + 1
             FarmingInProgress = false
             
-            -- End the round
-            if Char then Char:BreakJoints() end
-            task.spawn(function() task.wait(1) Claim:FireServer() end)
+            -- Turu bitir ve RESET at (Döngü başlangıcı)
+            if Char then 
+                Char:BreakJoints() 
+            end
+            task.spawn(function() 
+                task.wait(1) 
+                Claim:FireServer() 
+            end)
         else
             -- Normal Stage Timeout
             local timeout = 0
@@ -257,12 +264,13 @@ ApplyDexTrue()
 EnableJesusMode()
 CreateUI()
 
+-- Auto-restart when character spawns
 LocalPlayer.CharacterAdded:Connect(function()
-    task.wait(3)
+    task.wait(4) -- Karakterin tam yüklenmesini bekle
     Farm()
 end)
 
--- Initial Execution
+-- Initial Execution loop to ensure it's always running
 task.spawn(function()
     while true do
         if not FarmingInProgress then
